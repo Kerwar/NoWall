@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "*.f03": "FortranFreeForm",
+    "iostream": "cpp"
+  }
+}
