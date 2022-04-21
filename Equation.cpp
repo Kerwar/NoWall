@@ -172,6 +172,7 @@ double Equation::solve(Field::vectorField &phi, FiniteMatrix::finiteMat &sourcei
     iterations = 1;
     return solveGaussSeidel(phi, sourceinput, alpha, iterations);
   }
+  iterations = 4;
   // return solveExplicit(phi, sourceinput, alpha, iterations);
   for (unsigned int i = 1; i < phi.size() - 1; i++)
   {

@@ -32,7 +32,7 @@ public:
   void setExchangeWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side, int iStr, int iEnd, int mainexI1, int mainexI2, int exI1, int exI2);
   void setDirichlet(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side);
   void assembleEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn);
-    double solveEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, double alpha, int &niter, int &itersol, int changeIter);
+  double solveEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, double alpha, int &niter, int &itersol, int changeIter);
   double calculateNewM(double alpha, double m, double q);
   void setFixIndex(double xfix, double yfix);
   void updateBoundFactors();

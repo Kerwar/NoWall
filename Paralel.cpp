@@ -35,10 +35,13 @@ void Paralel::setUpComm(int &NX, int &NY, double &xMax, double &xExMin, double &
 
   double nmRelation = sqrt((float)NX / (float)NY * nProcs);
 
-  int dims[2] = {0, 0};
+  int dims[2] = {0, 1};
 
   nProcsInRow = SetXProcs(nmRelation);
   nProcsInCol = nProcs / nProcsInRow;
+
+  nProcsInRow = nProcs;
+  nProcsInCol = 1;
 
   dims[0] = nProcsInRow;
   dims[1] = nProcsInCol;

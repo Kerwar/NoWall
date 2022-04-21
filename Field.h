@@ -43,15 +43,6 @@ public:
 
   void computeEastMassFluxes(Field::vectorField& vec, Field::vectorField& corrU);
   void computeNorthMassFluxes(Field::vectorField& vec, Field::vectorField& corrV);
-
-  friend Field operator+(const Field&, const Field&);
-  friend Field operator-(const Field&, const Field&);
-  friend Field operator*(const double, const Field&);
-  friend Field operator*(const Field&, const double);
-  friend Field::vectorField operator+(const Field::vectorField&, const Field::vectorField&);
-  friend Field::vectorField operator-(const Field::vectorField&, const Field::vectorField&);
-  friend Field::vectorField operator*(const double, const Field::vectorField&);
-  friend Field::vectorField operator*(const Field::vectorField&, const double);
 };
 
 #endif

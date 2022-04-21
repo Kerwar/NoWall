@@ -15,26 +15,26 @@ double Problem::bK, Problem::exCte;
 
 double Problem::viscX, Problem::viscY;
 
-Problem::Problem(int worldsize) : maxit(10000), iShow(1000), m(2), N(600), M(10),
-                                  tolerance(10e-8), paralel(worldsize), alpha(0.8),
+Problem::Problem(int worldsize) : maxit(10), iShow(1), m(2), N(1200), M(10),
+                                  tolerance(10e-12), paralel(worldsize), alpha(0.95),
                                   readFromFile(false)
 {
   PROFILE_FUNCTION();
   beta = 10;
   gamma = 0.7;
   xMin = 0;
-  xMax = 120;
-  xExMin = 40;
-  xExMax = 80;
-  yWall = 0.5;
+  xMax = 80;
+  xExMin = 20;
+  xExMax = 60;
+  yWall = 0.0;
   yChannel = 0.5;
   yMin = 0;
-  yMax = 1.5;
-  xfix = 43;
-  yfix = 1.25;
+  yMax = 1;
+  xfix = 23;
+  yfix = 0.75;
   q = 1.2;
-  xHS_U = 44;
-  xHS_D = 76;
+  xHS_U = 24;
+  xHS_D = 56;
   r0hs = 1;
   z0hs = 0.5;
   alphaWall = 1;
@@ -49,10 +49,14 @@ Problem::Problem(int worldsize) : maxit(10000), iShow(1000), m(2), N(600), M(10)
   viscY = a2;
 }
 
-Problem::Problem(int worldsize, int nx, int my, double prevm) : maxit(1000), iShow(10), m(prevm), N(nx), M(my),
-                                                                tolerance(10e-8), paralel(worldsize), alpha(0.8), readFromFile(true)
+Problem::Problem(int worldsize, int nx, int my, double prevm) : maxit(2000000), iShow(50000), m(prevm), N(nx), M(my),
+                                                                tolerance(10e-10), paralel(worldsize), alpha(0.9), readFromFile(true)
 {
   PROFILE_FUNCTION();
+  if (nx > 20000)
+  {
+	tolerance = 10e-6;
+	maxit = 1000000;}
 }
 
 Problem::~Problem()
@@ -126,6 +130,7 @@ void Problem::initializeVariables()
     else if (paralel.isRightToLeft())
       variables->readFile(paralel, 1, m, myYMin - yChannel, myYMax);
 
+    variables->sendInfoToNeighbours(paralel);
   }
   //  If density non constant this interpolate the Velocities and the mass fluxes have to be calculated with them
   // Field::vectorField UE(fieldOper.interpolatedFieldEast(U, myGrid));
@@ -145,7 +150,6 @@ void Problem::initializeVariables()
     variables->setInletBoundaryConditionRightToLeft();
   }
 
-  variables->sendInfoToNeighbours(paralel);
   variables->sendInfoToCommMainProc(paralel);
 
   variables->exchangeTemperature(paralel, exCte);
@@ -230,7 +234,7 @@ double Problem::mainIter(int i)
   Feqn->EqnName = "F-Eqn";
   Zeqn->EqnName = "Z-Eqn";
 
-  error = variables->solveEquations(Teqn, Feqn, Zeqn, alpha, i, itersol, 10 * iShow);
+  error = variables->solveEquations(Teqn, Feqn, Zeqn, alpha, i, itersol, 10*iShow);
 
   double error_result = 0;
 
@@ -349,16 +353,16 @@ void Problem::writefilename(string &filename)
 void Problem::retrieveNandM(int &nxOut, int &nyOut, double &mOut)
 {
   PROFILE_FUNCTION();
-  double xcellSize = (xMax - xMin) / N;
-  double ycellSize = (yMax - yMin) / M;
+  // double xcellSize = (xMax - xMin) / N;
+  // double ycellSize = (yMax - yMin) / M;
 
-  nxOut = N;
+  nxOut = N * 5;
   nyOut = M * 2;
-  if (xcellSize >= ycellSize * a)
-  {
-    nxOut = N * 2;
-    nyOut = M;
-  }
+  // if (xcellSize >= ycellSize * a)
+//  {
+  //  nxOut = N * 2;
+   // nyOut = M;
+//  }
   mOut = m;
 }
 

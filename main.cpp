@@ -77,7 +77,7 @@ int main(int argc, char **argv)
       }
     }
     solutionNotGoodEnough = problem->isSolutionNotGoodEnough();
-      solutionNotGoodEnough = true;
+      // solutionNotGoodEnough = false;//true;
 
     if (solutionNotGoodEnough)
     {

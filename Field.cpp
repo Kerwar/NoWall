@@ -16,16 +16,19 @@ Field::~Field()
 
 void Field::getGridInfoPassed(Field::vectorField &f, Grid &myGrid, double &viscX, double &viscY)
 {
+  NI = myGrid.NI;
+  NJ = myGrid.NJ;
+
   forAll(f)
   {
-    f[i][j].X = myGrid.X[i][j];
-    f[i][j].Y = myGrid.Y[i][j];
-    f[i][j].XC = myGrid.XC[i][j];
-    f[i][j].YC = myGrid.YC[i][j];
-    f[i][j].FXE = myGrid.XF[i][j];
-    f[i][j].FYN = myGrid.YF[i][j];
-    f[i][j].FXP = 1.0 - myGrid.XF[i][j];
-    f[i][j].FYP = 1.0 - myGrid.YF[i][j];
+    f[i][j].X = myGrid.X[i + j*NI];
+    f[i][j].Y = myGrid.Y[i + j*NI];
+    f[i][j].XC = myGrid.XC[i + j*NI];
+    f[i][j].YC = myGrid.YC[i + j*NI];
+    f[i][j].FXE = myGrid.XF[i + j*NI];
+    f[i][j].FYN = myGrid.YF[i + j*NI];
+    f[i][j].FXP = 1.0 - myGrid.XF[i + j*NI];
+    f[i][j].FYP = 1.0 - myGrid.YF[i + j*NI];
 
     f[i][j].viscX = viscX;
     f[i][j].viscY = viscY;
@@ -33,11 +36,11 @@ void Field::getGridInfoPassed(Field::vectorField &f, Grid &myGrid, double &viscX
 
   forAllInternal(f)
   {
-    f[i][j].DXPtoE = std::abs(myGrid.XC[i + 1][j] - myGrid.XC[i][j]);
-    f[i][j].DYPtoN = std::abs(myGrid.YC[i][j + 1] - myGrid.YC[i][j]);
+    f[i][j].DXPtoE = std::abs(myGrid.XC[i + 1 + j*NI] - myGrid.XC[i + j*NI]);
+    f[i][j].DYPtoN = std::abs(myGrid.YC[i + (j+1)*NI] - myGrid.YC[i + j*NI]);
 
-    f[i][j].Se = std::abs(myGrid.Y[i][j] - myGrid.Y[i][j - 1]);
-    f[i][j].Sn = std::abs(myGrid.X[i][j] - myGrid.X[i - 1][j]);
+    f[i][j].Se = std::abs(myGrid.Y[i + j*NI] - myGrid.Y[i + (j-1)*NI]);
+    f[i][j].Sn = std::abs(myGrid.X[i + j*NI] - myGrid.X[i - 1 + j*NI]);
 
     f[i][j].volume = f[i][j].Se * f[i][j].Sn;
   }
@@ -177,7 +180,7 @@ Field::vectorField Field::interpolatedFieldEast(Field::vectorField &vec, Grid &m
 
   forAllInternalUCVs(vec)
   {
-    double FXE = myGrid.XF[i][j];
+    double FXE = myGrid.XF[i + j*NI];
     double FXP = 1.0 - FXE;
 
     temp[i][j].value = vec[i + 1][j].value * FXE + vec[i][j].value * FXP;
@@ -192,7 +195,7 @@ Field::vectorField Field::interpolatedFieldNorth(Field::vectorField &vec, Grid &
 
   forAllInternalVCVs(vec)
   {
-    double FYN = myGrid.YF[i][j];
+    double FYN = myGrid.YF[i + j *NI];
     double FYP = 1.0 - FYN;
 
     temp[i][j].value = vec[i][j + 1].value * FYN + vec[i][j].value * FYP;
@@ -222,88 +225,4 @@ void Field::computeNorthMassFluxes(Field::vectorField &vec, Field::vectorField &
     double density = vec[i][j].density;
     vec[i][j].value = sArea * density * corrV[i][j].value;
   }
-}
-
-Field operator+(const Field &lhs, const Field &rhs)
-{
-  Field result;
-
-  result.value = lhs.value + rhs.value;
-
-  return result;
-}
-
-Field operator-(const Field &lhs, const Field &rhs)
-{
-  Field result;
-
-  result.value = lhs.value - rhs.value;
-
-  return result;
-}
-
-Field operator*(const double &lhs, const Field &rhs)
-{
-  Field result;
-
-  result.value = lhs * rhs.value;
-
-  return result;
-}
-
-Field operator*(const Field &lhs, const double &rhs)
-{
-  Field result;
-
-  result.value = lhs.value * rhs;
-
-  return result;
-}
-
-Field::vectorField operator+(const Field::vectorField &lhs, const Field::vectorField &rhs)
-{
-  Field::vectorField result(lhs);
-
-  forAll(lhs)
-  {
-    result[i][j].value += rhs[i][j].value;
-  }
-
-  return result;
-}
-
-Field::vectorField operator-(const Field::vectorField &lhs, const Field::vectorField &rhs)
-{
-  Field::vectorField result(lhs);
-
-  forAll(lhs)
-  {
-    result[i][j].value -= rhs[i][j].value;
-  }
-
-  return result;
-}
-
-Field::vectorField operator*(const double &lhs, const Field::vectorField &rhs)
-{
-  Field::vectorField result(rhs);
-
-  forAllInternal(rhs)
-  {
-    result[i][j].value = lhs * rhs[i][j].value;
-  }
-
-  return result;
-}
-
-Field::vectorField operator*(const Field::vectorField &lhs, const double &rhs)
-{
-  Field::vectorField result(lhs);
-
-  forAllInternal(lhs)
-  {
-    result[i][j].value = rhs * lhs[i][j].value;
-  }
-
-  return result;
 }
