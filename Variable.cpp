@@ -4,14 +4,14 @@
 // {
 // }
 
-Variable::Variable(int &n, int &m, int &soln, int &solm) : N(n), M(m), solN(soln), solM(solm),
-                                                           solT(soln, Field::vec1dfield(solm)),
-                                                           solF(soln, Field::vec1dfield(solm)), solZ(soln, Field::vec1dfield(solm)),
-                                                           solU(soln, Field::vec1dfield(solm)), solV(soln, Field::vec1dfield(solm)),
-                                                           U(N, Field::vec1dfield(M)), V(N, Field::vec1dfield(M)),
-                                                           T(N, Field::vec1dfield(M)),
-                                                           F(N, Field::vec1dfield(M)), Z(N, Field::vec1dfield(M)),
-                                                           TWall(Field::vec1dfield(solN + 2)), TNextToWall(Field::vec1dfield(solN + 2))
+Variable::Variable(int &n, int &m, int &soln, int &solm) : NI(n), NJ(m), solN(soln), solM(solm),
+                                                           solT(solN, solM), solF(solN, solM),
+                                                           solZ(solN, solM), solU(solN, solM),
+                                                           solV(solN, solM), U(NI, NJ),
+                                                           V(NI, NJ), T(NI, NJ),
+                                                           F(NI, NJ), Z(NI, NJ),
+                                                           TWall(solN + 2, 1), TNextToWall(solN + 2, 1),
+                                                           massFluxE(NI, NJ), massFluxN(NI, NJ)
 {
 }
 
@@ -77,11 +77,9 @@ void Variable::initializeWall()
 void Variable::setMassFluxes(Grid &myGrid)
 {
   PROFILE_FUNCTION();
-  massFluxE = Field::vectorField(N, Field::vec1dfield(M));
-  massFluxN = Field::vectorField(N, Field::vec1dfield(M));
 
-  fieldOper.getGridInfoPassed(massFluxE, myGrid, U[0][0].viscX, U[0][0].viscY);
-  fieldOper.getGridInfoPassed(massFluxN, myGrid, V[0][0].viscX, V[0][0].viscY);
+  fieldOper.getGridInfoPassed(massFluxE, myGrid, U.viscX[0], U.viscY[0]);
+  fieldOper.getGridInfoPassed(massFluxN, myGrid, V.viscX[0], V.viscY[0]);
 
   fieldOper.computeEastMassFluxes(massFluxE, U);
   fieldOper.computeNorthMassFluxes(massFluxN, V);
@@ -220,10 +218,10 @@ double Variable::solveEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeq
   FiniteMatrix::finiteMat SZ(Zeqn->sourceRelaxed);
   error = std::max(error, Zeqn->solve(Z, SZ, alpha, niter, itersol, changeIter));
 
-  forAllInternal(F)
+  forAllInterior(NI, NJ)
   {
 
-    F[i][j].value = std::max(F[i][j].value, 0.0);
+    F.value[i + j * NI] = std::max(F.value[i + j * NI], 0.0);
   }
   return error;
 }
@@ -232,25 +230,26 @@ double Variable::calculateNewM(double alpha, double m, double q)
 {
   PROFILE_FUNCTION();
 
-  T[ifix][jfix].value = 0.7;
+  int index = ifix + jfix * NI;
+  T.value[index] = 0.7;
 
-  double diffusiveTermX = T[ifix][jfix].viscX * T[ifix][jfix].Se *
-                              (T[ifix + 1][jfix].value - T[ifix][jfix].value) / T[ifix][jfix].DXPtoE -
-                          T[ifix - 1][jfix].viscX * T[ifix - 1][jfix].Se *
-                              (T[ifix][jfix].value - T[ifix - 1][jfix].value) / T[ifix - 1][jfix].DXPtoE;
+  double diffusiveTermX = T.viscX[index] * T.Se[index] *
+                              (T.value[index + 1] - T.value[index]) / T.DXPtoE[index] -
+                          T.viscX[index - 1] * T.Se[index - 1] *
+                              (T.value[index] - T.value[index - 1]) / T.DXPtoE[index - 1];
 
-  double diffusiveTermY = T[ifix][jfix].viscY * T[ifix][jfix].Sn *
-                              (T[ifix][jfix + 1].value - T[ifix][jfix].value) / T[ifix][jfix].DYPtoN -
-                          T[ifix][jfix - 1].viscY * T[ifix][jfix - 1].Sn *
-                              (T[ifix][jfix].value - T[ifix][jfix - 1].value) / T[ifix][jfix - 1].DYPtoN;
+  double diffusiveTermY = T.viscY[index] * T.Sn[index] *
+                              (T.value[index + NI] - T.value[index]) / T.DYPtoN[index] -
+                          T.viscY[index - NI] * T.Sn[index - NI] *
+                              (T.value[index] - T.value[index - NI]) / T.DYPtoN[index - NI];
 
-  double convectiveTermX = (T[ifix + 1][jfix].value * massFluxE[ifix][jfix].value * T[ifix][jfix].FXE -
-                            T[ifix - 1][jfix].value * massFluxE[ifix][jfix].value * T[ifix][jfix].FXP);
+  double convectiveTermX = (T.value[index + 1] * massFluxE.value[index] * T.FXE[index] -
+                            T.value[index - 1] * massFluxE.value[index] * T.FXP[index]);
 
-  double convectiveTermY = (T[ifix][jfix + 1].value * massFluxN[ifix][jfix].value * T[ifix][jfix].FYN -
-                            T[ifix][jfix - 1].value * massFluxN[ifix][jfix].value * T[ifix][jfix].FYP);
+  double convectiveTermY = (T.value[index + NI] * massFluxN.value[index] * T.FYN[index] -
+                            T.value[index - NI] * massFluxN.value[index] * T.FYP[index]);
 
-  double reactionTerm = q * Z[ifix][jfix].value * T[ifix][jfix].Se * T[ifix][jfix].Sn;
+  double reactionTerm = q * Z.value[index] * T.Se[index] * T.Sn[index];
 
   double newM = alpha * (reactionTerm + diffusiveTermX + diffusiveTermY) / (convectiveTermX + convectiveTermY) + (1 - alpha) * m;
 
@@ -267,24 +266,24 @@ void Variable::setFixIndex(double xfix, double yfix)
   jfix = 0;
 
   double error = 1000;
-  double newerror = abs(T[ifix][jfix].XC - xfix);
+  double newerror = abs(T.XC[ifix + jfix * NI] - xfix);
 
   while (newerror < error)
   {
-    error = abs(T[ifix][jfix].XC - xfix);
+    error = abs(T.XC[ifix + jfix * NI] - xfix);
     ifix++;
-    newerror = abs(T[ifix][jfix].XC - xfix);
+    newerror = abs(T.XC[ifix + jfix * NI] - xfix);
   }
   ifix--;
 
   error = 1000;
-  newerror = abs(T[ifix][jfix].YC - yfix);
+  newerror = abs(T.YC[ifix + jfix * NI] - yfix);
 
   while (newerror < error)
   {
-    error = abs(T[ifix][jfix].YC - yfix);
+    error = abs(T.YC[ifix + jfix * NI] - yfix);
     jfix++;
-    newerror = abs(T[ifix][jfix].YC - yfix);
+    newerror = abs(T.YC[ifix + jfix * NI] - yfix);
   }
   jfix--;
 }
@@ -305,7 +304,8 @@ void Variable::readFile(Paralel &paralel, int block, double &m, double yMin, dou
   Field fieldOper;
 
   double laminarm = m;
-  if (paralel.isRightToLeft()) laminarm = -m;
+  if (paralel.isRightToLeft())
+    laminarm = -m;
 
   fieldOper.laminarFlow(U, laminarm, yMin, yMax);
   fieldOper.initializeInternalField(V, 0);
@@ -333,8 +333,8 @@ bool Variable::isTOutEqualToQ(double q, Paralel &paralel)
   if (paralel.myProc == 0 && paralel.isRightToLeft())
   {
     double TOut = 0;
-    for (unsigned long int j = 0; j < solT[0].size(); j++)
-      TOut += solT[1][j].value;
+    for (int j = 0; j < solM; j++)
+      TOut += solT.value[1 + j * solN];
 
     if (abs(TOut - expectedTOut) < 10e-3)
       result = true;
@@ -342,8 +342,8 @@ bool Variable::isTOutEqualToQ(double q, Paralel &paralel)
   else if (paralel.myProc == 0 && paralel.isLeftToRight())
   {
     double TOut = 0;
-    for (unsigned long int j = 0; j < solT[0].size(); j++)
-      TOut += solT[solN - 2][j].value;
+    for (int j = 0; j < solM; j++)
+      TOut += solT.value[solN - 2 + j * solN];
 
     if (abs(TOut - expectedTOut) < 10e-3)
       result = true;
@@ -388,9 +388,9 @@ void Variable::writeTInWall(Paralel &paralel, int iter)
   std::ofstream outfile;
   outfile.open(cstr, std::ios::out);
 
-  for (unsigned long int i = 0; i < TWall.size(); i++)
+  for (int i = 0; i < NI; i++)
   {
-    outfile << i << "-" << TWall[i].value << std::endl;
+    outfile << i << "-" << TWall.value[i] << std::endl;
   }
   outfile.close();
 }

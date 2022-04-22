@@ -26,8 +26,9 @@ public:
   virtual ~FileWriter();
 
   // void writeTFZ(string &name, int time, Grid &myGrid, Field::vectorField &Ttemp, Field::vectorField &Ftemp, Field::vectorField &Ztemp, int iStr, int iEnd, int jStr, int jEnd, Paralel::Loc loc);
-  // void WriteBin(string &name, int time, Grid &myGrid, Field::vectorField &Utemp, Field::vectorField &Vtemp, Field::vectorField &Ttemp, Field::vectorField &Ftemp, Field::vectorField &Ztemp, int iStr, int iEnd, int jStr, int jEnd, Paralel::Loc loc);
-  void WriteInter(string prefix, string sufix, int time, Grid &mainGrid, Grid &myGrid, Field::vectorField &Utemp, Field::vectorField &Vtemp, Field::vectorField &Ttemp, Field::vectorField &Ftemp, Field::vectorField &Ztemp, int iStr, int iEnd, int jStr, int jEnd, Paralel::Loc loc);
+  void WriteBin(string prefix, string sufix, int time, Grid &myGrid, Field &Utemp, Field &Vtemp, Field &Ttemp, Field &Ftemp, Field &Ztemp, int iStr, int iEnd, int jStr, int jEnd, Paralel::Loc loc);
+  void WriteInter(string prefix, string sufix, int time, Grid &mainGrid, Grid &myGrid,
+   Field &Utemp, Field &Vtemp, Field &Ttemp, Field &Ftemp, Field &Ztemp, int iStr, int iEnd, int jStr, int jEnd, Paralel::Loc loc);
 
 private:
   string prd(const double x, const int decDigits, const int width);

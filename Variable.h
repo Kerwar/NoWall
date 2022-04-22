@@ -39,11 +39,11 @@ public:
   bool isTOutEqualToQ(double q, Paralel &paralel);
   void writeTInWall(Paralel &paralel, int iter);
 
-  int N, M;
+  int NI, NJ;
   int solN, solM;
-  Field::vectorField solT;
-  Field::vectorField solF, solZ;
-  Field::vectorField solU, solV;
+  Field solT;
+  Field solF, solZ;
+  Field solU, solV;
   bool manyIter = false;
 
 private:
@@ -51,14 +51,14 @@ private:
   Field fieldOper;
 
   int ifix, jfix;
-  Field::vectorField U, V;
+  Field U, V;
 
-  Field::vectorField T;
-  Field::vectorField F, Z;
+  Field T;
+  Field F, Z;
 
-  Field::vec1dfield TWall, TNextToWall;
+  Field TWall, TNextToWall;
 
-  Field::vectorField massFluxE, massFluxN;
+  Field massFluxE, massFluxN;
   double lowerBoundFactorm = 0.9, upperBoundFactorm = 1.1;
 
   string initialsol = "Sol-1.f";

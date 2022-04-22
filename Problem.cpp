@@ -176,9 +176,11 @@ void Problem::writeSolution(string &prefix, int i)
   MPI_Barrier(MPI_COMM_WORLD);
   if (myProc == 0 && paralel.isRightToLeft())
     fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables->solU, variables->solV, variables->solT, variables->solF, variables->solZ, paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd, paralel.loc);
+    // fileWriter.WriteBin(prefix, sufix, i, mainGrid, variables->solU, variables->solV, variables->solT, variables->solF, variables->solZ, paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd, paralel.loc);
   MPI_Barrier(MPI_COMM_WORLD);
   if (myProc == 0 && paralel.isLeftToRight())
-    fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables->solU, variables->solV, variables->solT, variables->solF, variables->solZ, paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd, paralel.loc);
+  fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables->solU, variables->solV, variables->solT, variables->solF, variables->solZ, paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd, paralel.loc);
+    // fileWriter.WriteBin(prefix, sufix, i, mainGrid, variables->solU, variables->solV, variables->solT, variables->solF, variables->solZ, paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd, paralel.loc);
   MPI_Barrier(MPI_COMM_WORLD);
 }
 

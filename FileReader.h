@@ -20,7 +20,7 @@ class FileReader
 
   FileReader();
   ~FileReader();
-  void readField(string &name, int blockWanted, int variableWanted, Field::vectorField &vec, int locIStr, int locIEnd);
+  void readField(string &name, int blockWanted, int variableWanted, Field &vec, int locIStr, int locIEnd);
 };
 
 #endif

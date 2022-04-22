@@ -54,16 +54,16 @@ public:
   int worldid(int, int);
   void setUpComm(int &NX, int &NY, double &xMax, double &xExMin, double &xExMax);
   void setUpMesh(int &NX, int &NY, double &channelWidth, int &exi1, int &exi2);
-  void SendInfoToNeighbours(Field::vectorField &vec);
-  void SendInfoToCommMainProc(Field::vectorField &vec, Field::vectorField &sol);
-  void ExchangeWallTemperature(Field::vec1dfield &TWall, Field::vec1dfield &TNextToWall, double &exCte);
-  void GatherWallTemperature(Field::vec1dfield &TWall, Field::vec1dfield &TNextToWall, Field::vectorField &T, double &exCte);
-  void ShareWallTemperatureInfo(Field::vec1dfield &TWall, Field::vectorField &T);
-  void SendWallTInTheChannel(Field::vec1dfield &TWall, vector<double> &TW);
+  void SendInfoToNeighbours(Field &vec);
+  void SendInfoToCommMainProc(Field &vec, Field &sol);
+  void ExchangeWallTemperature(Field &TWall, Field &TNextToWall, double &exCte);
+  void GatherWallTemperature(Field &TWall, Field &TNextToWall, Field &T, double &exCte);
+  void ShareWallTemperatureInfo(Field &TWall, Field &T);
+  void SendWallTInTheChannel(Field &TWall);
   void MainsProcs(Loc location, int &proc);
   void freeComm();
   void PrintProgress(string message, bool showProgress);
-  void distributeToProcs(Field::vectorField &sol, Field::vectorField &vec);
+  void distributeToProcs(Field &sol, Field &vec);
 
   inline bool isLeftToRight() { return loc == up ? true : false; };
   inline bool isRightToLeft() { return loc == down ? true : false; };
@@ -79,9 +79,9 @@ private:
   void setProcMesh(int &NX, int &NY);
   double TWUinBorder(double (&T)[4], double &exCte);
   double TWDinBorder(double (&T)[4], double &exCte);
-  void GatherTemperature(Field::vectorField &T, Field::vec1dfield &TWall, int J);
+  void GatherTemperature(Field &T, Field &TWall, int J);
   int SetXProcs(double &nmRelation);
-  Field::vec1dfield TIntoDerivative(const Field::vec1dfield &TWall,const Field::vec1dfield &TW2R, double exCte, double ex2);
+  // Field::vec1dfield TIntoDerivative(const Field &TWall,const Field &TW2R, double exCte, double ex2);
 };
 
 #endif

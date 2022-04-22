@@ -3,9 +3,9 @@
 
 #include<vector>
 #include<string>
+#include <cmath>
 
 #include "Grid.h"
-#include "ForAllOperators.h"
 
 using std::vector;
 using std::string;
@@ -16,33 +16,32 @@ public:
   Field();
 
   //Overlad constructor
-	Field(int&, int&);
+	Field(int NI, int NJ);
   virtual ~Field();
   
   enum Direction{west, east, south, north, point};
-  typedef vector<Field> vec1dfield;
-  typedef vector<vector<Field>> vectorField;
 
-  double value;
+  double *value;
 
-  int N, M, NI, NJ; 
-	double X, XC, Y, YC, FXE, FXP, FYN, FYP, DXPtoE, DYPtoN;
-	double Se, Sn, viscX, viscY, density, volume;
+  int N, M, NI, NJ;
 
-  void getGridInfoPassed(Field::vectorField&, Grid&, double&, double&);
-  void inletBoundaryCondition(Field::vectorField&, Direction, double);
-  void laminarFlow(Field::vectorField&, double, double, double);
-  void InitializeT(Field::vectorField &vec, double &q, double xHotSpot, double yHotSpot, double xMin, double xMax);
-  void InitializeZ(Field::vectorField &vec, double T0hs, double r0hs, double xHotSpot, double yHotSpot, double xMax);
-  void InitializeF(Field::vectorField &vec, double xHotSpot, double xMin, double xMax);
-  void initializeInternalField(Field::vectorField&, double);
-  void linearExtrapolateCondition(Field::vectorField&, Direction);
+	double *X, *XC, *Y, *YC, *FXE, *FXP, *FYN, *FYP, *DXPtoE, *DYPtoN;
+	double *Se, *Sn, *viscX, *viscY, *density, *volume;
 
-  Field::vectorField interpolatedFieldEast(Field::vectorField& vec, Grid& myGrid);
-  Field::vectorField interpolatedFieldNorth(Field::vectorField& vec, Grid& myGrid);
+  void getGridInfoPassed(Field &f, Grid &myGrid, double &viscX, double &viscY);
+  void inletBoundaryCondition(Field& vec, Direction side, double bvalue);
+  void laminarFlow(Field &vec, double m, double yMin, double yMax);
+  void InitializeT(Field &vec, double &q, double xHotSpot, double yHotSpot, double xMin, double xMax);
+  void InitializeZ(Field &vec, double T0hs, double r0hs, double xHotSpot, double yHotSpot, double xMax);
+  void InitializeF(Field &vec, double xHotSpot, double xMin, double xMax);
+  void initializeInternalField(Field &vec, double);
+  void linearExtrapolateCondition(Field &vec, Direction);
 
-  void computeEastMassFluxes(Field::vectorField& vec, Field::vectorField& corrU);
-  void computeNorthMassFluxes(Field::vectorField& vec, Field::vectorField& corrV);
+  void interpolatedFieldEast(Field &interpolated, Field& vec, Grid& myGrid);
+  void interpolatedFieldNorth(Field &interpolated, Field& vec, Grid& myGrid);
+
+  void computeEastMassFluxes(Field& vec, Field& corrU);
+  void computeNorthMassFluxes(Field& vec, Field& corrV);
 };
 
 #endif

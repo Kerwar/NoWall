@@ -29,24 +29,15 @@ Equation::Equation(const FiniteMatrix::finiteMat &Fmatrix) : APinitial(Fmatrix),
                                                              Literations(5)
 {
   PROFILE_FUNCTION();
-  forAllInternal(AP)
-  {
-    AW[i][j].value = 0.0;
-    AE[i][j].value = 0.0;
-    AS[i][j].value = 0.0;
-    AN[i][j].value = 0.0;
-    AP[i][j].value = 0.0;
-    APReaction[i][j].value = 0.0;
-    sourceInitial[i][j].value = 0.0;
-  }
 
-  forAllInternal(AP)
+  forAllInterior(NI, NJ)
   {
     AW[i][j].value = APinitial[i][j].awvalue;
     AE[i][j].value = APinitial[i][j].aevalue;
     AS[i][j].value = APinitial[i][j].asvalue;
     AN[i][j].value = APinitial[i][j].anvalue;
     APReaction[i][j].value = APinitial[i][j].apvalue;
+    AP[i][j].value = 0.0;
     sourceInitial[i][j].value = APinitial[i][j].svalue;
   }
 }
@@ -67,20 +58,20 @@ void Equation::assembleEquation()
   }
 }
 
-void Equation::relax(Field::vectorField &vec)
+void Equation::relax(Field &vec)
 {
   PROFILE_FUNCTION();
   if (URF != 1.0)
     forAllInternal(AP)
     {
       AP[i][j].value = (1.0 / URF) * AP[i][j].value;
-      sourceRelaxed[i][j].value = sourceFinal[i][j].value + (1.0 - URF) * (AP[i][j].value * vec[i][j].value);
+      sourceRelaxed[i][j].value = sourceFinal[i][j].value + (1.0 - URF) * (AP[i][j].value * vec.value[i + j * NI]);
 
       rAP[i][j].value = 1.0 / AP[i][j].value;
     }
 }
 
-void Equation::noWallShearXBoundaryConditions(Field::vectorField &vec, int start, int end, Field::Direction side) // Only U Velocity
+void Equation::noWallShearXBoundaryConditions(Field &vec, int start, int end, Field::Direction side) // Only U Velocity
 {
   PROFILE_FUNCTION();
 
@@ -92,16 +83,16 @@ void Equation::noWallShearXBoundaryConditions(Field::vectorField &vec, int start
     for (int i = start; i < end; i++)
     {
       APU[i][j].value -= AS[i][j].value;
-      sourceB[i][j].value -= AS[i][j].value * vec[i][j].value;
+      sourceB[i][j].value -= AS[i][j].value * vec.value[i + j * NI];
       AS[i][j].value = 0;
     }
     break;
   case Field::north:
-    j = vec[0].size() - 2;
+    j = NJ - 2;
     for (int i = start; i < end; i++)
     {
       APU[i][j].value -= AN[i][j].value;
-      sourceB[i][j].value -= AN[i][j].value * vec[i][j].value;
+      sourceB[i][j].value -= AN[i][j].value * vec.value[i + j * NI];
       AN[i][j].value = 0;
     }
     break;
@@ -111,7 +102,7 @@ void Equation::noWallShearXBoundaryConditions(Field::vectorField &vec, int start
 }
 
 void Equation::noWallShearYBoundaryConditions(
-    Field::vectorField &vec, int start, int end, Field::Direction side) // Only V velocity
+    Field &vec, int start, int end, Field::Direction side) // Only V velocity
 {
   PROFILE_FUNCTION();
   int i;
@@ -124,19 +115,19 @@ void Equation::noWallShearYBoundaryConditions(
     for (int j = start; j < end; j++)
     {
       APU[i][j].value -= AW[i][j].value;
-      sourceB[i][j].value -= AW[i][j].value * vec[i][j].value;
+      sourceB[i][j].value -= AW[i][j].value * vec.value[i + j * NI];
       AW[i][j].value = 0;
     }
     break;
 
   case Field::east:
 
-    i = vec.size() - 2;
+    i = NI - 2;
 
     for (int j = start; j < end; j++)
     {
       APU[i][j].value -= AE[i][j].value;
-      sourceB[i][j].value -= AE[i][j].value * vec[i][j].value;
+      sourceB[i][j].value -= AE[i][j].value * vec.value[i + j * NI];
       AE[i][j].value = 0;
     }
     break;
@@ -145,7 +136,7 @@ void Equation::noWallShearYBoundaryConditions(
   }
 }
 
-double Equation::solve(Field::vectorField &phi, FiniteMatrix::finiteMat &sourceinput, double &alpha, int &niter, int &iterations, int iterChange)
+double Equation::solve(Field &phi, FiniteMatrix::finiteMat &sourceinput, double &alpha, int &niter, int &iterations, int iterChange)
 {
   // SOlver for the SIP(Strongly Implicit Procedure) method
   // Iterative methods: A = M - N -> (M * phi(n) = N * phi(n-1) + S) if phi(n)=phi(n-1) there is no residual
@@ -174,9 +165,9 @@ double Equation::solve(Field::vectorField &phi, FiniteMatrix::finiteMat &sourcei
   }
   iterations = 4;
   // return solveExplicit(phi, sourceinput, alpha, iterations);
-  for (unsigned int i = 1; i < phi.size() - 1; i++)
+  for (int i = 1; i < NI - 1; i++)
   {
-    for (unsigned int j = 1; j < phi[i].size() - 1; j++)
+    for (int j = 1; j < NJ - 1; j++)
     {
       LW[i][j].value = AW[i][j].value / (1.0 + alpha * UN[i - 1][j].value);
       LS[i][j].value = AS[i][j].value / (1.0 + alpha * UE[i][j - 1].value);
@@ -195,11 +186,11 @@ double Equation::solve(Field::vectorField &phi, FiniteMatrix::finiteMat &sourcei
   for (int L = 0; L < iterations; L++)
   {
     Residual = 0.0;
-    for (unsigned int i = 1; i < phi.size() - 1; i++)
+    for (int i = 1; i < NI - 1; i++)
     {
-      for (unsigned int j = 1; j < phi[i].size() - 1; j++)
+      for (int j = 1; j < NJ - 1; j++)
       {
-        RES[i][j].value = sourceinput[i][j].value - (AN[i][j].value * phi[i][j + 1].value + AS[i][j].value * phi[i][j - 1].value + AE[i][j].value * phi[i + 1][j].value + AW[i][j].value * phi[i - 1][j].value + AP[i][j].value * phi[i][j].value);
+        RES[i][j].value = sourceinput[i][j].value - (AN[i][j].value * phi.value[i + (j + 1) * NI] + AS[i][j].value * phi.value[i + (j - 1) * NI] + AE[i][j].value * phi.value[i + 1 + j * NI] + AW[i][j].value * phi.value[i - 1 + j * NI] + AP[i][j].value * phi.value[i + j * NI]);
         Residual += std::abs(RES[i][j].value);
         RES[i][j].value = LPR[i][j].value * (RES[i][j].value - LS[i][j].value * RES[i][j - 1].value - LW[i][j].value * RES[i - 1][j].value);
       }
@@ -218,30 +209,30 @@ double Equation::solve(Field::vectorField &phi, FiniteMatrix::finiteMat &sourcei
     // }
 
     // Back Sustitution dn Correction
-    for (unsigned int i = phi.size() - 2; i >= 1; i--)
+    for (unsigned int i = NI - 2; i >= 1; i--)
     {
-      for (unsigned int j = phi[i].size() - 2; j >= 1; j--)
+      for (unsigned int j = NJ - 2; j >= 1; j--)
       {
         RES[i][j].value = RES[i][j].value - (UN[i][j].value * RES[i][j + 1].value + UE[i][j].value * RES[i + 1][j].value);
 
-        phi[i][j].value += RES[i][j].value;
+        phi.value[i + j * NI] += RES[i][j].value;
       }
     }
   }
   return Residual;
 }
 
-void Equation::SetWallShearTX(Field::vectorField &vec, int iStr, int iEnd,
+void Equation::SetWallShearTX(Field &vec, int iStr, int iEnd,
                               int Ex1, int Ex2, int myEx1, int myEx2,
-                              Field::vectorField &massFluxEast,
-                              Field::vectorField &massFluxNorth,
+                              Field &massFluxEast,
+                              Field &massFluxNorth,
                               Field::Direction side)
 {
   PROFILE_FUNCTION();
 
   if (iEnd < Ex1 || iStr >= Ex2)
   {
-    noWallShearXBoundaryConditions(vec, 1, vec.size(), side);
+    noWallShearXBoundaryConditions(vec, 1, vec.NI, side);
   }
   else if (iStr < Ex1 && iEnd < Ex2)
   {
@@ -249,73 +240,73 @@ void Equation::SetWallShearTX(Field::vectorField &vec, int iStr, int iEnd,
   }
   else if (iStr > Ex1 && iEnd >= Ex2)
   {
-    noWallShearXBoundaryConditions(vec, myEx2, vec.size(), side);
+    noWallShearXBoundaryConditions(vec, myEx2, vec.NI, side);
   }
   else if (iStr < Ex1 && iEnd >= Ex2)
   {
     noWallShearXBoundaryConditions(vec, 1, myEx1, side);
-    noWallShearXBoundaryConditions(vec, myEx2, vec.size(), side);
+    noWallShearXBoundaryConditions(vec, myEx2, vec.NI, side);
   }
   SetDirichlet(vec, side, massFluxEast, massFluxNorth);
 }
 
-void Equation::SetWallShearX(Field::vectorField &vec, Field::Direction side)
+void Equation::SetWallShearX(Field &vec, Field::Direction side)
 {
   PROFILE_FUNCTION();
-  noWallShearXBoundaryConditions(vec, 1, vec.size(), side);
+  noWallShearXBoundaryConditions(vec, 1, vec.NI, side);
 }
 
-void Equation::SetWallShearY(Field::vectorField &vec, Field::Direction side)
+void Equation::SetWallShearY(Field &vec, Field::Direction side)
 {
   PROFILE_FUNCTION();
-  noWallShearYBoundaryConditions(vec, 1, vec[0].size(), side);
+  noWallShearYBoundaryConditions(vec, 1, vec.NJ, side);
 }
 
-void Equation::SetDirichlet(Field::vectorField &vec, Field::Direction side, Field::vectorField &massFluxEast,
-                            Field::vectorField &massFluxNorth)
+void Equation::SetDirichlet(Field &vec, Field::Direction side, Field &massFluxEast,
+                            Field &massFluxNorth)
 {
   PROFILE_FUNCTION();
   switch (side)
   {
   case Field::west:
-    for (long unsigned int j = 1; j < vec[0].size() - 1; j++)
+    for (int j = 1; j < NJ - 1; j++)
     {
       int i = 1;
 
-      sourceB[i][j].value -= vec[i - 1][j].value * AW[i][j].value;
+      sourceB[i][j].value -= vec.value[i - 1 + j * NI] * AW[i][j].value;
       APU[i][j].value -= AW[i][j].value;
       AW[i][j].value = 0;
     }
     break;
 
   case Field::east:
-    for (long unsigned int j = 1; j < vec[0].size() - 1; j++)
+    for (int j = 1; j < NJ - 1; j++)
     {
-      int i = vec.size() - 2;
+      int i = NI - 2;
 
-      sourceB[i][j].value -= vec[i + 1][j].value * AE[i][j].value;
+      sourceB[i][j].value -= vec.value[i + 1 + j * NI] * AE[i][j].value;
       APU[i][j].value -= AE[i][j].value;
       AE[i][j].value = 0;
     }
     break;
 
   case Field::south:
-    for (long unsigned int i = 1; i < vec.size() - 1; i++)
+    for (int i = 1; i < NI - 1; i++)
     {
       int j = 1;
 
-      sourceB[i][j].value -= vec[i][j - 1].value * AS[i][j].value;
+      sourceB[i][j].value -= vec.value[i + (j - 1) * NI] * AS[i][j].value;
       APU[i][j].value -= AS[i][j].value;
       AS[i][j].value = 0;
     }
     break;
 
   case Field::north:
-    for (long unsigned int i = 1; i < vec.size() - 1; i++)
+    for (int i = 1; i < NI - 1; i++)
     {
-      int j = vec[i].size() - 2;
+      int j = vec.NJ - 2;
 
-      sourceB[i][j].value -= vec[i][j + 1].value * AN[i][j].value;
+      sourceB[i][j].value -= vec.value[i + (j + 1) * NI] * AN[i][j].value;
       APU[i][j].value -= AN[i][j].value;
       AN[i][j].value = 0;
     }
@@ -326,7 +317,7 @@ void Equation::SetDirichlet(Field::vectorField &vec, Field::Direction side, Fiel
   }
 }
 
-double Equation::solveGaussSeidel(Field::vectorField &phi, FiniteMatrix::finiteMat &sourceinput, double &alpha, int &iterations)
+double Equation::solveGaussSeidel(Field &phi, FiniteMatrix::finiteMat &sourceinput, double &alpha, int &iterations)
 {
   PROFILE_FUNCTION();
   double error;
@@ -334,32 +325,32 @@ double Equation::solveGaussSeidel(Field::vectorField &phi, FiniteMatrix::finiteM
   for (int k = 0; k < iterations; k++)
   {
     error = 0;
-    forAllInternal(phi)
+    forAllInterior(NI, NJ)
     {
-      double newvalue = (sourceinput[i][j].value - AW[i][j].value * phi[i - 1][j].value - AE[i][j].value * phi[i + 1][j].value - AS[i][j].value * phi[i][j - 1].value - AN[i][j].value * phi[i][j + 1].value) / AP[i][j].value;
-      error += std::abs(newvalue - phi[i][j].value);
-      phi[i][j].value = newvalue * (1.0 - alpha) + alpha * phi[i][j].value;
+      double newvalue = (sourceinput[i][j].value - AW[i][j].value * phi.value[i - 1 + j * NI] - AE[i][j].value * phi.value[i + 1 + j * NI] - AS[i][j].value * phi.value[i + (j - 1) * NI] - AN[i][j].value * phi.value[i + (j + 1) * NI]) / AP[i][j].value;
+      error += std::abs(newvalue - phi.value[i + j * NI]);
+      phi.value[i + j * NI] = newvalue * (1.0 - alpha) + alpha * phi.value[i + j * NI];
     }
   }
   return error;
 }
 
-double Equation::solveExplicit(Field::vectorField &phi, FiniteMatrix::finiteMat &sourceinput, double &alpha, int &iterations)
+double Equation::solveExplicit(Field &phi, FiniteMatrix::finiteMat &sourceinput, double &alpha, int &iterations)
 {
   PROFILE_FUNCTION();
   double error;
 
-  forAllInternal(phi)
+  forAllInterior(NI, NJ)
   {
     double newvalue = DT * (sourceinput[i][j].value -
-                            AW[i][j].value * phi[i - 1][j].value -
-                            AE[i][j].value * phi[i + 1][j].value -
-                            AS[i][j].value * phi[i][j - 1].value -
-                            AN[i][j].value * phi[i][j + 1].value -
-                            AP[i][j].value * phi[i][j].value) +
-                      phi[i][j].value;
-    error += std::abs(newvalue - phi[i][j].value);
-    phi[i][j].value = newvalue;
+                            AW[i][j].value * phi.value[i - 1 + j * NI] -
+                            AE[i][j].value * phi.value[i + 1 + j * NI] -
+                            AS[i][j].value * phi.value[i + (j - 1) * NI] -
+                            AN[i][j].value * phi.value[i + (j + 1) * NI] -
+                            AP[i][j].value * phi.value[i + j * NI]) +
+                      phi.value[i + j * NI];
+    error += std::abs(newvalue - phi.value[i + j * NI]);
+    phi.value[i + j * NI] = newvalue;
   }
   return error;
 }

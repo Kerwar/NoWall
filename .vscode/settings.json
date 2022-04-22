@@ -1,6 +1,23 @@
 {
   "files.associations": {
     "*.f03": "FortranFreeForm",
-    "iostream": "cpp"
+    "iostream": "cpp",
+    "optional": "cpp",
+    "istream": "cpp",
+    "ostream": "cpp",
+    "ratio": "cpp",
+    "system_error": "cpp",
+    "array": "cpp",
+    "functional": "cpp",
+    "tuple": "cpp",
+    "type_traits": "cpp",
+    "utility": "cpp",
+    "*.tcc": "cpp",
+    "random": "cpp",
+    "numeric": "cpp",
+    "condition_variable": "cpp",
+    "string_view": "cpp",
+    "initializer_list": "cpp",
+    "ranges": "cpp"
   }
 }

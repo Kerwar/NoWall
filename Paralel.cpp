@@ -14,7 +14,6 @@ Paralel::Paralel(int worldsize)
 void Paralel::setUpComm(int &NX, int &NY, double &xMax, double &xExMin, double &xExMax)
 {
   PROFILE_FUNCTION();
-  double sOfChannels = 2 * xMax;
 
   cUSize = ceil((double)worldNProcs / 2);
   cDSize = worldNProcs - cUSize;
@@ -138,15 +137,15 @@ int Paralel::worldid(int row, int col)
   return col + row * nProcsInCol;
 }
 
-void Paralel::SendInfoToNeighbours(Field::vectorField &vec)
+void Paralel::SendInfoToNeighbours(Field &vec)
 {
-  int xsize = vec.size();
-  int ysize = vec[0].size();
+  int NI = vec.NI;
+  int NJ = vec.NJ;
 
-  double infoSentRL[ysize] = {};
-  double infoRecvRL[ysize] = {};
-  double infoSentTB[xsize] = {};
-  double infoRecvTB[xsize] = {};
+  double infoSentRL[NJ] = {};
+  double infoRecvRL[NJ] = {};
+  double infoSentTB[NI] = {};
+  double infoRecvTB[NI] = {};
 
   int leftTag = 10, rightTag = 11, topTag = 12, botTag = 13;
 
@@ -157,75 +156,51 @@ void Paralel::SendInfoToNeighbours(Field::vectorField &vec)
 
   MPI_Barrier(myComm);
   // SENDING INFO TO THE LEFT
-  for (int j = 0; j < ysize; j++)
-  {
-    infoSentRL[j] = vec[1][j].value;
-  }
+  for (int j = 0; j < NJ; j++)
+    infoSentRL[j] = vec.value[1 + j * NI];
 
-  PMPI_Sendrecv(&infoSentRL, ysize, MPI_DOUBLE_PRECISION, myLeft, leftTag,
-                &infoRecvRL, ysize, MPI_DOUBLE_PRECISION, myRight, leftTag, myComm, MPI_STATUS_IGNORE);
+  PMPI_Sendrecv(&infoSentRL, NJ, MPI_DOUBLE_PRECISION, myLeft, leftTag,
+                &infoRecvRL, NJ, MPI_DOUBLE_PRECISION, myRight, leftTag, myComm, MPI_STATUS_IGNORE);
 
   if (!isProcNull(myRight))
-  {
-    for (int j = 0; j < ysize; j++)
-    {
-      vec[xsize - 1][j].value = (infoRecvRL[j] + vec[xsize - 2][j].value) * 0.5;
-    }
-  }
+    for (int j = 0; j < NJ; j++)
+      vec.value[NI - 1 + j * NI] = (infoRecvRL[j] + vec.value[NI - 2 + j * NI]) * 0.5;
 
   MPI_Barrier(myComm);
   // SENDING INFO TO THE RIGHT
-  for (int j = 0; j < ysize; ++j)
-  {
-    infoSentRL[j] = vec[xsize - 1][j].value;
-  }
+  for (int j = 0; j < NJ; ++j)
+    infoSentRL[j] = vec.value[NI - 1 + j * NI];
 
-  PMPI_Sendrecv(&infoSentRL, ysize, MPI_DOUBLE_PRECISION, myRight, rightTag,
-                &infoRecvRL, ysize, MPI_DOUBLE_PRECISION, myLeft, rightTag, myComm, MPI_STATUS_IGNORE);
+  PMPI_Sendrecv(&infoSentRL, NJ, MPI_DOUBLE_PRECISION, myRight, rightTag,
+                &infoRecvRL, NJ, MPI_DOUBLE_PRECISION, myLeft, rightTag, myComm, MPI_STATUS_IGNORE);
 
   if (!isProcNull(myLeft))
-  {
-    for (int j = 0; j < ysize; j++)
-    {
-      vec[0][j].value = infoRecvRL[j];
-    }
-  }
+    for (int j = 0; j < NJ; j++)
+      vec.value[j * NI] = infoRecvRL[j];
 
   MPI_Barrier(myComm);
   // SENDING INFO TO THE BOT
-  for (int i = 0; i < xsize; i++)
-  {
-    infoSentTB[i] = vec[i][1].value;
-  }
+  for (int i = 0; i < NI; i++)
+    infoSentTB[i] = vec.value[i + NI];
 
-  PMPI_Sendrecv(&infoSentTB, xsize, MPI_DOUBLE_PRECISION, myBot, botTag,
-                &infoRecvTB, xsize, MPI_DOUBLE_PRECISION, myTop, botTag, myComm, MPI_STATUS_IGNORE);
+  PMPI_Sendrecv(&infoSentTB, NI, MPI_DOUBLE_PRECISION, myBot, botTag,
+                &infoRecvTB, NI, MPI_DOUBLE_PRECISION, myTop, botTag, myComm, MPI_STATUS_IGNORE);
 
   if (!isProcNull(myTop))
-  {
-    for (int i = 0; i < xsize; i++)
-    {
-      vec[i][ysize - 1].value = (infoRecvTB[i] + vec[i][ysize - 2].value) * 0.5;
-    }
-  }
+    for (int i = 0; i < NI; i++)
+      vec.value[i + (NJ - 1) * NI] = (infoRecvTB[i] + vec.value[i + (NJ - 2) * NI]) * 0.5;
   MPI_Barrier(myComm);
 
   // SENDING INFO TO THE TOP
-  for (int i = 0; i < xsize; i++)
-  {
-    infoSentTB[i] = vec[i][ysize - 1].value;
-  }
+  for (int i = 0; i < NI; i++)
+    infoSentTB[i] = vec.value[i + (NJ - 1) * NI];
 
-  PMPI_Sendrecv(&infoSentTB, xsize, MPI_DOUBLE_PRECISION, myTop, topTag,
-                &infoRecvTB, xsize, MPI_DOUBLE_PRECISION, myBot, topTag, myComm, MPI_STATUS_IGNORE);
+  PMPI_Sendrecv(&infoSentTB, NI, MPI_DOUBLE_PRECISION, myTop, topTag,
+                &infoRecvTB, NI, MPI_DOUBLE_PRECISION, myBot, topTag, myComm, MPI_STATUS_IGNORE);
 
   if (!isProcNull(myBot))
-  {
-    for (int i = 0; i < xsize; i++)
-    {
-      vec[i][0].value = infoRecvTB[i];
-    }
-  }
+    for (int i = 0; i < NI; i++)
+      vec.value[i] = infoRecvTB[i];
 }
 
 void Paralel::MainsProcs(Loc location, int &proc)
@@ -258,85 +233,65 @@ void Paralel::MainsProcs(Loc location, int &proc)
   proc = buffer;
 }
 
-void Paralel::ExchangeWallTemperature(Field::vec1dfield &TWall, Field::vec1dfield &TNextToWall, double &exCte)
+void Paralel::ExchangeWallTemperature(Field &TWall, Field &TNextToWall, double &exCte)
 {
   PROFILE_FUNCTION();
 
-  int NX = TWall.size();
-  double wallSent[NX] = {};
-  double nextToWallSent[NX] = {};
-  double wallRecv[NX] = {};
-  double nextToWallRecv[NX] = {};
-
-  for (int i = 0; i < NX; i++)
-  {
-    wallSent[i] = TWall[i].value;
-    nextToWallSent[i] = TNextToWall[i].value;
-  }
+  int NI = TWall.NI;
+  double wallRecv[NI] = {};
+  double nextToWallRecv[NI] = {};
 
   int wallID = 22;
   int nextToWallID = 23;
 
   if (isLeftToRight())
   {
-    PMPI_Sendrecv(&wallSent, NX, MPI_DOUBLE_PRECISION, DCMainProc, wallID, &wallRecv, NX, MPI_DOUBLE_PRECISION, DCMainProc, wallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    PMPI_Sendrecv(&nextToWallSent, NX, MPI_DOUBLE_PRECISION, DCMainProc, nextToWallID, &nextToWallRecv, NX, MPI_DOUBLE_PRECISION, DCMainProc, nextToWallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    PMPI_Sendrecv(&TWall.value[0], NI, MPI_DOUBLE_PRECISION, DCMainProc, wallID, &wallRecv, NI, MPI_DOUBLE_PRECISION, DCMainProc, wallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    PMPI_Sendrecv(&TNextToWall.value[0], NI, MPI_DOUBLE_PRECISION, DCMainProc, nextToWallID, &nextToWallRecv, NI, MPI_DOUBLE_PRECISION, DCMainProc, nextToWallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-    for (int i = 0; i < NX; i++)
-    {
-        // std::cout << i << " ssssssss " << exCte << " " << TWall[i].value << " " << infoRecv[i] << " " << TWall[i].value * (1 - exCte) + exCte * infoRecv[i] << std::endl;
-       TWall[i].value = ((8.0 + exCte) * (9.0 * TWall[i].value - TNextToWall[i].value) + 9.0 * exCte * wallRecv[i] - exCte * nextToWallRecv[i])/(64.0 + 16 *exCte);
-    }
-    
+    for (int i = 0; i < NI; i++)
+      TWall.value[i] = ((8.0 + exCte) * (9.0 * TWall.value[i] - TNextToWall.value[i]) + 9.0 * exCte * wallRecv[i] - exCte * nextToWallRecv[i]) / (64.0 + 16 * exCte);
   }
   else if (isRightToLeft())
   {
-    PMPI_Sendrecv(&wallSent, NX, MPI_DOUBLE_PRECISION, UCMainProc, wallID, &wallRecv, NX, MPI_DOUBLE_PRECISION, UCMainProc, wallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    PMPI_Sendrecv(&nextToWallSent, NX, MPI_DOUBLE_PRECISION, UCMainProc, nextToWallID, &nextToWallRecv, NX, MPI_DOUBLE_PRECISION, UCMainProc, nextToWallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    PMPI_Sendrecv(&TWall.value[0], NI, MPI_DOUBLE_PRECISION, UCMainProc, wallID, &wallRecv, NI, MPI_DOUBLE_PRECISION, UCMainProc, wallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    PMPI_Sendrecv(&TNextToWall.value[0], NI, MPI_DOUBLE_PRECISION, UCMainProc, nextToWallID, &nextToWallRecv, NI, MPI_DOUBLE_PRECISION, UCMainProc, nextToWallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-    for (int i = 0; i < NX; i++)
-      TWall[i].value = ((8.0 + exCte) * (9.0 * TWall[i].value - TNextToWall[i].value) + 9.0 * exCte * wallRecv[i] - exCte * nextToWallRecv[i])/(64.0 + 16 *exCte);
+    for (int i = 0; i < NI; i++)
+      TWall.value[i] = ((8.0 + exCte) * (9.0 * TWall.value[i] - TNextToWall.value[i]) + 9.0 * exCte * wallRecv[i] - exCte * nextToWallRecv[i]) / (64.0 + 16 * exCte);
   }
 }
 
-void Paralel::ShareWallTemperatureInfo(Field::vec1dfield &TWall, Field::vectorField &T)
+void Paralel::ShareWallTemperatureInfo(Field &TWall, Field &T)
 {
   PROFILE_FUNCTION();
 
-  int N = TWall.size();
-  int M = T[0].size();
-  int n = T.size() - 1;
-
-  vector<double> TW(N, 0);
+  int NI = T.NI;
+  int NJ = T.NJ;
+  int n = T.NI - 1;
 
   switch (loc)
   {
   case up:
-    SendWallTInTheChannel(TWall, TW);
+    SendWallTInTheChannel(TWall);
     for (int i = 1; i < n; i++)
-      T[i][0].value = TW[i + iStr];
+      T.value[i] = TWall.value[i + iStr];
     break;
 
   case down:
-    SendWallTInTheChannel(TWall, TW);
+    SendWallTInTheChannel(TWall);
     for (int i = 1; i < n; i++)
-      T[i][M - 1].value = TW[i + iStr];
+      T.value[i + (NJ - 1) * NI] = TWall.value[i + iStr];
     break;
   }
 }
 
-void Paralel::SendWallTInTheChannel(Field::vec1dfield &TWall, vector<double> &TW)
+void Paralel::SendWallTInTheChannel(Field &TWall)
 {
   PROFILE_FUNCTION();
-  double infoSend[TWall.size()];
+  int NI = TWall.NI;
 
-  for (unsigned long int i = 0; i < TWall.size(); i++)
-    infoSend[i] = TWall[i].value;
-
-  PMPI_Bcast(&infoSend, TWall.size(), MPI_DOUBLE, 0, myComm);
-
-  for (unsigned long int i = 0; i < TWall.size(); i++)
-    TW[i] = infoSend[i];
+  PMPI_Bcast(&TWall.value[0], NI, MPI_DOUBLE, 0, myComm);
 }
 
 double Paralel::TWDinBorder(double (&T)[4], double &exCte)
@@ -386,19 +341,22 @@ void Paralel::setProcMesh(int &NX, int &NY)
   }
 }
 
-void Paralel::SendInfoToCommMainProc(Field::vectorField &vec, Field::vectorField &sol)
+void Paralel::SendInfoToCommMainProc(Field &vec, Field &sol)
 {
   PROFILE_FUNCTION();
 
-  int iIS = vec.size() - 2;
-  int jIS = vec[0].size() - 2;
+  int NI = vec.NI;
+  int NJ = vec.NJ;
+
+  int iIS = NI - 2;
+  int jIS = NJ - 2;
   int sendCount = iIS * jIS;
 
   double sendBuffer[sendCount] = {};
 
-  forAllInternal(vec)
+  forAllInterior(NI, NJ)
   {
-    sendBuffer[(i - 1) * jIS + (j - 1)] = vec[i][j].value;
+    sendBuffer[(i - 1) * jIS + (j - 1)] = vec.value[i + j * NI];
   }
 
   int recvCount = 0;
@@ -438,7 +396,7 @@ void Paralel::SendInfoToCommMainProc(Field::vectorField &vec, Field::vectorField
           int jRelative = j - jStrAllProc[k];
 
           int ij = displacements[k] + iRelative * jSize + jRelative;
-          sol[i][j].value = recvBuffer[ij];
+          sol.value[i + j * sol.NI] = recvBuffer[ij];
         }
       }
     }
@@ -493,14 +451,17 @@ void Paralel::PrintProgress(string message, bool showProgress)
   }
 }
 
-void Paralel::distributeToProcs(Field::vectorField &sol, Field::vectorField &vec)
+void Paralel::distributeToProcs(Field &sol, Field &vec)
 {
   PROFILE_FUNCTION();
+
+  int NI = vec.NI;
+
   int counts[nProcs];
   int sendCount = 0;
   int displacements[nProcs];
 
-  double buffer[sol.size() * sol[0].size()];
+  double buffer[sol.NI * sol.NJ];
 
   for (int k = 0; k < nProcs; k++)
   {
@@ -512,7 +473,7 @@ void Paralel::distributeToProcs(Field::vectorField &sol, Field::vectorField &vec
         int relative_i = i - iStrAllProc[k];
         int relative_j = j - jStrAllProc[k];
         int index = displacements[k] + relative_j * (iEndAllProc[k] - iStrAllProc[k] + 1) + relative_i;
-        buffer[index] = sol[i][j].value;
+        buffer[index] = sol.value[i + j * sol.NI];
         // if(isWall()&&myProc == 0)
         // std::cout << index << " " << sol[i][j].value << std::endl;
         sendCount++;
@@ -528,14 +489,14 @@ void Paralel::distributeToProcs(Field::vectorField &sol, Field::vectorField &vec
 
   for (int i = 0; i < counts[myProc]; i++)
   {
-    int vec_i = i % (vec.size() - 2);
-    int vec_j = floor(i / (vec.size() - 2));
+    int vec_i = i % (NI - 2);
+    int vec_j = floor(i / (NI - 2));
     // std::cout << i << " " << vec_i << " " << vec_j << " " << counts[myProc] << " " << recvValue[i]<< endl;
-    vec[vec_i + 1][vec_j + 1].value = recvValue[i];
+    vec.value[vec_i + 1 + (vec_j + 1) * NI] = recvValue[i];
   }
 }
 
-void Paralel::GatherWallTemperature(Field::vec1dfield &TWall, Field::vec1dfield &TNextToWall, Field::vectorField &T, double &exCte)
+void Paralel::GatherWallTemperature(Field &TWall, Field &TNextToWall, Field &T, double &exCte)
 {
   PROFILE_FUNCTION();
   // Field::vec1dfield TWall2Row(TWall.size());
@@ -547,52 +508,36 @@ void Paralel::GatherWallTemperature(Field::vec1dfield &TWall, Field::vec1dfield 
   }
   else if (isRightToLeft())
   {
-    GatherTemperature(T, TNextToWall, T[0].size() - 3);
-    GatherTemperature(T, TWall, T[0].size() - 2);
+    GatherTemperature(T, TNextToWall, T.NJ - 3);
+    GatherTemperature(T, TWall, T.NJ - 2);
     // TWall = TIntoDerivative(TWall, TWall2Row, 1, exCte);
   }
 }
 
-void Paralel::GatherTemperature(Field::vectorField &T, Field::vec1dfield &TWall, int J)
+void Paralel::GatherTemperature(Field &T, Field &TWall, int J)
 {
-  double sendInfo[T.size() - 2];
-  int bufferSize = iEndAllProc[nProcs - 1] - iStrAllProc[0] + 1;
-  double buffer[bufferSize];
-
-  for (long unsigned int i = 1; i < T.size() - 1; i++)
-  {
-    sendInfo[i - 1] = T[i][J].value;
-  }
-
   int count[nProcs];
   int displacement[nProcs];
 
   for (int i = 0; i < nProcs; i++)
   {
     count[i] = iEndAllProc[i] - iStrAllProc[i] + 1;
-    displacement[i] = iStrAllProc[i] - locIStr;
+    displacement[i] = iStrAllProc[i];
   }
 
   if (myProc == 0)
-    MPI_Gatherv(&sendInfo, T.size() - 2, MPI_DOUBLE, buffer, count, displacement, MPI_DOUBLE, 0, myComm);
+    MPI_Gatherv(&T.value[1 + J * T.NI], T.NI - 2, MPI_DOUBLE, &TWall.value[1], count, displacement, MPI_DOUBLE, 0, myComm);
   else
-    MPI_Gatherv(&sendInfo, T.size() - 2, MPI_DOUBLE, NULL, NULL, NULL, MPI_DOUBLE, 0, myComm);
-
-  if (myProc == 0)
-    for (int i = 0; i < bufferSize; i++)
-    {
-      TWall[i + locIStr + 1].value = buffer[i];
-      // if(isLeftToRight()) std::cout << "-------------" << TWall[i].value << std::endl;
-    }
+    MPI_Gatherv(&T.value[1 + J * T.NI], T.NI - 2, MPI_DOUBLE, NULL, NULL, NULL, MPI_DOUBLE, 0, myComm);
 }
 
-Field::vec1dfield Paralel::TIntoDerivative(const Field::vec1dfield &TWall, const Field::vec1dfield &TW2R, double exCte, double ex2)
-{
-  Field::vec1dfield TW(TWall.size());
-  for (unsigned long int i = 0; i < TWall.size(); i++)
-  {
-    TW[i].value = exCte * (9.0 * TWall[i].value - TW2R[i].value) / (8.0 * (ex2 + exCte));
-  }
+// Field::vec1dfield Paralel::TIntoDerivative(const Field::vec1dfield &TWall, const Field::vec1dfield &TW2R, double exCte, double ex2)
+// {
+//   Field::vec1dfield TW(TWall.size());
+//   for (unsigned long int i = 0; i < TWall.size(); i++)
+//   {
+//     TW[i].value = exCte * (9.0 * TWall[i].value - TW2R[i].value) / (8.0 * (ex2 + exCte));
+//   }
 
-  return TW;
-}
+//   return TW;
+// }

@@ -2,138 +2,158 @@
 #define FINITEVOLUMEOPERATIONS_H
 
 #include <math.h>
-#include "Grid.h"
 #include "Field.h"
 #include "FiniteMatrix.h"
 #include "ForAllOperators.h"
 
 namespace fvm
-{ 
+{
 
   inline double plusupwind(double &v)
   {
-    return (v + std::abs(v))/2;
+    return (v + std::abs(v)) / 2;
   }
 
   inline double minusupwind(double &v)
   {
-    return (v - std::abs(v))/2;
+    return (v - std::abs(v)) / 2;
   }
 
-  inline FiniteMatrix::finiteMat diffusiveTerm(Field::vectorField &vec)
+  inline FiniteMatrix::finiteMat diffusiveTerm(Field &vec)
   {
-    FiniteMatrix::finiteMat APtemp(vec.size(), vector<FiniteMatrix>(vec[0].size()));
+    int NI = vec.NI;
+    int NJ = vec.NJ;
+
+    FiniteMatrix::finiteMat APtemp(NI, vector<FiniteMatrix>(NJ));
 
     // Towards east side
-    forAllInternalUCVs(vec)
+    forAllInteriorUCVs(vec.NI, vec.NJ)
     {
-      APtemp[i][j].aevalue = -(vec[i][j].viscX * vec[i][j].Se) / vec[i][j].DXPtoE;
+      int index = i + j * NI;
+      APtemp[i][j].aevalue = -(vec.viscX[index] * vec.Se[index]) / vec.DXPtoE[index];
       APtemp[i + 1][j].awvalue = APtemp[i][j].aevalue;
     }
 
-    for (long unsigned int j = 1; j < vec[0].size()-1; j++)
+    for (int j = 1; j < NJ - 1; j++)
     {
       int i = 1;
-      double DXPtoE = std::abs(vec[1][j].XC - vec[0][j].XC);
-      double Se = std::abs(vec[0][j].Y - vec[0][j-1].Y);
+      double DXPtoE = std::abs(vec.XC[1 + j * NI] - vec.XC[j * NI]);
+      double Se = std::abs(vec.Y[j * NI] - vec.Y[(j - 1) * NI]);
 
-      APtemp[i][j].awvalue = -(vec[i][j].viscX * Se) / DXPtoE;
-      i = vec.size() - 2;
-      APtemp[i][j].aevalue = -(vec[i][j].viscX * vec[i][j].Se) / vec[i][j].DXPtoE;
+      APtemp[i][j].awvalue = -(vec.viscX[i + j * NI] * Se) / DXPtoE;
+      i = NI - 2;
+      APtemp[i][j].aevalue = -(vec.viscX[i + j * NI] * vec.Se[i + j * NI]) / vec.DXPtoE[i + j * NI];
     }
 
     // Towards north side
-    forAllInternalVCVs(vec)
-    {
-      APtemp[i][j].anvalue = -(vec[i][j].viscY * vec[i][j].Sn) / vec[i][j].DYPtoN;
+    forAllInteriorVCVs(NI, NJ)
+    { 
+      int index = i + j * NI;
+      APtemp[i][j].anvalue = -(vec.viscY[index] * vec.Sn[index]) / vec.DYPtoN[index];
       APtemp[i][j + 1].asvalue = APtemp[i][j].anvalue;
     }
 
-    for (long unsigned int i = 1; i < vec.size()-1; i++)
+    for (int i = 1; i < NI - 1; i++)
     {
       int j = 1;
-      double DYPtoN = std::abs(vec[i][1].YC - vec[i][0].YC);
-      double Sn = std::abs(vec[i][0].X - vec[i-1][0].X);
-      APtemp[i][j].asvalue = -(vec[i][j].viscY * Sn) / DYPtoN;
-      j = vec[0].size() - 2;
-      APtemp[i][j].anvalue = -(vec[i][j].viscY * vec[i][j].Sn) / vec[i][j].DYPtoN;
+      double DYPtoN = std::abs(vec.YC[i + NI] - vec.YC[i]);
+      double Sn = std::abs(vec.X[i] - vec.X[i - 1]);
+      APtemp[i][j].asvalue = -(vec.viscY[i + j * NI] * Sn) / DYPtoN;
+      j = NJ - 2;
+      APtemp[i][j].anvalue = -(vec.viscY[i + j * NI] * vec.Sn[i + j * NI]) / vec.DYPtoN[i + j * NI];
     }
 
     return APtemp;
   }
 
-  inline FiniteMatrix::finiteMat convectiveTerm(Field::vectorField &vec, Field::vectorField &massFluxEast,
-                                         Field::vectorField &massFluxNorth, double m)
+  inline FiniteMatrix::finiteMat convectiveTerm(Field &vec, Field &massFluxEast,
+                                                Field &massFluxNorth, double m)
   {
-    FiniteMatrix::finiteMat APtemp(vec.size(), vector<FiniteMatrix>(vec[0].size()));
+    int NI = vec.NI;
+    int NJ = vec.NJ;
+
+    FiniteMatrix::finiteMat APtemp(NI, vector<FiniteMatrix>(NJ));
     // Towards east side
-    forAllInternalUCVs(vec)
+    forAllInteriorUCVs(NI, NJ)
     {
-      APtemp[i][j].aevalue = m  *massFluxEast[i][j].value * vec[i][j].FXE;//* minusupwind(massFluxEast[i][j].value);
-      APtemp[i + 1][j].awvalue = -m * massFluxEast[i][j].value * vec[i][j].FXP;// * plusupwind(massFluxEast[i][j].value);
+      int index = i + j * NI;
+      APtemp[i][j].aevalue = m * massFluxEast.value[index] * vec.FXE[index];      //* minusupwind(massFluxEast.value[i + j *NI]);
+      APtemp[i + 1][j].awvalue = -m * massFluxEast.value[index] * vec.FXP[index]; // * plusupwind(massFluxEast.value[i + j *NI]);
       // double resultvalue = 0.0;
       // APtemp[i][j].svalue = APtemp[i][j].svalue + resultvalue;
     }
 
-    for (long unsigned int j = 1; j < vec[0].size(); j++)
+    for (int j = 1; j < NJ; j++)
     {
       int i = 1;
-      APtemp[i][j].awvalue =  -m *massFluxEast[i][j].value * vec[i][j].FXP;//* plusupwind(massFluxEast[i][j].value);
-      i = vec.size() - 2;
-      APtemp[i][j].aevalue =  m *massFluxEast[i][j].value * vec[i][j].FXE;//* minusupwind(massFluxEast[i][j].value);
+      APtemp[i][j].awvalue = -m * massFluxEast.value[i + j * NI] * vec.FXP[i + j * NI]; //* plusupwind(massFluxEast.value[i + j *NI]);
+      i = NI - 2;
+      APtemp[i][j].aevalue = m * massFluxEast.value[i + j * NI] * vec.FXE[i + j * NI]; //* minusupwind(massFluxEast.value[i + j *NI]);
     }
 
     // Towards north side
-    forAllInternalVCVs(vec)
+    forAllInteriorVCVs(NI, NJ)
     {
-      APtemp[i][j].anvalue = m * massFluxNorth[i][j].value * vec[i][j].FYN;//*minusupwind(massFluxNorth[i][j].value);
-      APtemp[i][j + 1].asvalue = - m * massFluxNorth[i][j].value * vec[i][j].FYP;//* plusupwind(massFluxNorth[i][j].value);
+      int index = i + j * NI;
+      APtemp[i][j].anvalue = m * massFluxNorth.value[index] * vec.FYN[index];      //*minusupwind(massFluxNorth.value[i + j *NI]);
+      APtemp[i][j + 1].asvalue = - m * massFluxNorth.value[index] * vec.FYP[index]; //* plusupwind(massFluxNorth.value[i + j *NI]);
 
       // double resultvalue = 0.0;
       // APtemp[i][j].svalue = APtemp[i][j].svalue + resultvalue;
     }
 
-    for (long unsigned int i = 1; i < vec.size(); i++)
+    for (int i = 1; i < NI; i++)
     {
       int j = 1;
-      APtemp[i][j].asvalue =  - m * massFluxNorth[i][j].value * vec[i][j].FYP;//* plusupwind(massFluxNorth[i][j].value);
-      j = vec[0].size() - 2;
-      APtemp[i][j].anvalue =  m * massFluxNorth[i][j].value * vec[i][j].FYN;//* minusupwind(massFluxNorth[i][j].value);
+      APtemp[i][j].asvalue = - m * massFluxNorth.value[i + j * NI] * vec.FYP[i + j * NI]; //* plusupwind(massFluxNorth.value[i + j *NI]);
+      j = NJ - 2;
+      APtemp[i][j].anvalue = m * massFluxNorth.value[i + j * NI] * vec.FYN[i + j * NI]; //* minusupwind(massFluxNorth.value[i + j *NI]);
     }
 
     return APtemp;
   }
 
-  inline FiniteMatrix::finiteMat heatProduction(Field::vectorField &vec, Field::vectorField &Z, double q)
+  inline FiniteMatrix::finiteMat heatProduction(Field &vec, Field &Z, double q)
   {
-    FiniteMatrix::finiteMat APtemp(vec.size(), vector<FiniteMatrix>(vec[0].size()));
+    int NI = vec.NI;
+    int NJ = vec.NJ;
 
-    forAllInternal(vec)
+    FiniteMatrix::finiteMat APtemp(NI, vector<FiniteMatrix>(NJ));
+
+    forAllInterior(NI, NJ)
     {
-      APtemp[i][j].svalue = q * Z[i][j].value * vec[i][j].Se * vec[i][j].Sn;
+      int index = i + j * NI;
+      APtemp[i][j].svalue = q * Z.value[index] * vec.Se[index] * vec.Sn[index];
     }
     return APtemp;
   }
 
-  inline FiniteMatrix::finiteMat intermidiateReaction(Field::vectorField &vec, Field::vectorField &vec2,
-                                               Field::vectorField &T, double beta, double gamma)
+  inline FiniteMatrix::finiteMat intermidiateReaction(Field &vec, Field &vec2,
+                                                      Field &T, double beta, double gamma)
   {
-    FiniteMatrix::finiteMat APtemp(vec.size(), vector<FiniteMatrix>(vec[0].size()));
+    int NI = vec.NI;
+    int NJ = vec.NJ;
+    FiniteMatrix::finiteMat APtemp(NI, vector<FiniteMatrix>(NJ));
 
-    forAllInternal(vec)
+    forAllInterior(NI, NJ)
     {
-      APtemp[i][j].svalue = beta * beta * exp(beta * (T[i][j].value - 1.0) / (1.0 + gamma * (T[i][j].value - 1.0))) * vec[i][j].value * vec2[i][j].value * vec[i][j].Se * vec[i][j].Sn;
+      int index = i + j * NI;
+      APtemp[i][j].svalue = beta * beta * exp(beta * (T.value[index] - 1.0) / (1.0 + gamma * (T.value[index] - 1.0))) * vec.value[index] * vec2.value[index] * vec.Se[index] * vec.Sn[index];
     }
     return APtemp;
   }
 
-  inline FiniteMatrix::finiteMat zComsumptium(Field::vectorField &vec)
+  inline FiniteMatrix::finiteMat zComsumptium(Field &vec)
   {
-    FiniteMatrix::finiteMat APtemp(vec.size(), vector<FiniteMatrix>(vec[0].size()));
+    int NI = vec.NI;
+    int NJ = vec.NJ;
 
-    forAllInternal(vec)
+    FiniteMatrix::finiteMat APtemp(NI, vector<FiniteMatrix>(NJ));
+
+    forAllInterior(NI, NJ)
     {
-      APtemp[i][j].svalue = vec[i][j].Se * vec[i][j].Sn * vec[i][j].value;
+      int index = i + j * NI;
+      APtemp[i][j].svalue = vec.Se[index] * vec.Sn[index] * vec.value[index];
     }
     return APtemp;
   }

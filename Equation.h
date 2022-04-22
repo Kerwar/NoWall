@@ -36,19 +36,19 @@ public:
 
   double DT;
   void assembleEquation();
-  void relax(Field::vectorField&);
+  void relax(Field&);
 
-  void noWallShearXBoundaryConditions(Field::vectorField &vec, int start, int end, Field::Direction side);
-  void noWallShearYBoundaryConditions(Field::vectorField &vec, int start, int end, Field::Direction side);
+  void noWallShearXBoundaryConditions(Field &vec, int start, int end, Field::Direction side);
+  void noWallShearYBoundaryConditions(Field &vec, int start, int end, Field::Direction side);
 
-  void SetWallShearTX(Field::vectorField &vec, int iStr, int iEnd, int Ex1, int Ex2, int myEx1, int myEx2, Field::vectorField &massFluxEast, Field::vectorField &massFluxNorth, Field::Direction side);
-  void SetWallShearX(Field::vectorField &vec, Field::Direction side);
-  void SetWallShearY(Field::vectorField &vec, Field::Direction side);
+  void SetWallShearTX(Field &vec, int iStr, int iEnd, int Ex1, int Ex2, int myEx1, int myEx2, Field &massFluxEast, Field &massFluxNorth, Field::Direction side);
+  void SetWallShearX(Field &vec, Field::Direction side);
+  void SetWallShearY(Field &vec, Field::Direction side);
 
-  void SetDirichlet(Field::vectorField &vec, Field::Direction side, Field::vectorField &massFluxEast, Field::vectorField &massFluxNorth);
-  double solve(Field::vectorField &phi, FiniteMatrix::finiteMat &sourceinput, double &alpha, int &niter, int &iterations, int iterChange);
-  double solveGaussSeidel(Field::vectorField &phi, FiniteMatrix::finiteMat &sourceinput, double &alpha, int &iterations);
-  double solveExplicit(Field::vectorField &phi, FiniteMatrix::finiteMat &sourceinput, double &alpha, int &iterations);
+  void SetDirichlet(Field &vec, Field::Direction side, Field &massFluxEast, Field &massFluxNorth);
+  double solve(Field &phi, FiniteMatrix::finiteMat &sourceinput, double &alpha, int &niter, int &iterations, int iterChange);
+  double solveGaussSeidel(Field &phi, FiniteMatrix::finiteMat &sourceinput, double &alpha, int &iterations);
+  double solveExplicit(Field &phi, FiniteMatrix::finiteMat &sourceinput, double &alpha, int &iterations);
 private:
 
 	Svector UE, UN, LW, LS, LPR, RES;

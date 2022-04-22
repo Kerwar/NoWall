@@ -1,228 +1,267 @@
 #include "Field.h"
-#include <iostream>
-#include <cmath>
 
-Field::Field() : value(0.0), density(1.0)
+Field::Field()
 {
 }
 
-Field::Field(int &NI_, int &NJ_) : value(0.0), NI(NI_), NJ(NJ_), density(1.0) // IF EVER NON CONST DENSITY THIS HAS TO CHANGE
+Field::Field(int NI_, int NJ_) : NI(NI_), NJ(NJ_) // IF EVER NON CONST DENSITY THIS HAS TO CHANGE
 {
+  value = new double[NI * NJ];
+  X = new double[NI * NJ];
+  XC = new double[NI * NJ];
+  FXE = new double[NI * NJ];
+  FXP = new double[NI * NJ];
+  Y = new double[NI * NJ];
+  YC = new double[NI * NJ];
+  FYN = new double[NI * NJ];
+  FYP = new double[NI * NJ];
+  DXPtoE = new double[NI * NJ];
+  DYPtoN = new double[NI * NJ];
+  Se = new double[NI * NJ];
+  Sn = new double[NI * NJ];
+  viscX = new double[NI * NJ];
+  viscY = new double[NI * NJ];
+  density = new double[NI * NJ];
+  volume = new double[NI * NJ];
 }
 
 Field::~Field()
 {
 }
 
-void Field::getGridInfoPassed(Field::vectorField &f, Grid &myGrid, double &viscX, double &viscY)
+void Field::getGridInfoPassed(Field &f, Grid &myGrid, double &viscX, double &viscY)
 {
   NI = myGrid.NI;
   NJ = myGrid.NJ;
 
-  forAll(f)
+  forAllN(NI, NJ)
   {
-    f[i][j].X = myGrid.X[i + j*NI];
-    f[i][j].Y = myGrid.Y[i + j*NI];
-    f[i][j].XC = myGrid.XC[i + j*NI];
-    f[i][j].YC = myGrid.YC[i + j*NI];
-    f[i][j].FXE = myGrid.XF[i + j*NI];
-    f[i][j].FYN = myGrid.YF[i + j*NI];
-    f[i][j].FXP = 1.0 - myGrid.XF[i + j*NI];
-    f[i][j].FYP = 1.0 - myGrid.YF[i + j*NI];
+    int index = i + j * NI;
+    f.X[index] = myGrid.X[index];
+    f.Y[index] = myGrid.Y[index];
+    f.XC[index] = myGrid.XC[index];
+    f.YC[index] = myGrid.YC[index];
+    f.FXE[index] = myGrid.XF[index];
+    f.FYN[index] = myGrid.YF[index];
+    f.FXP[index] = 1.0 - myGrid.XF[index];
+    f.FYP[index] = 1.0 - myGrid.YF[index];
 
-    f[i][j].viscX = viscX;
-    f[i][j].viscY = viscY;
+    f.viscX[index] = viscX;
+    f.viscY[index] = viscY;
   }
 
-  forAllInternal(f)
+  forAllInterior(NI, NJ)
   {
-    f[i][j].DXPtoE = std::abs(myGrid.XC[i + 1 + j*NI] - myGrid.XC[i + j*NI]);
-    f[i][j].DYPtoN = std::abs(myGrid.YC[i + (j+1)*NI] - myGrid.YC[i + j*NI]);
+    int index = i + j * NI;
+    f.DXPtoE[index] = std::abs(myGrid.XC[index + 1] - myGrid.XC[index]);
+    f.DYPtoN[index] = std::abs(myGrid.YC[index + NI] - myGrid.YC[index]);
 
-    f[i][j].Se = std::abs(myGrid.Y[i + j*NI] - myGrid.Y[i + (j-1)*NI]);
-    f[i][j].Sn = std::abs(myGrid.X[i + j*NI] - myGrid.X[i - 1 + j*NI]);
+    f.Se[index] = std::abs(myGrid.Y[index] - myGrid.Y[index - NI]);
+    f.Sn[index] = std::abs(myGrid.X[index] - myGrid.X[index - 1]);
 
-    f[i][j].volume = f[i][j].Se * f[i][j].Sn;
+    f.volume[index] = f.Se[index] * f.Sn[index];
   }
 }
 
-void Field::inletBoundaryCondition(Field::vectorField &vec, Direction side, double bvalue)
+void Field::inletBoundaryCondition(Field &vec, Direction side, double bvalue)
 {
+  NI = vec.NI;
+  NJ = vec.NJ;
+
   if (side == west)
   {
-    forWestBoundary(vec)
+    forWBoundary(NI, NJ)
     {
-      vec[i][j].value = bvalue;
+      vec.value[i + j * NI] = bvalue;
     }
   }
   else if (side == east)
   {
-    forEastBoundary(vec)
+    forEBoundary(NI, NJ)
     {
-      vec[i][j].value = bvalue;
+      vec.value[i + j * NI] = bvalue;
     }
   }
   else if (side == south)
   {
-    forSouthBoundary(vec)
+    forSBoundary(NI, NJ)
     {
-      vec[i][j].value = bvalue;
+      vec.value[i + j * NI] = bvalue;
     }
   }
   else if (side == north)
   {
-    forNorthBoundary(vec)
+    forNBoundary(NI, NJ)
     {
-      vec[i][j].value = bvalue;
+      vec.value[i + j * NI] = bvalue;
     }
   }
 }
 
-void Field::laminarFlow(Field::vectorField &vec, double m, double yMin, double yMax)
+void Field::laminarFlow(Field &vec, double m, double yMin, double yMax)
 {
-  forAll(vec)
+
+  forAllN(NI, NJ)
   {
-    double distanceToBot = vec[i][j].YC - yMin;
-    double distanceToTop = yMax - vec[i][j].YC;
+    double distanceToBot = vec.YC[i + j * NI] - yMin;
+    double distanceToTop = yMax - vec.YC[i + j * NI];
     // std::cout << i << " " << j << " " << distanceToBot << " " << distanceToTop << std::endl;
-    vec[i][j].value = 6.0 * m / std::abs(m) * distanceToBot * distanceToTop;
+    vec.value[i + j * NI] = 6.0 * m / std::abs(m) * distanceToBot * distanceToTop;
   }
 }
 
-void Field::InitializeT(Field::vectorField &vec, double &q,
+void Field::InitializeT(Field &vec, double &q,
                         double xHotSpot, double yHotSpot, double xMin, double xMax)
 {
-  forAll(vec)
+  NI = vec.NI;
+  NJ = vec.NJ;
+
+  forAllN(NI, NJ)
   {
-    double pos = vec[i][j].XC - xHotSpot;
-    double simmetricpos = vec[i][j].XC - (xMin + xMax - xHotSpot);
+    double pos = vec.XC[i + j * NI] - xHotSpot;
+    double simmetricpos = vec.XC[i + j * NI] - (xMin + xMax - xHotSpot);
 
     double tanV = (atan(pos) - atan(-(xMax - xMin) / 2)) /
                   (atan((xMax - xMin) / 2) - atan(-(xMax - xMin) / 2));
 
-    vec[i][j].value = q * 1.5 * tanV;
+    vec.value[i + j * NI] = q * 1.5 * tanV;
     if (std::abs(pos) > std::abs(simmetricpos))
     {
       tanV = (atan(simmetricpos) - atan(-(xMin - xMax) / 2)) /
              (atan((xMin - xMax) / 2) - atan(-(xMin - xMax) / 2));
-      vec[i][j].value = std::max(q, q * 1.5 * tanV);
+      vec.value[i + j * NI] = std::max(q, q * 1.5 * tanV);
     }
   }
 }
 
-void Field::InitializeF(Field::vectorField &vec, double xHotSpot, double xMin, double xMax)
+void Field::InitializeF(Field &vec, double xHotSpot, double xMin, double xMax)
 {
-  forAll(vec)
+  NI = vec.NI;
+  NJ = vec.NJ;
+
+  forAllN(NI, NJ)
   {
-    double pos = vec[i][j].XC - xHotSpot;
+    double pos = vec.XC[i + j * NI] - xHotSpot;
 
     double tanV = (atan(pos) - atan(-(xMax - xMin) / 2)) /
                   (atan((xMax - xMin) / 2) - atan(-(xMax - xMin) / 2));
-    vec[i][j].value = std::max(1.0 - tanV, 0.0);
+    vec.value[i + j * NI] = std::max(1.0 - tanV, 0.0);
   }
 }
 
-void Field::InitializeZ(Field::vectorField &vec, double T0hs, double r0hs,
+void Field::InitializeZ(Field &vec, double T0hs, double r0hs,
                         double xHotSpot, double yHotSpot, double xMax)
 {
-  forAll(vec)
-  {
-    double rr = sqrt(pow(vec[i][j].XC - xHotSpot, 2) +
-                     pow(vec[i][j].YC - yHotSpot, 2));
+  NI = vec.NI;
+  NJ = vec.NJ;
 
-    vec[i][j].value = T0hs * exp(-rr / r0hs);
+  forAllN(NI, NJ)
+  {
+    double rr = sqrt(pow(vec.XC[i + j * NI] - xHotSpot, 2) +
+                     pow(vec.YC[i + j * NI] - yHotSpot, 2));
+
+    vec.value[i + j * NI] = T0hs * exp(-rr / r0hs);
   }
 }
 
-void Field::initializeInternalField(Field::vectorField &vec, double val)
+void Field::initializeInternalField(Field &vec, double val)
 {
-  forAllInternal(vec)
+  NI = vec.NI;
+  NJ = vec.NJ;
+
+  forAllInterior(NI, NJ)
   {
-    vec[i][j].value = val;
+    vec.value[i + j * NI] = val;
   }
 }
 
-void Field::linearExtrapolateCondition(Field::vectorField &vec, Field::Direction wallname)
+void Field::linearExtrapolateCondition(Field &vec, Field::Direction wallname)
 {
+  NI = vec.NI;
+  NJ = vec.NJ;
+
   if (wallname == west)
   {
-    forWestBoundary(vec)
+    forWBoundary(NI, NJ)
     {
-      vec[i][j].value = vec[i + 1][j].value + (vec[i + 1][j].value - vec[i + 2][j].value) * vec[i + 1][j].FXE;
+      int index = i + j * NI;
+      vec.value[index] = vec.value[index + 1] + (vec.value[index + 1] - vec.value[index + 2]) * vec.FXE[index + 1];
     }
   }
   else if (wallname == east)
   {
-    forEastBoundary(vec)
+    forEBoundary(NI, NJ)
     {
-      vec[i][j].value = vec[i - 1][j].value + (vec[i - 1][j].value - vec[i - 2][j].value) * vec[i - 1][j].FXP;
+      int index = i + j * NI;
+      vec.value[index] = vec.value[index - 1] + (vec.value[index - 1] - vec.value[index - 2]) * vec.FXP[index - 1];
     }
   }
   else if (wallname == south)
   {
-    forSouthBoundary(vec)
+    forSBoundary(NI, NJ)
     {
-      vec[i][j].value = vec[i][j + 1].value + (vec[i][j + 1].value - vec[i][j + 2].value) * vec[i][j + 1].FYN;
+      int index =i + j * NI;
+      vec.value[index] = vec.value[index + NI] + (vec.value[index + NI] - vec.value[index + 2 * NI]) * vec.FYN[index + NI];
     }
   }
   else if (wallname == north)
   {
-    forNorthBoundary(vec)
+    forNBoundary(NI, NJ)
     {
-      vec[i][j].value = vec[i][j - 1].value + (vec[i][j - 1].value - vec[i][j - 2].value) * vec[i][j - 1].FYP;
+      int index = i + j * NI;
+      vec.value[index] = vec.value[index - NI] + (vec.value[index - NI] - vec.value[index - 2 * NI]) * vec.FYP[index - NI];
     }
   }
 }
 
-Field::vectorField Field::interpolatedFieldEast(Field::vectorField &vec, Grid &myGrid)
+void Field::interpolatedFieldEast(Field &interpolated, Field &vec, Grid &myGrid)
 {
-  Field::vectorField temp(vec.size(), vector<Field>(vec[0].size()));
+  NI = vec.NI;
+  NJ = vec.NJ;
 
-  forAllInternalUCVs(vec)
+  forAllInteriorUCVs(NI, NJ)
   {
-    double FXE = myGrid.XF[i + j*NI];
+    double FXE = myGrid.XF[i + j * NI];
     double FXP = 1.0 - FXE;
 
-    temp[i][j].value = vec[i + 1][j].value * FXE + vec[i][j].value * FXP;
+    interpolated.value[i + j * NI] = vec.value[i + 1 + j * NI] * FXE + vec.value[i + j * NI] * FXP;
   }
-
-  return temp;
 }
 
-Field::vectorField Field::interpolatedFieldNorth(Field::vectorField &vec, Grid &myGrid)
+void Field::interpolatedFieldNorth(Field &interpolated, Field &vec, Grid &myGrid)
 {
-  Field::vectorField temp(vec.size(), vector<Field>(vec[0].size()));
+  NI = vec.NI;
+  NJ = vec.NJ;
 
-  forAllInternalVCVs(vec)
+  forAllInteriorVCVs(NI, NJ)
   {
-    double FYN = myGrid.YF[i + j *NI];
+    double FYN = myGrid.YF[i + j * NI];
     double FYP = 1.0 - FYN;
 
-    temp[i][j].value = vec[i][j + 1].value * FYN + vec[i][j].value * FYP;
-  }
-
-  return temp;
-}
-
-void Field::computeEastMassFluxes(Field::vectorField &vec, Field::vectorField &corrU)
-{
-  // For non constant density forAllInternalUCVs
-  forAllInternal(vec)
-  {
-    double sArea = vec[i][j].Se;
-    double density = vec[i][j].density;
-
-    vec[i][j].value = sArea * density * corrU[i][j].value;
+    interpolated.value[i + j * NI] = vec.value[i + (j + 1) * NI] * FYN + vec.value[i + j * NI] * FYP;
   }
 }
 
-void Field::computeNorthMassFluxes(Field::vectorField &vec, Field::vectorField &corrV)
+void Field::computeEastMassFluxes(Field &vec, Field &corrU)
 {
-  // For non constant density forAllInternalVCVs
-  forAllInternal(vec)
+  NI = vec.NI;
+  NJ = vec.NJ;
+
+  // For non constant density forAllInteriorUCVs
+  forAllInterior(NI, NJ)
   {
-    double sArea = vec[i][j].Sn;
-    double density = vec[i][j].density;
-    vec[i][j].value = sArea * density * corrV[i][j].value;
+    vec.value[i + j * NI] = vec.Se[i + j * NI] * vec.density[i + j * NI] * corrU.value[i + j * NI];
+  }
+}
+
+void Field::computeNorthMassFluxes(Field &vec, Field &corrV)
+{
+  NI = vec.NI;
+  NJ = vec.NJ;
+
+  // For non constant density forAllInteriorVCVs
+  forAllInterior(NI, NJ)
+  {
+    vec.value[i + j * NI] = vec.Sn[i + j * NI] * vec.density[i + j * NI] * corrV.value[i + j * NI];
   }
 }
