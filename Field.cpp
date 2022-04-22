@@ -45,6 +45,7 @@ void Field::getGridInfoPassed(Field &f, Grid &myGrid, double &viscX, double &vis
     f.FYN[index] = myGrid.YF[index];
     f.FXP[index] = 1.0 - myGrid.XF[index];
     f.FYP[index] = 1.0 - myGrid.YF[index];
+    f.density[index] = 1.0;
 
     f.viscX[index] = viscX;
     f.viscY[index] = viscY;
@@ -250,6 +251,7 @@ void Field::computeEastMassFluxes(Field &vec, Field &corrU)
   // For non constant density forAllInteriorUCVs
   forAllInterior(NI, NJ)
   {
+    std::cout << i + j *NI << vec.Se[i + j * NI] << " " << vec.density[i + j * NI] << " " << corrU.value[i + j * NI] << std::endl;
     vec.value[i + j * NI] = vec.Se[i + j * NI] * vec.density[i + j * NI] * corrU.value[i + j * NI];
   }
 }
