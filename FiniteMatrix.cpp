@@ -1,4 +1,4 @@
-#include "FiniteMatrix.h"
+#include "FiniteMatrix.hpp"
 
 FiniteMatrix::FiniteMatrix() : value(0.0), awvalue(0.0), aevalue(0.0), asvalue(0.0), anvalue(0.0), apvalue(0.0), svalue(0.0)
 {

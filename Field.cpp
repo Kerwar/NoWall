@@ -1,38 +1,56 @@
-#include "Field.h"
+#include "Field.hpp"
 
-Field::Field()
+Field::Field(): value(NULL),
+  X(NULL), XC(NULL),
+  FXE(NULL), FXP(NULL),
+  Y(NULL), YC(NULL),
+  FYN(NULL), FYP(NULL),
+  DXPtoE(NULL), DYPtoN(NULL),
+  Se(NULL), Sn(NULL),
+  viscX(NULL), viscY(NULL),
+  density(NULL), volume(NULL)
 {
 }
 
-Field::Field(int NI_, int NJ_) : NI(NI_), NJ(NJ_) // IF EVER NON CONST DENSITY THIS HAS TO CHANGE
+Field::Field(int NI_, int NJ_) : NI(NI_), NJ(NJ_), value(new double[NI*NJ]),
+  X(new double[NI*NJ]), XC(new double[NI*NJ]),
+  FXE(new double[NI*NJ]), FXP(new double[NI*NJ]),
+  Y(new double[NI*NJ]), YC(new double[NI*NJ]),
+  FYN(new double[NI*NJ]), FYP(new double[NI*NJ]),
+  DXPtoE(new double[NI*NJ]), DYPtoN(new double[NI*NJ]),
+  Se(new double[NI*NJ]), Sn(new double[NI*NJ]),
+  viscX(new double[NI*NJ]), viscY(new double[NI*NJ]),
+  density(new double[NI*NJ]), volume(new double[NI*NJ])
+ // IF EVER NON CONST DENSITY THIS HAS TO CHANGE
 {
-  value = new double[NI * NJ];
-  X = new double[NI * NJ];
-  XC = new double[NI * NJ];
-  FXE = new double[NI * NJ];
-  FXP = new double[NI * NJ];
-  Y = new double[NI * NJ];
-  YC = new double[NI * NJ];
-  FYN = new double[NI * NJ];
-  FYP = new double[NI * NJ];
-  DXPtoE = new double[NI * NJ];
-  DYPtoN = new double[NI * NJ];
-  Se = new double[NI * NJ];
-  Sn = new double[NI * NJ];
-  viscX = new double[NI * NJ];
-  viscY = new double[NI * NJ];
-  density = new double[NI * NJ];
-  volume = new double[NI * NJ];
 }
 
 Field::~Field()
 {
+  delete[] value;
+  delete[] X;
+  delete[] XC;
+  delete[] FXE;
+  delete[] FXP;
+  delete[] Y;
+  delete[] YC;
+  delete[] FYN;
+  delete[] FYP;
+  delete[] DXPtoE;
+  delete[] DYPtoN;
+  delete[] Se;
+  delete[] Sn;
+  delete[] viscX;
+  delete[] viscY;
+  delete[] density;
+  delete[] volume;
+
 }
 
 void Field::getGridInfoPassed(Field &f, Grid &myGrid, double &viscX, double &viscY)
 {
-  NI = myGrid.NI;
-  NJ = myGrid.NJ;
+  NI = f.NI;
+  NJ = f.NJ;
 
   forAllN(NI, NJ)
   {
@@ -46,11 +64,10 @@ void Field::getGridInfoPassed(Field &f, Grid &myGrid, double &viscX, double &vis
     f.FXP[index] = 1.0 - myGrid.XF[index];
     f.FYP[index] = 1.0 - myGrid.YF[index];
     f.density[index] = 1.0;
-
     f.viscX[index] = viscX;
     f.viscY[index] = viscY;
   }
-
+  
   forAllInterior(NI, NJ)
   {
     int index = i + j * NI;
@@ -101,6 +118,8 @@ void Field::inletBoundaryCondition(Field &vec, Direction side, double bvalue)
 
 void Field::laminarFlow(Field &vec, double m, double yMin, double yMax)
 {
+  NI = vec.NI;
+  NJ = vec.NJ;
 
   forAllN(NI, NJ)
   {
@@ -251,7 +270,6 @@ void Field::computeEastMassFluxes(Field &vec, Field &corrU)
   // For non constant density forAllInteriorUCVs
   forAllInterior(NI, NJ)
   {
-    std::cout << i + j *NI << vec.Se[i + j * NI] << " " << vec.density[i + j * NI] << " " << corrU.value[i + j * NI] << std::endl;
     vec.value[i + j * NI] = vec.Se[i + j * NI] * vec.density[i + j * NI] * corrU.value[i + j * NI];
   }
 }

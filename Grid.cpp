@@ -1,20 +1,15 @@
-#include "Grid.h"
+#include "Grid.hpp"
 #include <iostream>
 
-Grid::Grid()
+Grid::Grid() : X(NULL), Y(NULL), XC(NULL), YC(NULL), XF(NULL), YF(NULL)
 {
 }
 
-Grid::Grid(int &n, int &m, double &xmin, double &xmax, double &ymin, double &ymax) : N(n), M(m), NI(n + 2), NJ(m + 2), xMin(xmin), xMax(xmax), yMin(ymin), yMax(ymax), Xlength(xMax - xMin), Ylength(yMax - yMin)
+Grid::Grid(int &n, int &m, double &xmin, double &xmax, double &ymin, double &ymax) : N(n), M(m), NI(n + 2), NJ(m + 2),
+                                                                                     xMin(xmin), xMax(xmax), yMin(ymin), yMax(ymax), Xlength(xMax - xMin), Ylength(yMax - yMin),
+                                                                                     X(new double[NI * NJ]), Y(new double[NI * NJ]), XC(new double[NI * NJ]), YC(new double[NI * NJ]),
+                                                                                     XF(new double[NI * NJ]), YF(new double[NI * NJ])
 {
-
-  X = new double[NI * NJ]();
-  Y = new double[NI * NJ]();
-  XC = new double[NI * NJ]();
-  YC = new double[NI * NJ]();
-  XF = new double[NI * NJ]();
-  YF = new double[NI * NJ]();
-
   DX = Xlength / N;
   DY = Ylength / M;
 
@@ -46,10 +41,10 @@ void Grid::setY(double *&vecY)
 
   for (int i = 0; i < NI; i++)
     for (int j = 1; j < NJ - 1; j++)
-      vecY[i + j * NI] = vecY[i + (j-1) * NI] + DY;
+      vecY[i + j * NI] = vecY[i + (j - 1) * NI] + DY;
 
   for (int i = 0; i < NI; i++)
-    vecY[i + (NJ-1) * NI] = vecY[i + (NJ-2) * NI];
+    vecY[i + (NJ - 1) * NI] = vecY[i + (NJ - 2) * NI];
 }
 
 void Grid::setXC(double *&vecX, double *&vecXC)
@@ -118,4 +113,10 @@ void Grid::SetIEx(double &ExMin, double &ExMax)
 
 Grid::~Grid()
 {
+  delete[] X;
+  delete[] Y;
+  delete[] XC;
+  delete[] YC;
+  delete[] XF;
+  delete[] YF;
 }

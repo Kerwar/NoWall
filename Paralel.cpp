@@ -1,4 +1,4 @@
-#include "Paralel.h"
+#include "Paralel.hpp"
 #include <iostream>
 
 using std::cout;
@@ -11,7 +11,7 @@ Paralel::Paralel(int worldsize)
   MPI_Comm_size(MPI_COMM_WORLD, &worldNProcs);
 }
 
-void Paralel::setUpComm(int &NX, int &NY, double &xMax, double &xExMin, double &xExMax)
+void Paralel::setUpComm(int &NX, int &NY)
 {
   PROFILE_FUNCTION();
 
@@ -110,10 +110,14 @@ void Paralel::setUpMesh(int &NX, int &NY, double &channelWidth, int &exi1, int &
 
   myNx = iEnd - iStr + 1;
   myNy = jEnd - jStr + 1;
+
+  MPI_Type_vector(myNy + 2, 1, myNx + 2, MPI_DOUBLE_PRECISION, &column_type);
+  MPI_Type_commit(&column_type);
 }
 
 Paralel::~Paralel()
 {
+  MPI_Type_free(&column_type);
 }
 
 void Paralel::freeComm()
@@ -142,11 +146,6 @@ void Paralel::SendInfoToNeighbours(Field &vec)
   int NI = vec.NI;
   int NJ = vec.NJ;
 
-  double infoSentRL[NJ] = {};
-  double infoRecvRL[NJ] = {};
-  double infoSentTB[NI] = {};
-  double infoRecvTB[NI] = {};
-
   int leftTag = 10, rightTag = 11, topTag = 12, botTag = 13;
 
   leftTag *= (1 + loc);
@@ -156,51 +155,34 @@ void Paralel::SendInfoToNeighbours(Field &vec)
 
   MPI_Barrier(myComm);
   // SENDING INFO TO THE LEFT
-  for (int j = 0; j < NJ; j++)
-    infoSentRL[j] = vec.value[1 + j * NI];
 
-  PMPI_Sendrecv(&infoSentRL, NJ, MPI_DOUBLE_PRECISION, myLeft, leftTag,
-                &infoRecvRL, NJ, MPI_DOUBLE_PRECISION, myRight, leftTag, myComm, MPI_STATUS_IGNORE);
+  MPI_Sendrecv(&vec.value[1], 1, column_type, myLeft, leftTag,
+                &vec.value[NI-1], 1, column_type, myRight, leftTag, myComm, MPI_STATUS_IGNORE);
 
   if (!isProcNull(myRight))
     for (int j = 0; j < NJ; j++)
-      vec.value[NI - 1 + j * NI] = (infoRecvRL[j] + vec.value[NI - 2 + j * NI]) * 0.5;
+      vec.value[NI - 1 + j * NI] = (vec.value[NI - 1 + j * NI] + vec.value[NI - 2 + j * NI]) * 0.5;
 
   MPI_Barrier(myComm);
   // SENDING INFO TO THE RIGHT
-  for (int j = 0; j < NJ; ++j)
-    infoSentRL[j] = vec.value[NI - 1 + j * NI];
 
-  PMPI_Sendrecv(&infoSentRL, NJ, MPI_DOUBLE_PRECISION, myRight, rightTag,
-                &infoRecvRL, NJ, MPI_DOUBLE_PRECISION, myLeft, rightTag, myComm, MPI_STATUS_IGNORE);
-
-  if (!isProcNull(myLeft))
-    for (int j = 0; j < NJ; j++)
-      vec.value[j * NI] = infoRecvRL[j];
+  MPI_Sendrecv(&vec.value[NI-1], 1, column_type, myRight, rightTag,
+                &vec.value[0], 1, column_type, myLeft, rightTag, myComm, MPI_STATUS_IGNORE);
 
   MPI_Barrier(myComm);
-  // SENDING INFO TO THE BOT
-  for (int i = 0; i < NI; i++)
-    infoSentTB[i] = vec.value[i + NI];
 
-  PMPI_Sendrecv(&infoSentTB, NI, MPI_DOUBLE_PRECISION, myBot, botTag,
-                &infoRecvTB, NI, MPI_DOUBLE_PRECISION, myTop, botTag, myComm, MPI_STATUS_IGNORE);
+  // SENDING INFO TO THE BOT
+  MPI_Sendrecv(&vec.value[NI], NI, MPI_DOUBLE_PRECISION, myBot, botTag,
+                &vec.value[(NJ - 1) * NI], NI, MPI_DOUBLE_PRECISION, myTop, botTag, myComm, MPI_STATUS_IGNORE);
 
   if (!isProcNull(myTop))
     for (int i = 0; i < NI; i++)
-      vec.value[i + (NJ - 1) * NI] = (infoRecvTB[i] + vec.value[i + (NJ - 2) * NI]) * 0.5;
+      vec.value[i + (NJ - 1) * NI] = (vec.value[i + (NJ - 1) * NI] + vec.value[i + (NJ - 2) * NI]) * 0.5;
   MPI_Barrier(myComm);
 
   // SENDING INFO TO THE TOP
-  for (int i = 0; i < NI; i++)
-    infoSentTB[i] = vec.value[i + (NJ - 1) * NI];
-
-  PMPI_Sendrecv(&infoSentTB, NI, MPI_DOUBLE_PRECISION, myTop, topTag,
-                &infoRecvTB, NI, MPI_DOUBLE_PRECISION, myBot, topTag, myComm, MPI_STATUS_IGNORE);
-
-  if (!isProcNull(myBot))
-    for (int i = 0; i < NI; i++)
-      vec.value[i] = infoRecvTB[i];
+  MPI_Sendrecv(&vec.value[(NJ - 1) * NI], NI, MPI_DOUBLE_PRECISION, myTop, topTag,
+                &vec.value[0], NI, MPI_DOUBLE_PRECISION, myBot, topTag, myComm, MPI_STATUS_IGNORE);
 }
 
 void Paralel::MainsProcs(Loc location, int &proc)

@@ -1,4 +1,4 @@
-#include "Problem.h"
+#include "Problem.hpp"
 
 double Problem::beta, Problem::gamma;
 double Problem::xMin, Problem::xMax, Problem::xExMin, Problem::xExMax;
@@ -14,12 +14,19 @@ double Problem::a, Problem::a2;
 double Problem::bK, Problem::exCte;
 
 double Problem::viscX, Problem::viscY;
+double Problem::tolerance, Problem::alpha;
+
+bool Problem::readFromFile;
 
 Problem::Problem(int worldsize) : maxit(10), iShow(1), m(2), N(1200), M(10),
-                                  tolerance(10e-12), paralel(worldsize), alpha(0.95),
-                                  readFromFile(false)
+                                  paralel(worldsize)
 {
   PROFILE_FUNCTION();
+
+  readFromFile = false;
+  tolerance = 10e-12;
+  alpha = 0.95;
+
   beta = 10;
   gamma = 0.7;
   xMin = 0;
@@ -42,35 +49,34 @@ Problem::Problem(int worldsize) : maxit(10), iShow(1), m(2), N(1200), M(10),
   itersol = 4;
   LeF = 1.0;
   LeZ = 0.3;
-  a = 1;
+  a = 0.1;
   a2 = 1 / (a * a);
   bK = 0.15;
   viscX = 1;
   viscY = a2;
 }
 
-Problem::Problem(int worldsize, int nx, int my, double prevm) : maxit(2000000), iShow(50000), m(prevm), N(nx), M(my),
-                                                                tolerance(10e-10), paralel(worldsize), alpha(0.9), readFromFile(true)
+Problem::Problem(int worldsize, int nx, int ny, int ni, int nj, double prevm) :
+ maxit(10), iShow(1), m(prevm), N(nx), M(ny), paralel(worldsize), variables(ni, nj, nx, ny)
 {
   PROFILE_FUNCTION();
-  if (nx > 20000)
-  {
-	tolerance = 10e-6;
-	maxit = 1000000;}
+  // if (nx > 20000)
+  // {
+	// tolerance = 10e-6;
+	// maxit = 1000000;}
 }
 
 Problem::~Problem()
 {
-  delete variables;
+  // delete variables;
 }
 
 void Problem::setUpProblem()
 {
   PROFILE_FUNCTION();
-  paralel.setUpComm(N, M, xMax, xExMin, xExMax);
+  paralel.setUpComm(N, M);
   mainGrid = Grid(N, M, xMin, xMax, yMin, yMax);
   mainGrid.SetIEx(xExMin, xExMax);
-
   paralel.setUpMesh(N, M, yChannel, mainGrid.exI1, mainGrid.exI2);
 
   myProc = paralel.myProc;
@@ -90,47 +96,44 @@ void Problem::setUpProblem()
   myGrid = Grid(paralel.myNx, paralel.myNy, myXMin, myXMax, myYMin, myYMax);
   myGrid.SetIEx(xExMin, xExMax);
 
-  int NI = myGrid.NI;
-  int NJ = myGrid.NJ;
-
-  Field fieldOper(NI, NJ);
-
   solN = N;
   solM = M;
+}
 
-  variables = new Variable(NI, NJ, solN, solM);
-  variables->passInfoGridToAll(mainGrid, myGrid, viscX, viscY, LeF, LeZ);
+void Problem::initializeVariables()
+{
+  PROFILE_FUNCTION();
+  variables.passInfoGridToAll(mainGrid, myGrid, viscX, viscY, LeF, LeZ);
   setExchangeConstant(myGrid.DY);
   int fixPointProcBuffer = 0;
 
   if (fixPointInThisProc())
   {
     fixPointProcBuffer += paralel.worldMyProc;
-    variables->setFixIndex(xfix, yfix);
+    variables.setFixIndex(xfix, yfix);
   }
 
   MPI_Allreduce(&fixPointProcBuffer, &paralel.fixPointProc, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-}
-
-void Problem::initializeVariables()
-{
-  PROFILE_FUNCTION();
 
   if (!readFromFile)
   {
     if (paralel.isLeftToRight())
-      variables->initializeLeftToRight(m, myYMin, myYMax + yChannel, q, xHS_U, r0hs, z0hs, xMin, xMax);
+      variables.initializeLeftToRight(m, myYMin, myYMax + yChannel, q, xHS_U, r0hs, z0hs, xMin, xMax);
     else if (paralel.isRightToLeft())
-      variables->initializeRightToLeft(m, myYMin - yChannel, myYMax, q, xHS_D, r0hs, z0hs, xMin, xMax);
+      variables.initializeRightToLeft(m, myYMin - yChannel, myYMax, q, xHS_D, r0hs, z0hs, xMin, xMax);
+
+    readFromFile = true;
   }
   else
   {
     if (paralel.isLeftToRight())
-      variables->readFile(paralel, 2, m, myYMin, myYMax + yChannel);
-    else if (paralel.isRightToLeft())
-      variables->readFile(paralel, 1, m, myYMin - yChannel, myYMax);
+      variables.readFile(paralel, 2, m, myYMin, myYMax + yChannel);
+    
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (paralel.isRightToLeft())
+      variables.readFile(paralel, 1, m, myYMin - yChannel, myYMax);
 
-    variables->sendInfoToNeighbours(paralel);
+    variables.sendInfoToNeighbours(paralel);
   }
   //  If density non constant this interpolate the Velocities and the mass fluxes have to be calculated with them
   // Field::vectorField UE(fieldOper.interpolatedFieldEast(U, myGrid));
@@ -139,20 +142,20 @@ void Problem::initializeVariables()
   // fieldOper.getGridInfoPassed(UE, myGrid, viscX, viscY);
   // fieldOper.getGridInfoPassed(UN, myGrid, viscX, viscY);
 
-  variables->setMassFluxes(myGrid);
+  variables.setMassFluxes(myGrid);
 
   if (paralel.isLeftToRight() && paralel.isProcNull(paralel.myLeft))
   {
-    variables->setInletBoundaryConditionLeftToRight();
+    variables.setInletBoundaryConditionLeftToRight();
   }
   else if (paralel.isRightToLeft() && paralel.isProcNull(paralel.myRight))
   {
-    variables->setInletBoundaryConditionRightToLeft();
+    variables.setInletBoundaryConditionRightToLeft();
   }
 
-  variables->sendInfoToCommMainProc(paralel);
+  variables.sendInfoToCommMainProc(paralel);
 
-  variables->exchangeTemperature(paralel, exCte);
+  variables.exchangeTemperature(paralel, exCte);
 }
 
 void Problem::writeSolution(string &prefix, int i)
@@ -169,18 +172,19 @@ void Problem::writeSolution(string &prefix, int i)
   else if (i == -1)
   {
     sufix = "";
+    // variables.writeTInWall(paralel, 0);
   }
 
-  variables->sendInfoToCommMainProc(paralel);
+  variables.sendInfoToCommMainProc(paralel);
 
   MPI_Barrier(MPI_COMM_WORLD);
   if (myProc == 0 && paralel.isRightToLeft())
-    fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables->solU, variables->solV, variables->solT, variables->solF, variables->solZ, paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd, paralel.loc);
-    // fileWriter.WriteBin(prefix, sufix, i, mainGrid, variables->solU, variables->solV, variables->solT, variables->solF, variables->solZ, paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd, paralel.loc);
+    fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables.solU, variables.solV, variables.solT, variables.solF, variables.solZ, paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd, paralel.loc);
+    // fileWriter.WriteBin(prefix, sufix, i, mainGrid, variables.solU, variables.solV, variables.solT, variables.solF, variables.solZ, paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd, paralel.loc);
   MPI_Barrier(MPI_COMM_WORLD);
   if (myProc == 0 && paralel.isLeftToRight())
-  fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables->solU, variables->solV, variables->solT, variables->solF, variables->solZ, paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd, paralel.loc);
-    // fileWriter.WriteBin(prefix, sufix, i, mainGrid, variables->solU, variables->solV, variables->solT, variables->solF, variables->solZ, paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd, paralel.loc);
+  fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables.solU, variables.solV, variables.solT, variables.solF, variables.solZ, paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd, paralel.loc);
+    // fileWriter.WriteBin(prefix, sufix, i, mainGrid, variables.solU, variables.solV, variables.solT, variables.solF, variables.solZ, paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd, paralel.loc);
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
@@ -194,54 +198,54 @@ double Problem::mainIter(int i)
   Equation *Feqn;
   Equation *Zeqn;
 
-  variables->setChannelEquations(Teqn, Feqn, Zeqn, m, q, beta, gamma, DT);
+  variables.setChannelEquations(Teqn, Feqn, Zeqn, m, q, beta, gamma, DT);
 
   Field::Direction side = Field::west;
 
   if (paralel.isFirstProcOfRow() && paralel.isRightToLeft())
-    variables->setWallShear(Teqn, Feqn, Zeqn, side);
+    variables.setWallShear(Teqn, Feqn, Zeqn, side);
   else
-    variables->setDirichlet(Teqn, Feqn, Zeqn, side);
+    variables.setDirichlet(Teqn, Feqn, Zeqn, side);
 
   side = Field::east;
 
   if (paralel.isLastProcOfRow() && paralel.isLeftToRight())
-    variables->setWallShear(Teqn, Feqn, Zeqn, side);
+    variables.setWallShear(Teqn, Feqn, Zeqn, side);
   else
-    variables->setDirichlet(Teqn, Feqn, Zeqn, side);
+    variables.setDirichlet(Teqn, Feqn, Zeqn, side);
 
   side = Field::south;
 
   if (paralel.isFirstProcOfCol() && paralel.isRightToLeft())
-    variables->setWallShear(Teqn, Feqn, Zeqn, side);
+    variables.setWallShear(Teqn, Feqn, Zeqn, side);
   else if (paralel.isFirstProcOfCol() && paralel.isLeftToRight())
-    variables->setExchangeWallShear(Teqn, Feqn, Zeqn, side, paralel.iStr, paralel.iEnd, mainGrid.exI1, mainGrid.exI2,
+    variables.setExchangeWallShear(Teqn, Feqn, Zeqn, side, paralel.iStr, paralel.iEnd, mainGrid.exI1, mainGrid.exI2,
                                     myGrid.exI1, myGrid.exI2);
   else
-    variables->setDirichlet(Teqn, Feqn, Zeqn, side);
+    variables.setDirichlet(Teqn, Feqn, Zeqn, side);
 
   side = Field::north;
 
   if (paralel.isLastProcOfCol() && paralel.isRightToLeft())
-    variables->setExchangeWallShear(Teqn, Feqn, Zeqn, side, paralel.iStr, paralel.iEnd, mainGrid.exI1, mainGrid.exI2,
+    variables.setExchangeWallShear(Teqn, Feqn, Zeqn, side, paralel.iStr, paralel.iEnd, mainGrid.exI1, mainGrid.exI2,
                                     myGrid.exI1, myGrid.exI2);
   else if (paralel.isLastProcOfCol() && paralel.isLeftToRight())
-    variables->setWallShear(Teqn, Feqn, Zeqn, side);
+    variables.setWallShear(Teqn, Feqn, Zeqn, side);
   else
-    variables->setDirichlet(Teqn, Feqn, Zeqn, side);
+    variables.setDirichlet(Teqn, Feqn, Zeqn, side);
 
-  variables->assembleEquations(Teqn, Feqn, Zeqn);
+  variables.assembleEquations(Teqn, Feqn, Zeqn);
 
   Teqn->EqnName = "T-Eqn";
   Feqn->EqnName = "F-Eqn";
   Zeqn->EqnName = "Z-Eqn";
 
-  error = variables->solveEquations(Teqn, Feqn, Zeqn, alpha, i, itersol, 10*iShow);
+  error = variables.solveEquations(Teqn, Feqn, Zeqn, alpha, i, itersol, 100*iShow);
 
   double error_result = 0;
 
   if (fixPointInThisProc())
-    m = variables->calculateNewM(0.75 * alpha, m, q);
+    m = variables.calculateNewM(0.75 * alpha, m, q);
 
   {
   PROFILE_SCOPE("Cast+Reduce");
@@ -250,8 +254,8 @@ double Problem::mainIter(int i)
   MPI_Allreduce(&error, &error_result, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   }
 
-  variables->sendInfoToNeighbours(paralel);
-  variables->exchangeTemperature(paralel, exCte);
+  variables.sendInfoToNeighbours(paralel);
+  variables.exchangeTemperature(paralel, exCte);
 
   delete Teqn;
   delete Feqn;
@@ -276,12 +280,6 @@ bool Problem::fixPointInThisProc()
       result = true;
 
   return result;
-}
-
-bool Problem::isErrorSmallEnough(double error)
-{
-
-  return error < tolerance ? true : false;
 }
 
 void Problem::writefilename(string &filename)
@@ -366,11 +364,6 @@ void Problem::retrieveNandM(int &nxOut, int &nyOut, double &mOut)
    // nyOut = M;
 //  }
   mOut = m;
-}
-
-bool Problem::isSolutionNotGoodEnough()
-{
-  return !variables->isTOutEqualToQ(q, paralel);
 }
 
 void Problem::setExchangeConstant(double &deltaY)

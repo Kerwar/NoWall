@@ -1,4 +1,4 @@
-#include "Equation.h"
+#include "Equation.hpp"
 
 Equation::Equation(const FiniteMatrix::finiteMat &Fmatrix) : APinitial(Fmatrix),
                                                              value(0.0), Residual(0.0), RSM(0.0), RESOR(4), URF(0.8), // 0.8),

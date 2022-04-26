@@ -1,10 +1,10 @@
-#include "Variable.h"
+#include "Variable.hpp"
 
-// Variable::Variable()
-// {
-// }
+Variable::Variable()
+{
+}
 
-Variable::Variable(int &n, int &m, int &soln, int &solm) : NI(n), NJ(m), solN(soln), solM(solm),
+Variable::Variable(int &ni, int &nj, int &soln, int &solm) : NI(ni), NJ(nj), solN(soln), solM(solm),
                                                            solT(solN, solM), solF(solN, solM),
                                                            solZ(solN, solM), solU(solN, solM),
                                                            solV(solN, solM), U(NI, NJ),
@@ -32,13 +32,13 @@ void Variable::passInfoGridToAll(Grid &solGrid, Grid &myGrid, double &viscX, dou
 
   fieldOper.getGridInfoPassed(solU, solGrid, viscTx, viscTy);
   fieldOper.getGridInfoPassed(solV, solGrid, viscTx, viscTy);
-
   fieldOper.getGridInfoPassed(solT, solGrid, viscTx, viscTy);
   fieldOper.getGridInfoPassed(solF, solGrid, viscFx, viscFy);
   fieldOper.getGridInfoPassed(solZ, solGrid, viscZy, viscZy);
 
   fieldOper.getGridInfoPassed(U, myGrid, viscX, viscY);
   fieldOper.getGridInfoPassed(V, myGrid, viscX, viscY);
+  
   fieldOper.getGridInfoPassed(T, myGrid, viscTx, viscTy);
   fieldOper.getGridInfoPassed(F, myGrid, viscFx, viscFy);
   fieldOper.getGridInfoPassed(Z, myGrid, viscZx, viscZy);
@@ -207,20 +207,22 @@ void Variable::assembleEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Ze
 double Variable::solveEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, double alpha, int &niter, int &itersol, int changeIter)
 {
   PROFILE_FUNCTION();
-  double error;
+  double error = 10;
+  double newerror = 10;
 
   FiniteMatrix::finiteMat ST(Teqn->sourceRelaxed);
   error = Teqn->solve(T, ST, alpha, niter, itersol, changeIter);
 
   FiniteMatrix::finiteMat SF(Feqn->sourceRelaxed);
-  error = std::max(error, Feqn->solve(F, SF, alpha, niter, itersol, changeIter));
+  newerror = Feqn->solve(F, SF, alpha, niter, itersol, changeIter);
+  error = std::max(error, newerror);
 
   FiniteMatrix::finiteMat SZ(Zeqn->sourceRelaxed);
-  error = std::max(error, Zeqn->solve(Z, SZ, alpha, niter, itersol, changeIter));
+  newerror = Zeqn->solve(Z, SZ, alpha, niter, itersol, changeIter);
+  error = std::max(error, newerror);
 
   forAllInterior(NI, NJ)
   {
-
     F.value[i + j * NI] = std::max(F.value[i + j * NI], 0.0);
   }
   return error;
@@ -309,7 +311,7 @@ void Variable::readFile(Paralel &paralel, int block, double &m, double yMin, dou
 
   fieldOper.laminarFlow(U, laminarm, yMin, yMax);
   fieldOper.initializeInternalField(V, 0);
-
+  
   if (paralel.myProc == 0)
   {
     fileread.readField(initialsol, block, 1, solT, paralel.locIStr, paralel.locIEnd);
@@ -379,18 +381,18 @@ void Variable::writeTInWall(Paralel &paralel, int iter)
 {
   PROFILE_FUNCTION();
 
-  string file = "TW32";
+  string file = "TW";
   std::ostringstream filename;
-  filename << file << " " << paralel.worldMyProc << " " << iter;
+  filename << file << "--" << paralel.worldMyProc << "--" << iter << ".txt";
   char cstr[filename.str().size() + 2];
   strcpy(cstr, filename.str().c_str());
 
   std::ofstream outfile;
   outfile.open(cstr, std::ios::out);
 
-  for (int i = 0; i < NI; i++)
+  for (int i = paralel.iStr; i < paralel.iEnd; i++)
   {
-    outfile << i << "-" << TWall.value[i] << std::endl;
+    outfile << i << " " << TWall.value[i] << " " << T.value[i - paralel.iStr + 1 + (NJ - 1) * NI] << " " << std::endl;
   }
   outfile.close();
 }

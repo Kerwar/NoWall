@@ -4,8 +4,8 @@
 #include <thread>
 #include <chrono>
 
-#include "Problem.h"
-#include "Instrumentor.h"
+#include "Problem.hpp"
+#include "Instrumentor.hpp"
 #include "mpi.h"
 
 using std::cout;
@@ -27,24 +27,46 @@ int main(int argc, char **argv)
   int worldRank, worldSize;
   MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
   MPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
-  Instrumentor::Get().BeginSession("../Profiling/Profile-"+std::to_string(worldRank)+".json");
+  Instrumentor::Get().BeginSession("../Profiling/Profile-" + std::to_string(worldRank) + ".json");
   auto startTime = std::chrono::high_resolution_clock::now();
   bool solutionNotGoodEnough = true;
   int n = 0, m = 0;
-  double mprevious;
+  int ni = 0, nj = 0;
+
+  double mprevious = 2;
 
   while (solutionNotGoodEnough)
   {
     Problem *problem;
-    
-    if(n != 0)
-      problem = new Problem(worldSize, n, m, mprevious);
-    else 
-      problem = new Problem(worldSize);
+    if (n != 0)
+    {
+      Problem *startProblem = new Problem(worldSize, n, m, ni, nj, mprevious);
+      startProblem->setUpProblem();
+      n = startProblem->N;
+      m = startProblem->M;
+      ni = startProblem->paralel.myNx + 2;
+      nj = startProblem->paralel.myNy + 2;
+      delete startProblem;
+
+      problem = new Problem(worldSize, n, m, ni, nj, mprevious);
+    }
+    else
+    {
+      Problem *startProblem = new Problem(worldSize);
+      startProblem->setUpProblem();
+      n = startProblem->N;
+      m = startProblem->M;
+      ni = startProblem->paralel.myNx + 2;
+      nj = startProblem->paralel.myNy + 2;
+      delete startProblem;
+
+      problem = new Problem(worldSize, n, m, ni, nj, mprevious);
+    }
 
     problem->setUpProblem();
 
     problem->initializeVariables();
+
     string filename = "../Results/";
     problem->writeSolution(filename, 0);
 
@@ -54,13 +76,17 @@ int main(int argc, char **argv)
     std::chrono::duration<double> durationFromPrev = fromPrev - startTime;
 
     if (worldRank == 0)
-      cout << "Time from start: " << showTime(durationFromStart) << " Time of last step: " << showTime(durationFromPrev) << " Iteration number: 0 Error: 1" << " M : " << problem->m << endl;;
+    {
+      cout << "The size of the Mesh is " << n << "x" << m << endl;
+      cout << "Time from start: " << showTime(durationFromStart) << " Time of last step: " << showTime(durationFromPrev) << " Iteration number: 0 Error: 1"
+           << " M : " << problem->m << endl;
+      ;
+    }
 
     double error = 1;
     for (int i = 1; i < problem->maxit; i++)
     {
       error = problem->mainIter(i);
-
 
       if (problem->isErrorSmallEnough(error) || i % problem->iShow == 0 || i == problem->maxit - 1)
       {
@@ -71,27 +97,25 @@ int main(int argc, char **argv)
         if (worldRank == 0)
           cout << "Time from start: " << showTime(durationFromStart) << " Time of last step: " << showTime(durationFromPrev) << " Iteration number: " << i << " Error: " << error << " M : " << problem->m << endl;
         problem->writeSolution(filename, i);
-      if (problem->isErrorSmallEnough(error))
-        break;
+        if (problem->isErrorSmallEnough(error))
+          break;
         // problem.increaseInnerIter(1);
       }
     }
     solutionNotGoodEnough = problem->isSolutionNotGoodEnough();
-      // solutionNotGoodEnough = false;//true;
+    solutionNotGoodEnough = true;
 
     if (solutionNotGoodEnough)
     {
       problem->retrieveNandM(n, m, mprevious);
       string previous = "";
       problem->writeSolution(previous, -1);
+      delete problem;
       if (worldRank == 0)
-      cout << "Refining the mesh to " << n << " " << m << endl;
+        cout << "Refining the mesh to " << n << " " << m << endl;
     }
-    else
-    if (worldRank == 0)
-	    cout << "We have Computed Everything!" << endl;
-
-    delete problem;
+    else if (worldRank == 0)
+      cout << "We have Computed Everything!" << endl;
   }
   Instrumentor::Get().EndSession();
   PMPI_Finalize();
