@@ -37,7 +37,7 @@ namespace fvm
     for (int j = 1; j < NJ - 1; j++)
     {
       int i = 1;
-      double DXPtoE = std::abs(vec.XC[1 + j * NI] - vec.XC[j * NI]);
+      double DXPtoE = std::abs(vec.XC[i + j * NI] - vec.XC[i -1 +j * NI]);
       double Se = std::abs(vec.Y[j * NI] - vec.Y[(j - 1) * NI]);
 
       APtemp[i][j].awvalue = -(vec.viscX[i + j * NI] * Se) / DXPtoE;
@@ -138,7 +138,8 @@ namespace fvm
     forAllInterior(NI, NJ)
     {
       int index = i + j * NI;
-      APtemp[i][j].svalue = beta * beta * exp(beta * (T.value[index] - 1.0) / (1.0 + gamma * (T.value[index] - 1.0))) * vec.value[index] * vec2.value[index] * vec.Se[index] * vec.Sn[index];
+      double expPortion =  exp(beta * (T.value[index] - 1.0) / (1.0 + gamma * (T.value[index] - 1.0)));
+      APtemp[i][j].svalue = beta * beta * expPortion * vec.value[index] * vec2.value[index] * vec.Se[index] * vec.Sn[index];
     }
     return APtemp;
   }

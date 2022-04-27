@@ -25,7 +25,7 @@ public:
   void setInletBoundaryConditionRightToLeft();
   void sendInfoToCommMainProc(Paralel &paralel);
   void sendInfoToNeighbours(Paralel &paralel);
-  void exchangeTemperature(Paralel &paralel, double &exCte);
+  void exchangeTemperature(Paralel &paralel, double &exCte, int &solExI1, int &solExI2);
   void setWallEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, double &alphaWall, double &DT);
   void setChannelEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, double &m, double &q, double &beta, double &gamma, double &DT);
   void setWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side);

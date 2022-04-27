@@ -364,14 +364,14 @@ bool Variable::isTOutEqualToQ(double q, Paralel &paralel)
   return result;
 }
 
-void Variable::exchangeTemperature(Paralel &paralel, double &exCte)
+void Variable::exchangeTemperature(Paralel &paralel, double &exCte, int &solExI1, int &solExI2)
 {
   PROFILE_FUNCTION();
 
   paralel.GatherWallTemperature(TWall, TNextToWall, T, exCte);
 
   if (paralel.myProc == 0)
-    paralel.ExchangeWallTemperature(TWall, TNextToWall, exCte);
+    paralel.ExchangeWallTemperature(TWall, TNextToWall, exCte, solExI1, solExI2);
   MPI_Barrier(MPI_COMM_WORLD);
 
   paralel.ShareWallTemperatureInfo(TWall, T);
@@ -392,7 +392,7 @@ void Variable::writeTInWall(Paralel &paralel, int iter)
 
   for (int i = paralel.iStr; i < paralel.iEnd; i++)
   {
-    outfile << i << " " << TWall.value[i] << " " << T.value[i - paralel.iStr + 1 + (NJ - 1) * NI] << " " << std::endl;
+    outfile << i << " " << TWall.value[i + 1] << " " << T.value[i - paralel.iStr + 1 + (NJ - 1) * NI] << " " << std::endl;
   }
   outfile.close();
 }

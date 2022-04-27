@@ -57,7 +57,7 @@ public:
   void setUpMesh(int &NX, int &NY, double &channelWidth, int &exi1, int &exi2);
   void SendInfoToNeighbours(Field &vec);
   void SendInfoToCommMainProc(Field &vec, Field &sol);
-  void ExchangeWallTemperature(Field &TWall, Field &TNextToWall, double &exCte);
+  void ExchangeWallTemperature(Field &TWall, Field &TNextToWall, double &exCte, int &solExI1, int &solExI2);
   void GatherWallTemperature(Field &TWall, Field &TNextToWall, Field &T, double &exCte);
   void ShareWallTemperatureInfo(Field &TWall, Field &T);
   void SendWallTInTheChannel(Field &TWall);

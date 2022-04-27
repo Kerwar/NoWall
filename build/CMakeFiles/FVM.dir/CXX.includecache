@@ -16,19 +16,23 @@ cmath
 Grid.hpp
 /home/javier/Documentos/Programs/CFEM/NoWall/Grid.hpp
 
-/home/javier/Documentos/Programs/CFEM/NoWall/FiniteMatrix.cpp
-FiniteMatrix.hpp
-/home/javier/Documentos/Programs/CFEM/NoWall/FiniteMatrix.hpp
+/home/javier/Documentos/Programs/CFEM/NoWall/FileReader.cpp
+FileReader.hpp
+/home/javier/Documentos/Programs/CFEM/NoWall/FileReader.hpp
 
-/home/javier/Documentos/Programs/CFEM/NoWall/FiniteMatrix.hpp
+/home/javier/Documentos/Programs/CFEM/NoWall/FileReader.hpp
 iostream
 -
-vector
+fstream
 -
-iomanip
+cstring
 -
-ForAllOperators.hpp
-/home/javier/Documentos/Programs/CFEM/NoWall/ForAllOperators.hpp
+sstream
+-
+cmath
+-
+Grid.hpp
+/home/javier/Documentos/Programs/CFEM/NoWall/Grid.hpp
 Field.hpp
 /home/javier/Documentos/Programs/CFEM/NoWall/Field.hpp
 

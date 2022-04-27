@@ -230,23 +230,18 @@ void Equation::SetWallShearTX(Field &vec, int iStr, int iEnd,
 {
   PROFILE_FUNCTION();
 
-  if (iEnd < Ex1 || iStr >= Ex2)
-  {
+  if (iEnd <= Ex1 || iStr >= Ex2)
     noWallShearXBoundaryConditions(vec, 1, vec.NI, side);
-  }
-  else if (iStr < Ex1 && iEnd < Ex2)
-  {
+  else if (iStr < Ex1 && iEnd <= Ex2)
     noWallShearXBoundaryConditions(vec, 1, myEx1, side);
-  }
-  else if (iStr > Ex1 && iEnd >= Ex2)
-  {
+  else if (iStr >= Ex1 && iEnd > Ex2)
     noWallShearXBoundaryConditions(vec, myEx2, vec.NI, side);
-  }
   else if (iStr < Ex1 && iEnd >= Ex2)
   {
     noWallShearXBoundaryConditions(vec, 1, myEx1, side);
     noWallShearXBoundaryConditions(vec, myEx2, vec.NI, side);
   }
+
   SetDirichlet(vec, side, massFluxEast, massFluxNorth);
 }
 

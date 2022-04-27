@@ -30,18 +30,18 @@ Problem::Problem(int worldsize) : maxit(10), iShow(1), m(2), N(1200), M(10),
   beta = 10;
   gamma = 0.7;
   xMin = 0;
-  xMax = 80;
-  xExMin = 20;
-  xExMax = 60;
+  xMax = 120;
+  xExMin = 40;
+  xExMax = 80;
   yWall = 0.0;
   yChannel = 0.5;
   yMin = 0;
   yMax = 1;
-  xfix = 23;
+  xfix = 43;
   yfix = 0.75;
   q = 1.2;
-  xHS_U = 24;
-  xHS_D = 56;
+  xHS_U = 44;
+  xHS_D = 76;
   r0hs = 1;
   z0hs = 0.5;
   alphaWall = 1;
@@ -155,7 +155,7 @@ void Problem::initializeVariables()
 
   variables.sendInfoToCommMainProc(paralel);
 
-  variables.exchangeTemperature(paralel, exCte);
+  variables.exchangeTemperature(paralel, exCte, mainGrid.exI1, mainGrid.exI2);
 }
 
 void Problem::writeSolution(string &prefix, int i)
@@ -172,7 +172,7 @@ void Problem::writeSolution(string &prefix, int i)
   else if (i == -1)
   {
     sufix = "";
-    // variables.writeTInWall(paralel, 0);
+    variables.writeTInWall(paralel, 0);
   }
 
   variables.sendInfoToCommMainProc(paralel);
@@ -255,7 +255,7 @@ double Problem::mainIter(int i)
   }
 
   variables.sendInfoToNeighbours(paralel);
-  variables.exchangeTemperature(paralel, exCte);
+  variables.exchangeTemperature(paralel, exCte, mainGrid.exI1, mainGrid.exI2);
 
   delete Teqn;
   delete Feqn;
