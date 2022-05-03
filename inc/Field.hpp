@@ -13,17 +13,17 @@ using std::vector;
 class Field
 {
 public:
-  int NI, NJ;
+  const int NI, NJ;
 
   double *value;
 
   double *X, *XC, *FXE, *FXP, *Y, *YC, *FYN, *FYP, *DXPtoE, *DYPtoN;
   double *Se, *Sn, *viscX, *viscY, *density, *volume;
 
-  Field();
+  // Field();
 
   // Overlad constructor
-  Field(int NI, int NJ);
+  Field(const int &_NI,const  int& _NJ);
   virtual ~Field();
 
   enum Direction
@@ -42,20 +42,17 @@ public:
   void InitializeZ(double T0hs, double r0hs, double xHotSpot, double yHotSpot, double xMax);
   void InitializeF(double xHotSpot, double xMin, double xMax);
   void initializeInternalField(double);
-  void linearExtrapolateCondition(Direction);
+  void linearExtrapolateCondition(const Direction &wallname);
 
-  void interpolatedFieldEast(Field &interpolated, Field &vec, const Grid &myGrid);
-  void interpolatedFieldNorth(Field &interpolated, Field &vec, const Grid &myGrid);
+  void interpolatedFieldEast(const Field &vec, const Grid &myGrid);
+  void interpolatedFieldNorth(const Field &vec, const Grid &myGrid);
 
-  void computeEastMassFluxes(Field &vec, Field &corrU);
-  void computeNorthMassFluxes(Field &vec, Field &corrV);
+  void computeEastMassFluxes(const Field &U);
+  void computeNorthMassFluxes(const Field &V);
 
   friend void swap(Field &first, Field &second)
   {
     using std::swap;
-
-    swap(first.NI, second.NI);
-    swap(first.NJ, second.NJ);
 
     swap(first.X, second.X);
     swap(first.XC, second.XC);

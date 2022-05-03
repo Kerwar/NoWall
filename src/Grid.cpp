@@ -5,12 +5,12 @@ Grid::Grid() : X(NULL), Y(NULL), XC(NULL), YC(NULL), XF(NULL), YF(NULL)
 {
 }
 
-Grid::Grid(int &n, int &m,
-           double &xmin, double &xmax,
-           double &ymin, double &ymax) : N(n), M(m), NI(n + 2), NJ(m + 2),
-                                         xMin(xmin), xMax(xmax), yMin(ymin), yMax(ymax), Xlength(xMax - xMin), Ylength(yMax - yMin),
-                                         X(new double[NI * NJ]), Y(new double[NI * NJ]), XC(new double[NI * NJ]), YC(new double[NI * NJ]),
-                                         XF(new double[NI * NJ]), YF(new double[NI * NJ])
+Grid::Grid(const int &n, const int &m,
+           const double &xmin, const double &xmax,
+           const double &ymin, const double &ymax) : N(n), M(m), NI(n + 2), NJ(m + 2),
+                                                     xMin(xmin), xMax(xmax), yMin(ymin), yMax(ymax), Xlength(xMax - xMin), Ylength(yMax - yMin),
+                                                     X(new double[NI * NJ]), Y(new double[NI * NJ]), XC(new double[NI * NJ]), YC(new double[NI * NJ]),
+                                                     XF(new double[NI * NJ]), YF(new double[NI * NJ])
 {
   DX = Xlength / N;
   DY = Ylength / M;

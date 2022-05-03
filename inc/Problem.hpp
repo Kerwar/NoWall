@@ -10,8 +10,9 @@
 class Problem
 {
 public:
-  Problem(int worldsize);
-  Problem(int worldsize, int nx, int ny, int ni, int nj, double prevm);
+  Problem(const int &worldsize);
+  Problem(const int &worldsize, const int &nx, const int &ny,
+   const int &ni, const int &nj, const double &prevm);
   virtual ~Problem();
 
   void setUpProblem();
@@ -27,7 +28,7 @@ public:
 
   int maxit, iShow;
   double m;
-  int N, M;
+  const int N, M;
   Paralel paralel;
 
 private:
@@ -59,7 +60,11 @@ private:
   double myYMin, myYMax;
 
   int solN, solM;
-
+  
+  Equation *Teqn;
+  Equation *Feqn;
+  Equation *Zeqn;
+  
   string sufix;
 public:
   inline bool isErrorSmallEnough(double &error){return error < tolerance ? true : false;};

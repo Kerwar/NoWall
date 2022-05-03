@@ -9,7 +9,7 @@ class Grid
 {
 public:
   Grid();
-  Grid(int &n, int &m, double &xmin, double &xmax, double &ymin, double &ymax);
+  Grid(const int &n,const int &m,const double &xmin,const double &xmax,const double &ymin,const double &ymax);
   virtual ~Grid();
 
 

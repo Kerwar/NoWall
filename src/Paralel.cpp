@@ -11,7 +11,7 @@ Paralel::Paralel(int worldsize)
   MPI_Comm_size(MPI_COMM_WORLD, &worldNProcs);
 }
 
-void Paralel::setUpComm(int &NX, int &NY)
+void Paralel::setUpComm(const int &NX, const int &NY)
 {
   PROFILE_FUNCTION();
 
@@ -66,7 +66,7 @@ void Paralel::setUpComm(int &NX, int &NY)
   MainsProcs(down, DCMainProc);
 }
 
-void Paralel::setUpMesh(int &NX, int &NY, double &channelWidth, int &exi1, int &exi2)
+void Paralel::setUpMesh(const int &NX, const int &NY, double &channelWidth, int &exi1, int &exi2)
 {
   PROFILE_FUNCTION();
   NYChannel = floor(NY / 2.0);
@@ -157,7 +157,7 @@ void Paralel::SendInfoToNeighbours(Field &vec)
   // SENDING INFO TO THE LEFT
 
   MPI_Sendrecv(&vec.value[1], 1, column_type, myLeft, leftTag,
-                &vec.value[NI-1], 1, column_type, myRight, leftTag, myComm, MPI_STATUS_IGNORE);
+               &vec.value[NI - 1], 1, column_type, myRight, leftTag, myComm, MPI_STATUS_IGNORE);
 
   if (!isProcNull(myRight))
     for (int j = 0; j < NJ; j++)
@@ -166,14 +166,14 @@ void Paralel::SendInfoToNeighbours(Field &vec)
   MPI_Barrier(myComm);
   // SENDING INFO TO THE RIGHT
 
-  MPI_Sendrecv(&vec.value[NI-1], 1, column_type, myRight, rightTag,
-                &vec.value[0], 1, column_type, myLeft, rightTag, myComm, MPI_STATUS_IGNORE);
+  MPI_Sendrecv(&vec.value[NI - 1], 1, column_type, myRight, rightTag,
+               &vec.value[0], 1, column_type, myLeft, rightTag, myComm, MPI_STATUS_IGNORE);
 
   MPI_Barrier(myComm);
 
   // SENDING INFO TO THE BOT
   MPI_Sendrecv(&vec.value[NI], NI, MPI_DOUBLE_PRECISION, myBot, botTag,
-                &vec.value[(NJ - 1) * NI], NI, MPI_DOUBLE_PRECISION, myTop, botTag, myComm, MPI_STATUS_IGNORE);
+               &vec.value[(NJ - 1) * NI], NI, MPI_DOUBLE_PRECISION, myTop, botTag, myComm, MPI_STATUS_IGNORE);
 
   if (!isProcNull(myTop))
     for (int i = 0; i < NI; i++)
@@ -182,7 +182,7 @@ void Paralel::SendInfoToNeighbours(Field &vec)
 
   // SENDING INFO TO THE TOP
   MPI_Sendrecv(&vec.value[(NJ - 1) * NI], NI, MPI_DOUBLE_PRECISION, myTop, topTag,
-                &vec.value[0], NI, MPI_DOUBLE_PRECISION, myBot, topTag, myComm, MPI_STATUS_IGNORE);
+               &vec.value[0], NI, MPI_DOUBLE_PRECISION, myBot, topTag, myComm, MPI_STATUS_IGNORE);
 }
 
 void Paralel::MainsProcs(Loc location, int &proc)
@@ -215,7 +215,7 @@ void Paralel::MainsProcs(Loc location, int &proc)
   proc = buffer;
 }
 
-void Paralel::ExchangeWallTemperature(Field &TWall, Field &TNextToWall, double &exCte, int &solExI1,int &solExI2)
+void Paralel::ExchangeWallTemperature(Field &TWall, Field &TNextToWall, double &exCte, int &solExI1, int &solExI2)
 {
   PROFILE_FUNCTION();
 
@@ -292,7 +292,7 @@ double Paralel::TWUinBorder(double (&T)[4], double &exCte)
   return newT;
 }
 
-void Paralel::setProcMesh(int &NX, int &NY)
+void Paralel::setProcMesh(const int &NX, const int &NY)
 {
   PROFILE_FUNCTION();
 
@@ -512,10 +512,10 @@ void Paralel::GatherTemperature(Field &T, Field &TWall, int J)
   else
     MPI_Gatherv(&T.value[1 + J * T.NI], T.NI - 2, MPI_DOUBLE, NULL, NULL, NULL, MPI_DOUBLE, 0, myComm);
 
-  for(int i = 0; i < exI1; i++)
+  for (int i = 0; i < exI1; i++)
     TWall.value[i] = 0;
 
-  for(int i = exI2; i < TWall.NI; i++)
+  for (int i = exI2; i < TWall.NI; i++)
     TWall.value[i] = 0;
 }
 

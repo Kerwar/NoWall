@@ -18,8 +18,8 @@ double Problem::tolerance, Problem::alpha;
 
 bool Problem::readFromFile;
 
-Problem::Problem(int worldsize) : maxit(10), iShow(1), m(2), N(1200), M(10),
-                                  paralel(worldsize)
+Problem::Problem(const int &worldsize) : maxit(10), iShow(1), m(2), N(600), M(20),
+                                  paralel(worldsize), variables(1,1,1,1)
 {
   PROFILE_FUNCTION();
 
@@ -56,7 +56,7 @@ Problem::Problem(int worldsize) : maxit(10), iShow(1), m(2), N(1200), M(10),
   viscY = a2;
 }
 
-Problem::Problem(int worldsize, int nx, int ny, int ni, int nj, double prevm) :
+Problem::Problem(const int &worldsize, const int &nx, const int &ny, const int &ni, const int &nj, const double &prevm) :
  maxit(10), iShow(1), m(prevm), N(nx), M(ny), paralel(worldsize), variables(ni, nj, nx, ny)
 {
   PROFILE_FUNCTION();
@@ -244,7 +244,7 @@ double Problem::mainIter(int i)
   Feqn->EqnName = "F-Eqn";
   Zeqn->EqnName = "Z-Eqn";
 
-  error = variables.solveEquations(Teqn, Feqn, Zeqn, alpha, i, itersol, 100*iShow);
+  error = variables.solveEquations(Teqn, Feqn, Zeqn, alpha, i, itersol, 10*iShow);
 
   double error_result = 0;
 

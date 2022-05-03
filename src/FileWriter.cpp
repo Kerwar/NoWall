@@ -372,9 +372,9 @@ void FileWriter::WriteInter(string prefix, string sufix, int time,
                             const Grid &mainGrid, const Grid &myGrid,
                             const Field &Utemp, const Field &Vtemp,
                             const Field &Ttemp, const Field &Ftemp,
-                             const Field &Ztemp,
-                              int iStr, int iEnd, int jStr, int jEnd,
-                               Paralel::Loc loc)
+                            const Field &Ztemp,
+                            int iStr, int iEnd, int jStr, int jEnd,
+                            Paralel::Loc loc)
 {
   // Needed for q file
   double mach = 1;
@@ -385,6 +385,7 @@ void FileWriter::WriteInter(string prefix, string sufix, int time,
 
   int mainNI = mainGrid.NI;
   int solNI = Utemp.NI;
+  int NI = myGrid.NI;
   int NJ = myGrid.NJ;
 
   string timename;
@@ -412,25 +413,27 @@ void FileWriter::WriteInter(string prefix, string sufix, int time,
       int Blocks = 2;
       outfile.write((char *)&Blocks, sizeof(Blocks));
 
-      int NXtemp = mainNI - 1;
-      int NYtemp = NJ - 1;
+      int NXtemp = mainNI;
+      int NYtemp = NJ;
 
       outfile.write((char *)&NXtemp, sizeof(NXtemp));
       outfile.write((char *)&NYtemp, sizeof(NYtemp));
 
-      NXtemp = mainNI - 1;
-      NYtemp = NJ - 1;
+      NXtemp = mainNI;
+      NYtemp = NJ;
 
       outfile.write((char *)&NXtemp, sizeof(NXtemp));
       outfile.write((char *)&NYtemp, sizeof(NYtemp));
 
-      for (int j = jStr; j < NJ + jStr - 1; j++)
-        for (int i = 0; i < mainNI - 1; i++)
-          outfile.write(reinterpret_cast<char *>(&mainGrid.X[i + mainNI * j]), sizeof(mainGrid.X[i + mainNI * j]));
+      for (int j = jStr; j < NJ + jStr; j++)
+        for (int i = 0; i < mainNI; i++)
+          outfile.write(reinterpret_cast<char *>(&mainGrid.XC[i + mainNI * j]), sizeof(mainGrid.XC[i + mainNI * j]));
 
       for (int j = jStr; j < NJ + jStr - 1; j++)
-        for (int i = 0; i < mainNI - 1; i++)
-          outfile.write(reinterpret_cast<char *>(&mainGrid.Y[i + mainNI * j]), sizeof(mainGrid.Y[i + mainNI * j]));
+        for (int i = 0; i < mainNI; i++)
+          outfile.write(reinterpret_cast<char *>(&mainGrid.YC[i + mainNI * j]), sizeof(mainGrid.YC[i + mainNI * j]));
+      for (int i = 0; i < mainNI; i++)
+        outfile.write(reinterpret_cast<char *>(&myGrid.YC[NI * NJ - 1]), sizeof(myGrid.YC[NI * NJ - 1]));
 
       outfile.close();
     }
@@ -450,15 +453,17 @@ void FileWriter::WriteInter(string prefix, string sufix, int time,
       std::ofstream outfile;
       outfile.open(cstr, std::ios::app | std::ios::binary);
 
-      int jMax = myGrid.NJ + jStr - 1;
+      int jMax = myGrid.NJ + jStr;
 
       for (int j = jStr; j < jMax; j++)
-        for (int i = 0; i < mainNI - 1; i++)
-          outfile.write(reinterpret_cast<char *>(&mainGrid.X[i + mainNI * j]), sizeof(mainGrid.X[i + mainNI * j]));
+        for (int i = 0; i < mainNI; i++)
+          outfile.write(reinterpret_cast<char *>(&mainGrid.XC[i + mainNI * j]), sizeof(mainGrid.XC[i + mainNI * j]));
 
-      for (int j = jStr; j < jMax; j++)
-        for (int i = 0; i < mainNI - 1; i++)
-          outfile.write(reinterpret_cast<char *>(&mainGrid.Y[i + mainNI * j]), sizeof(mainGrid.Y[i + mainNI * j]));
+      for (int i = 0; i < mainNI; i++)
+        outfile.write(reinterpret_cast<char *>(&myGrid.YC[0]), sizeof(myGrid.YC[0]));
+      for (int j = jStr + 1; j < jMax; j++)
+        for (int i = 0; i < mainNI; i++)
+          outfile.write(reinterpret_cast<char *>(&mainGrid.YC[i + mainNI * j]), sizeof(mainGrid.YC[i + mainNI * j]));
 
       outfile.close();
     }
@@ -485,8 +490,8 @@ void FileWriter::WriteInter(string prefix, string sufix, int time,
   strcpy(qstr, name2.c_str());
 
   int Blocks = 2;
-  int NXtemp = mainGrid.NI - 1;
-  int NYtemp = myGrid.NJ - 1;
+  int NXtemp = mainGrid.NI;
+  int NYtemp = myGrid.NJ;
   if (loc == Paralel::down)
   {
 
@@ -494,13 +499,9 @@ void FileWriter::WriteInter(string prefix, string sufix, int time,
 
     outfile.write((char *)&Blocks, sizeof(Blocks));
 
-    NXtemp = mainGrid.NI - 1;
-    NYtemp = myGrid.NJ - 1;
     outfile.write((char *)&NXtemp, sizeof(NXtemp));
     outfile.write((char *)&NYtemp, sizeof(NYtemp));
 
-    NXtemp = mainGrid.NI - 1;
-    NYtemp = myGrid.NJ - 1;
     outfile.write((char *)&NXtemp, sizeof(NXtemp));
     outfile.write((char *)&NYtemp, sizeof(NYtemp));
   }
@@ -519,52 +520,31 @@ void FileWriter::WriteInter(string prefix, string sufix, int time,
   // 3) V
   // 4) Energy
   double rho = 1;
-  int jMax = myGrid.NJ + jStr - 1;
+  int jMax = myGrid.NJ + jStr;
   for (int j = jStr; j < jMax; j++)
-  {
-    for (int i = iStr; i < iEnd + 1; i++)
+    for (int i = iStr - 1; i < iEnd + 1; i++)
     {
       outfile.write(reinterpret_cast<char *>(&rho), sizeof(rho));
     }
-  }
   for (int j = jStr; j < jMax; j++)
-  {
-    for (int i = iStr; i < iEnd + 1; i++)
+    for (int i = iStr - 1; i < iEnd + 1; i++)
     {
-      double value = Utemp.value[std::min(i, iEnd - 1) + std::min(j, jMax - 2) * solNI];
-      if (i != iStr && i != iEnd)
-        value = 0.5 * (value + Utemp.value[i - 1 + std::min(j, jMax - 2) * solNI]);
-      if (j != jStr && j != jMax - 1)
-        value = 0.5 * (value + Utemp.value[std::min(i, iEnd - 1) + (j - 1) * solNI]);
-
+      double value = Utemp.value[id(i, j, mainNI, NJ+jStr)];
       outfile.write(reinterpret_cast<char *>(&value), sizeof(value));
     }
-  }
   for (int j = jStr; j < jMax; j++)
-  {
-    for (int i = iStr; i < iEnd + 1; i++)
+    for (int i = iStr - 1; i < iEnd + 1; i++)
     {
-      double value = Vtemp.value[std::min(i, iEnd - 1) + std::min(j, jMax - 2) * solNI];
-      if (i != iStr && i != iEnd)
-        value = 0.5 * (value + Vtemp.value[i - 1 + std::min(j, jMax - 2) * solNI]);
-      if (j != jStr && j != jMax - 1)
-        value = 0.5 * (value + Vtemp.value[std::min(i, iEnd - 1) + (j - 1) * solNI]);
+      double value = Vtemp.value[id(i, j, mainNI, NJ+jStr)];
       outfile.write(reinterpret_cast<char *>(&value), sizeof(value));
     }
-  }
 
   for (int j = jStr; j < jMax; j++)
-  {
-    for (int i = iStr; i < iEnd + 1; i++)
+    for (int i = iStr - 1; i < iEnd + 1; i++)
     {
-      double value = Ttemp.value[std::min(i, iEnd - 1) + std::min(j, jMax - 2) * solNI];
-      if (i != iStr && i != iEnd)
-        value = 0.5 * (value + Ttemp.value[i - 1 + std::min(j, jMax - 2) * solNI]);
-      if (j != jStr && j != jMax - 1)
-        value = 0.5 * (value + Ttemp.value[std::min(i, iEnd - 1) + (j - 1) * solNI]);
+      double value = Ttemp.value[id(i, j, mainNI, NJ+jStr)];
       outfile.write(reinterpret_cast<char *>(&value), sizeof(value));
     }
-  }
   outfile.close();
 
   newname = "Sol";

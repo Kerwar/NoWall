@@ -1,27 +1,27 @@
 #include "Field.hpp"
 
-Field::Field(): value(NULL),
-  X(NULL), XC(NULL),
-  FXE(NULL), FXP(NULL),
-  Y(NULL), YC(NULL),
-  FYN(NULL), FYP(NULL),
-  DXPtoE(NULL), DYPtoN(NULL),
-  Se(NULL), Sn(NULL),
-  viscX(NULL), viscY(NULL),
-  density(NULL), volume(NULL)
-{
-}
+// Field::Field(): value(NULL),
+//   X(NULL), XC(NULL),
+//   FXE(NULL), FXP(NULL),
+//   Y(NULL), YC(NULL),
+//   FYN(NULL), FYP(NULL),
+//   DXPtoE(NULL), DYPtoN(NULL),
+//   Se(NULL), Sn(NULL),
+//   viscX(NULL), viscY(NULL),
+//   density(NULL), volume(NULL)
+// {
+// }
 
-Field::Field(int NI_, int NJ_) : NI(NI_), NJ(NJ_), value(new double[NI*NJ]),
-  X(new double[NI*NJ]), XC(new double[NI*NJ]),
-  FXE(new double[NI*NJ]), FXP(new double[NI*NJ]),
-  Y(new double[NI*NJ]), YC(new double[NI*NJ]),
-  FYN(new double[NI*NJ]), FYP(new double[NI*NJ]),
-  DXPtoE(new double[NI*NJ]), DYPtoN(new double[NI*NJ]),
-  Se(new double[NI*NJ]), Sn(new double[NI*NJ]),
-  viscX(new double[NI*NJ]), viscY(new double[NI*NJ]),
-  density(new double[NI*NJ]), volume(new double[NI*NJ])
- // IF EVER NON CONST DENSITY THIS HAS TO CHANGE
+Field::Field(const int &_NI, const int &_NJ) : NI(_NI), NJ(_NJ), value(new double[NI * NJ]),
+                                               X(new double[NI * NJ]), XC(new double[NI * NJ]),
+                                               FXE(new double[NI * NJ]), FXP(new double[NI * NJ]),
+                                               Y(new double[NI * NJ]), YC(new double[NI * NJ]),
+                                               FYN(new double[NI * NJ]), FYP(new double[NI * NJ]),
+                                               DXPtoE(new double[NI * NJ]), DYPtoN(new double[NI * NJ]),
+                                               Se(new double[NI * NJ]), Sn(new double[NI * NJ]),
+                                               viscX(new double[NI * NJ]), viscY(new double[NI * NJ]),
+                                               density(new double[NI * NJ]), volume(new double[NI * NJ])
+// IF EVER NON CONST DENSITY THIS HAS TO CHANGE
 {
 }
 
@@ -44,7 +44,6 @@ Field::~Field()
   delete[] viscY;
   delete[] density;
   delete[] volume;
-
 }
 
 void Field::getGridInfoPassed(const Grid &myGrid, double &viscX_, double &viscY_)
@@ -64,7 +63,7 @@ void Field::getGridInfoPassed(const Grid &myGrid, double &viscX_, double &viscY_
     viscX[index] = viscX_;
     viscY[index] = viscY_;
   }
-  
+
   forAllInterior(NI, NJ)
   {
     int index = i + j * NI;
@@ -121,8 +120,8 @@ void Field::laminarFlow(double m, double yMin, double yMax)
   }
 }
 
-void Field::InitializeT(double &q, double xHotSpot, double yHotSpot, 
-double xMin, double xMax)
+void Field::InitializeT(double &q, double xHotSpot, double yHotSpot,
+                        double xMin, double xMax)
 {
   forAllN(NI, NJ)
   {
@@ -174,7 +173,7 @@ void Field::initializeInternalField(double val)
   }
 }
 
-void Field::linearExtrapolateCondition(Field::Direction wallname)
+void Field::linearExtrapolateCondition(const Field::Direction &wallname)
 {
   if (wallname == west)
   {
@@ -196,7 +195,7 @@ void Field::linearExtrapolateCondition(Field::Direction wallname)
   {
     forSBoundary(NI, NJ)
     {
-      int index =i + j * NI;
+      int index = i + j * NI;
       value[index] = value[index + NI] + (value[index + NI] - value[index + 2 * NI]) * FYN[index + NI];
     }
   }
@@ -210,54 +209,42 @@ void Field::linearExtrapolateCondition(Field::Direction wallname)
   }
 }
 
-void Field::interpolatedFieldEast(Field &interpolated, Field &vec, const Grid &myGrid)
+void Field::interpolatedFieldEast(const Field &vec, const Grid &myGrid)
 {
-  NI = vec.NI;
-  NJ = vec.NJ;
-
   forAllInteriorUCVs(NI, NJ)
   {
     double FXE = myGrid.XF[i + j * NI];
     double FXP = 1.0 - FXE;
 
-    interpolated.value[i + j * NI] = vec.value[i + 1 + j * NI] * FXE + vec.value[i + j * NI] * FXP;
+    value[i + j * NI] = vec.value[i + 1 + j * NI] * FXE + vec.value[i + j * NI] * FXP;
   }
 }
 
-void Field::interpolatedFieldNorth(Field &interpolated, Field &vec, const Grid &myGrid)
+void Field::interpolatedFieldNorth(const Field &vec, const Grid &myGrid)
 {
-  NI = vec.NI;
-  NJ = vec.NJ;
-
   forAllInteriorVCVs(NI, NJ)
   {
     double FYN = myGrid.YF[i + j * NI];
     double FYP = 1.0 - FYN;
 
-    interpolated.value[i + j * NI] = vec.value[i + (j + 1) * NI] * FYN + vec.value[i + j * NI] * FYP;
+    value[i + j * NI] = vec.value[i + (j + 1) * NI] * FYN + vec.value[i + j * NI] * FYP;
   }
 }
 
-void Field::computeEastMassFluxes(Field &vec, Field &corrU)
+void Field::computeEastMassFluxes(const Field &U)
 {
-  NI = vec.NI;
-  NJ = vec.NJ;
-
   // For non constant density forAllInteriorUCVs
   forAllInterior(NI, NJ)
   {
-    vec.value[i + j * NI] = vec.Se[i + j * NI] * vec.density[i + j * NI] * corrU.value[i + j * NI];
+    value[i + j * NI] = Se[i + j * NI] * density[i + j * NI] * U.value[i + j * NI];
   }
 }
 
-void Field::computeNorthMassFluxes(Field &vec, Field &corrV)
+void Field::computeNorthMassFluxes(const Field &V)
 {
-  NI = vec.NI;
-  NJ = vec.NJ;
-
   // For non constant density forAllInteriorVCVs
   forAllInterior(NI, NJ)
   {
-    vec.value[i + j * NI] = vec.Sn[i + j * NI] * vec.density[i + j * NI] * corrV.value[i + j * NI];
+    value[i + j * NI] = Sn[i + j * NI] * density[i + j * NI] * V.value[i + j * NI];
   }
 }

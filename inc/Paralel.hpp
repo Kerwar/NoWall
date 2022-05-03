@@ -53,8 +53,8 @@ public:
 
   int id(int, int);
   int worldid(int, int);
-  void setUpComm(int &NX, int &NY);
-  void setUpMesh(int &NX, int &NY, double &channelWidth, int &exi1, int &exi2);
+  void setUpComm(const int &NX, const int &NY);
+  void setUpMesh(const int &NX, const int &NY, double &channelWidth, int &exi1, int &exi2);
   void SendInfoToNeighbours(Field &vec);
   void SendInfoToCommMainProc(Field &vec, Field &sol);
   void ExchangeWallTemperature(Field &TWall, Field &TNextToWall, double &exCte, int &solExI1, int &solExI2);
@@ -77,7 +77,7 @@ public:
   string PrintMyRank();
 
 private:
-  void setProcMesh(int &NX, int &NY);
+  void setProcMesh(const int &NX, const int &NY);
   double TWUinBorder(double (&T)[4], double &exCte);
   double TWDinBorder(double (&T)[4], double &exCte);
   void GatherTemperature(Field &T, Field &TWall, int J);

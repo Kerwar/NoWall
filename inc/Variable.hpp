@@ -11,8 +11,8 @@
 class Variable
 {
 public:
-  Variable();
-  Variable(int &n, int &m, int &soln, int &solm);
+  // Variable();
+  Variable(const int &n,const int &m,const int &soln,const int &solm);
   virtual ~Variable();
 
   void passInfoGridToAll(const Grid &solGrid, const Grid &myGrid, double &viscX, double &viscY, double &LeF, double &LeZ);
@@ -39,16 +39,14 @@ public:
   bool isTOutEqualToQ(double q, Paralel &paralel);
   void writeTInWall(Paralel &paralel, const Grid &mainGrid, const Grid &myGrid, int iter);
 
-  int NI, NJ;
-  int solN, solM;
+  const int NI, NJ;
+  const int solN, solM;
   Field solT;
   Field solF, solZ;
   Field solU, solV;
   bool manyIter = false;
 
 private:
-
-  Field fieldOper;
 
   int ifix, jfix;
   Field U, V;

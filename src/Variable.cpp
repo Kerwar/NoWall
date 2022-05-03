@@ -1,17 +1,17 @@
 #include "Variable.hpp"
 
-Variable::Variable()
-{
-}
+// Variable::Variable()
+// {
+// }
 
-Variable::Variable(int &ni, int &nj, int &soln, int &solm) : NI(ni), NJ(nj), solN(soln), solM(solm),
-                                                             solT(solN, solM), solF(solN, solM),
-                                                             solZ(solN, solM), solU(solN, solM),
-                                                             solV(solN, solM), U(NI, NJ),
-                                                             V(NI, NJ), T(NI, NJ),
-                                                             F(NI, NJ), Z(NI, NJ),
-                                                             TWall(solN + 2, 1), TNextToWall(solN + 2, 1),
-                                                             massFluxE(NI, NJ), massFluxN(NI, NJ)
+Variable::Variable(const int &ni, const int &nj, const int &soln, const int &solm) : NI(ni), NJ(nj), solN(soln), solM(solm),
+                                                                                     solT(solN, solM), solF(solN, solM),
+                                                                                     solZ(solN, solM), solU(solN, solM),
+                                                                                     solV(solN, solM), U(NI, NJ),
+                                                                                     V(NI, NJ), T(NI, NJ),
+                                                                                     F(NI, NJ), Z(NI, NJ),
+                                                                                     TWall(solN + 2, 1), TNextToWall(solN + 2, 1),
+                                                                                     massFluxE(NI, NJ), massFluxN(NI, NJ)
 {
 }
 
@@ -81,8 +81,8 @@ void Variable::setMassFluxes(const Grid &myGrid)
   massFluxE.getGridInfoPassed(myGrid, U.viscX[0], U.viscY[0]);
   massFluxN.getGridInfoPassed(myGrid, V.viscX[0], V.viscY[0]);
 
-  fieldOper.computeEastMassFluxes(massFluxE, U);
-  fieldOper.computeNorthMassFluxes(massFluxN, V);
+  massFluxE.computeEastMassFluxes(U);
+  massFluxN.computeNorthMassFluxes(V);
 }
 
 void Variable::setInletBoundaryConditionLeftToRight()
@@ -303,7 +303,6 @@ void Variable::readFile(Paralel &paralel, int block, double &m, double yMin, dou
   PROFILE_FUNCTION();
 
   FileReader fileread;
-  Field fieldOper;
 
   double laminarm = m;
   if (paralel.isRightToLeft())
@@ -391,16 +390,12 @@ void Variable::writeTInWall(Paralel &paralel, const Grid &mainGrid, const Grid &
   outfile.open(cstr, std::ios::out);
   outfile << myGrid.exI1 << " " << myGrid.exI2 << std::endl;
   for (int i = paralel.iStr; i < paralel.iEnd; i++)
-  { 
-    if(paralel.isLeftToRight())
-      outfile << i << " " << i -paralel.iStr + 1 << " "<< 
-      mainGrid.XC[i + 1] << " " << myGrid.XC[i - paralel.iStr + 1] << " " <<
-      TWall.value[i + 1] << " " << T.value[i - paralel.iStr + 1] << " " << std::endl;
+  {
+    if (paralel.isLeftToRight())
+      outfile << i << " " << i - paralel.iStr + 1 << " " << mainGrid.XC[i + 1] << " " << myGrid.XC[i - paralel.iStr + 1] << " " << TWall.value[i + 1] << " " << T.value[i - paralel.iStr + 1] << " " << std::endl;
     else
-      outfile << i << " " << i -paralel.iStr + 1 << " "<< 
-      mainGrid.XC[i + 1] << " " << myGrid.XC[i - paralel.iStr + 1] << " " <<
-      TWall.value[i + 1] << " " << T.value[i - paralel.iStr + 1 + (NJ - 1) * NI] << " " << std::endl;
+      outfile << i << " " << i - paralel.iStr + 1 << " " << mainGrid.XC[i + 1] << " " << myGrid.XC[i - paralel.iStr + 1] << " " << TWall.value[i + 1] << " " << T.value[i - paralel.iStr + 1 + (NJ - 1) * NI] << " " << std::endl;
   }
-  
+
   outfile.close();
 }
