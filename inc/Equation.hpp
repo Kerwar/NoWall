@@ -32,7 +32,6 @@ public:
 	FiniteMatrix::finiteMat sourceInitial;
 	FiniteMatrix::finiteMat sourceB;
 	FiniteMatrix::finiteMat sourceFinal;
-	FiniteMatrix::finiteMat sourceRelaxed;
 
   double DT;
   void assembleEquation();
@@ -41,14 +40,14 @@ public:
   void noWallShearXBoundaryConditions(Field &vec, int start, int end, Field::Direction side);
   void noWallShearYBoundaryConditions(Field &vec, int start, int end, Field::Direction side);
 
-  void SetWallShearTX(Field &vec, int iStr, int iEnd, int Ex1, int Ex2, int myEx1, int myEx2, Field &massFluxEast, Field &massFluxNorth, Field::Direction side);
+  void SetWallShearTX(Field &vec, int iStr, int iEnd, int Ex1, int Ex2, int myEx1, int myEx2, Field::Direction side);
   void SetWallShearX(Field &vec, Field::Direction side);
   void SetWallShearY(Field &vec, Field::Direction side);
 
-  void SetDirichlet(Field &vec, Field::Direction side, Field &massFluxEast, Field &massFluxNorth);
-  double solve(Field &phi, FiniteMatrix::finiteMat &sourceinput, double &alpha, int &niter, int &iterations, int iterChange);
-  double solveGaussSeidel(Field &phi, FiniteMatrix::finiteMat &sourceinput, double &alpha, int &iterations);
-  double solveExplicit(Field &phi, FiniteMatrix::finiteMat &sourceinput, double &alpha, int &iterations);
+  void SetDirichlet(Field &vec, Field::Direction side);
+  double solve(Field &phi, double &alpha, int &niter, int &iterations, int iterChange);
+  double solveGaussSeidel(Field &phi, double &alpha, int &iterations);
+  double solveExplicit(Field &phi);
 private:
 
 	Svector UE, UN, LW, LS, LPR, RES;

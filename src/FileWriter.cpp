@@ -373,7 +373,7 @@ void FileWriter::WriteInter(string prefix, string sufix, int time,
                             const Field &Utemp, const Field &Vtemp,
                             const Field &Ttemp, const Field &Ftemp,
                             const Field &Ztemp,
-                            int iStr, int iEnd, int jStr, int jEnd,
+                            int iStr, int iEnd, int jStr,
                             Paralel::Loc loc)
 {
   // Needed for q file
@@ -384,8 +384,6 @@ void FileWriter::WriteInter(string prefix, string sufix, int time,
   int ttime = time;
 
   int mainNI = mainGrid.NI;
-  int solNI = Utemp.NI;
-  int NI = myGrid.NI;
   int NJ = myGrid.NJ;
 
   string timename;
@@ -427,13 +425,13 @@ void FileWriter::WriteInter(string prefix, string sufix, int time,
 
       for (int j = jStr; j < NJ + jStr; j++)
         for (int i = 0; i < mainNI; i++)
-          outfile.write(reinterpret_cast<char *>(&mainGrid.XC[i + mainNI * j]), sizeof(mainGrid.XC[i + mainNI * j]));
+          outfile.write(reinterpret_cast<char *>(&mainGrid.XC[i]), sizeof(mainGrid.XC[i]));
 
       for (int j = jStr; j < NJ + jStr - 1; j++)
         for (int i = 0; i < mainNI; i++)
-          outfile.write(reinterpret_cast<char *>(&mainGrid.YC[i + mainNI * j]), sizeof(mainGrid.YC[i + mainNI * j]));
+          outfile.write(reinterpret_cast<char *>(&mainGrid.YC[j]), sizeof(mainGrid.YC[j]));
       for (int i = 0; i < mainNI; i++)
-        outfile.write(reinterpret_cast<char *>(&myGrid.YC[NI * NJ - 1]), sizeof(myGrid.YC[NI * NJ - 1]));
+        outfile.write(reinterpret_cast<char *>(&myGrid.YC[NJ - 1]), sizeof(myGrid.YC[NJ - 1]));
 
       outfile.close();
     }
@@ -457,13 +455,13 @@ void FileWriter::WriteInter(string prefix, string sufix, int time,
 
       for (int j = jStr; j < jMax; j++)
         for (int i = 0; i < mainNI; i++)
-          outfile.write(reinterpret_cast<char *>(&mainGrid.XC[i + mainNI * j]), sizeof(mainGrid.XC[i + mainNI * j]));
+          outfile.write(reinterpret_cast<char *>(&mainGrid.XC[i]), sizeof(mainGrid.XC[i]));
 
       for (int i = 0; i < mainNI; i++)
         outfile.write(reinterpret_cast<char *>(&myGrid.YC[0]), sizeof(myGrid.YC[0]));
       for (int j = jStr + 1; j < jMax; j++)
         for (int i = 0; i < mainNI; i++)
-          outfile.write(reinterpret_cast<char *>(&mainGrid.YC[i + mainNI * j]), sizeof(mainGrid.YC[i + mainNI * j]));
+          outfile.write(reinterpret_cast<char *>(&mainGrid.YC[j]), sizeof(mainGrid.YC[j]));
 
       outfile.close();
     }
@@ -529,20 +527,20 @@ void FileWriter::WriteInter(string prefix, string sufix, int time,
   for (int j = jStr; j < jMax; j++)
     for (int i = iStr - 1; i < iEnd + 1; i++)
     {
-      double value = Utemp.value[id(i, j, mainNI, NJ+jStr)];
+      double value = Utemp.value[id(i, j, mainNI, NJ + jStr)];
       outfile.write(reinterpret_cast<char *>(&value), sizeof(value));
     }
   for (int j = jStr; j < jMax; j++)
     for (int i = iStr - 1; i < iEnd + 1; i++)
     {
-      double value = Vtemp.value[id(i, j, mainNI, NJ+jStr)];
+      double value = Vtemp.value[id(i, j, mainNI, NJ + jStr)];
       outfile.write(reinterpret_cast<char *>(&value), sizeof(value));
     }
 
   for (int j = jStr; j < jMax; j++)
     for (int i = iStr - 1; i < iEnd + 1; i++)
     {
-      double value = Ttemp.value[id(i, j, mainNI, NJ+jStr)];
+      double value = Ttemp.value[id(i, j, mainNI, NJ + jStr)];
       outfile.write(reinterpret_cast<char *>(&value), sizeof(value));
     }
   outfile.close();
@@ -568,59 +566,40 @@ void FileWriter::WriteInter(string prefix, string sufix, int time,
 
     outfile.write((char *)&Blocks, sizeof(Blocks));
 
-    NXtemp = mainGrid.NI - 1;
-    NYtemp = myGrid.NJ - 1;
+    NXtemp = mainGrid.NI;
+    NYtemp = myGrid.NJ;
 
     outfile.write((char *)&NXtemp, sizeof(NXtemp));
     outfile.write((char *)&NYtemp, sizeof(NYtemp));
     outfile.write((char *)&NVar, sizeof(NVar));
 
-    NXtemp = mainGrid.NI - 1;
-    NYtemp = myGrid.NJ - 1;
+    NXtemp = mainGrid.NI;
+    NYtemp = myGrid.NJ;
 
     outfile.write((char *)&NXtemp, sizeof(NXtemp));
     outfile.write((char *)&NYtemp, sizeof(NYtemp));
     outfile.write((char *)&NVar, sizeof(NVar));
   }
   else
-  {
     outfile.open(cstr, std::ios::app | std::ios::binary);
-  }
+
   for (int j = jStr; j < jMax; j++)
-  {
-    for (int i = iStr; i < iEnd + 1; i++)
+    for (int i = iStr - 1; i < iEnd + 1; i++)
     {
-      double value = Ttemp.value[std::min(i, iEnd - 1) + std::min(j, jMax - 2) * solNI];
-      if (i != iStr && i != iEnd)
-        value = 0.5 * (value + Ttemp.value[i - 1 + std::min(j, jMax - 2) * solNI]);
-      if (j != jStr && j != jMax - 1)
-        value = 0.5 * (value + Ttemp.value[std::min(i, iEnd - 1) + (j - 1) * solNI]);
+      double value = Ttemp.value[id(i, j, mainNI, NJ + jStr)];
       outfile.write(reinterpret_cast<char *>(&value), sizeof(value));
     }
-  }
   for (int j = jStr; j < jMax; j++)
-  {
-    for (int i = iStr; i < iEnd + 1; i++)
+    for (int i = iStr - 1; i < iEnd + 1; i++)
     {
-      double value = Ftemp.value[std::min(i, iEnd - 1) + std::min(j, jMax - 2) * solNI];
-      if (i != iStr && i != iEnd)
-        value = 0.5 * (value + Ftemp.value[i - 1 + std::min(j, jMax - 2) * solNI]);
-      if (j != jStr && j != jMax - 1)
-        value = 0.5 * (value + Ftemp.value[std::min(i, iEnd - 1) + (j - 1) * solNI]);
+      double value = Ftemp.value[id(i, j, mainNI, NJ + jStr)];
       outfile.write(reinterpret_cast<char *>(&value), sizeof(value));
     }
-  }
   for (int j = jStr; j < jMax; j++)
-  {
-    for (int i = iStr; i < iEnd + 1; i++)
+    for (int i = iStr - 1; i < iEnd + 1; i++)
     {
-      double value = Ztemp.value[std::min(i, iEnd - 1) + std::min(j, jMax - 2) * solNI];
-      if (i != iStr && i != iEnd)
-        value = 0.5 * (value + Ztemp.value[i - 1 + std::min(j, jMax - 2) * solNI]);
-      if (j != jStr && j != jMax - 1)
-        value = 0.5 * (value + Ztemp.value[std::min(i, iEnd - 1) + (j - 1) * solNI]);
+      double value = Ztemp.value[id(i, j, mainNI, NJ + jStr)];
       outfile.write(reinterpret_cast<char *>(&value), sizeof(value));
     }
-  }
   outfile.close();
 }

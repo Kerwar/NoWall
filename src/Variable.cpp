@@ -49,9 +49,9 @@ void Variable::initializeLeftToRight(double m, double yMin, double yMax, double 
   PROFILE_FUNCTION();
   U.laminarFlow(m, yMin, yMax);
   V.initializeInternalField(0);
-  T.InitializeT(q, xHS, (yMin + yMax) / 2.0, xMin, xMax);
+  T.InitializeT(q, xHS, xMin, xMax);
   F.InitializeF(xHS, xMin, xMax);
-  Z.InitializeZ(z0hs, r0hs, xHS, (yMin + yMax) / 2.0, xMax);
+  Z.InitializeZ(z0hs, r0hs, xHS, (yMin + yMax) / 2.0);
 }
 
 void Variable::initializeRightToLeft(double m, double yMin, double yMax, double q, double xHS, double r0hs, double z0hs, double xMin, double xMax)
@@ -59,9 +59,9 @@ void Variable::initializeRightToLeft(double m, double yMin, double yMax, double 
   PROFILE_FUNCTION();
   U.laminarFlow(-m, yMin, yMax);
   V.initializeInternalField(0);
-  T.InitializeT(q, xHS, (yMin + yMax) / 2.0, xMax, xMin);
+  T.InitializeT(q, xHS, xMax, xMin);
   F.InitializeF(xHS, xMax, xMin);
-  Z.InitializeZ(z0hs, r0hs, xHS, (yMin + yMax) / 2.0, xMax);
+  Z.InitializeZ(z0hs, r0hs, xHS, (yMin + yMax) / 2.0);
 }
 
 void Variable::initializeWall()
@@ -176,9 +176,9 @@ void Variable::setWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, F
 void Variable::setDirichlet(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side)
 {
   PROFILE_FUNCTION();
-  Teqn->SetDirichlet(T, side, massFluxE, massFluxN);
-  Feqn->SetDirichlet(F, side, massFluxE, massFluxN);
-  Zeqn->SetDirichlet(Z, side, massFluxE, massFluxN);
+  Teqn->SetDirichlet(T, side);
+  Feqn->SetDirichlet(F, side);
+  Zeqn->SetDirichlet(Z, side);
 }
 
 void Variable::setExchangeWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side, int iStr, int iEnd, int mainexI1, int mainexI2, int exI1, int exI2)
@@ -186,7 +186,7 @@ void Variable::setExchangeWallShear(Equation *&Teqn, Equation *&Feqn, Equation *
   PROFILE_FUNCTION();
 
   Teqn->SetWallShearTX(T, iStr, iEnd, mainexI1, mainexI2,
-                       exI1, exI2, massFluxE, massFluxN, side);
+                       exI1, exI2, side);
   Feqn->SetWallShearX(F, side);
   Zeqn->SetWallShearX(Z, side);
 }
@@ -210,15 +210,12 @@ double Variable::solveEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeq
   double error = 10;
   double newerror = 10;
 
-  FiniteMatrix::finiteMat ST(Teqn->sourceRelaxed);
-  error = Teqn->solve(T, ST, alpha, niter, itersol, changeIter);
+  error = Teqn->solve(T, alpha, niter, itersol, changeIter);
 
-  FiniteMatrix::finiteMat SF(Feqn->sourceRelaxed);
-  newerror = Feqn->solve(F, SF, alpha, niter, itersol, changeIter);
+  newerror = Feqn->solve(F, alpha, niter, itersol, changeIter);
   error = std::max(error, newerror);
 
-  FiniteMatrix::finiteMat SZ(Zeqn->sourceRelaxed);
-  newerror = Zeqn->solve(Z, SZ, alpha, niter, itersol, changeIter);
+  newerror = Zeqn->solve(Z, alpha, niter, itersol, changeIter);
   error = std::max(error, newerror);
 
   forAllInterior(NI, NJ)
@@ -235,23 +232,23 @@ double Variable::calculateNewM(double alpha, double m, double q)
   int index = ifix + jfix * NI;
   T.value[index] = 0.7;
 
-  double diffusiveTermX = T.viscX[index] * T.Se[index] *
-                              (T.value[index + 1] - T.value[index]) / T.DXPtoE[index] -
-                          T.viscX[index - 1] * T.Se[index - 1] *
-                              (T.value[index] - T.value[index - 1]) / T.DXPtoE[index - 1];
+  double diffusiveTermX = T.viscX[index] * T.Se[jfix] *
+                              (T.value[index + 1] - T.value[index]) / T.DXPtoE[ifix] -
+                          T.viscX[index - 1] * T.Se[jfix - 1] *
+                              (T.value[index] - T.value[index - 1]) / T.DXPtoE[ifix - 1];
 
-  double diffusiveTermY = T.viscY[index] * T.Sn[index] *
-                              (T.value[index + NI] - T.value[index]) / T.DYPtoN[index] -
-                          T.viscY[index - NI] * T.Sn[index - NI] *
-                              (T.value[index] - T.value[index - NI]) / T.DYPtoN[index - NI];
+  double diffusiveTermY = T.viscY[index] * T.Sn[ifix] *
+                              (T.value[index + NI] - T.value[index]) / T.DYPtoN[jfix] -
+                          T.viscY[index - NI] * T.Sn[ifix-1] *
+                              (T.value[index] - T.value[index - NI]) / T.DYPtoN[jfix];
 
-  double convectiveTermX = (T.value[index + 1] * massFluxE.value[index] * T.FXE[index] -
-                            T.value[index - 1] * massFluxE.value[index] * T.FXP[index]);
+  double convectiveTermX = (T.value[index + 1] * massFluxE.value[index] * T.FXE[ifix] -
+                            T.value[index - 1] * massFluxE.value[index] * T.FXP[ifix]);
 
-  double convectiveTermY = (T.value[index + NI] * massFluxN.value[index] * T.FYN[index] -
-                            T.value[index - NI] * massFluxN.value[index] * T.FYP[index]);
+  double convectiveTermY = (T.value[index + NI] * massFluxN.value[index] * T.FYN[jfix] -
+                            T.value[index - NI] * massFluxN.value[index] * T.FYP[jfix]);
 
-  double reactionTerm = q * Z.value[index] * T.Se[index] * T.Sn[index];
+  double reactionTerm = q * Z.value[index] * T.Se[jfix] * T.Sn[ifix];
 
   double newM = alpha * (reactionTerm + diffusiveTermX + diffusiveTermY) / (convectiveTermX + convectiveTermY) + (1 - alpha) * m;
 
@@ -367,7 +364,7 @@ void Variable::exchangeTemperature(Paralel &paralel, double &exCte, int &solExI1
 {
   PROFILE_FUNCTION();
 
-  paralel.GatherWallTemperature(TWall, TNextToWall, T, exCte);
+  paralel.GatherWallTemperature(TWall, TNextToWall, T);
 
   if (paralel.myProc == 0)
     paralel.ExchangeWallTemperature(TWall, TNextToWall, exCte, solExI1, solExI2);

@@ -13,12 +13,12 @@
 // }
 
 Field::Field(const int &_NI, const int &_NJ) : NI(_NI), NJ(_NJ), value(new double[NI * NJ]),
-                                               X(new double[NI * NJ]), XC(new double[NI * NJ]),
-                                               FXE(new double[NI * NJ]), FXP(new double[NI * NJ]),
-                                               Y(new double[NI * NJ]), YC(new double[NI * NJ]),
-                                               FYN(new double[NI * NJ]), FYP(new double[NI * NJ]),
-                                               DXPtoE(new double[NI * NJ]), DYPtoN(new double[NI * NJ]),
-                                               Se(new double[NI * NJ]), Sn(new double[NI * NJ]),
+                                               X(new double[NI]), XC(new double[NI]),
+                                               FXE(new double[NI]), FXP(new double[NI]),
+                                               Y(new double[NJ]), YC(new double[NJ]),
+                                               FYN(new double[NJ]), FYP(new double[NJ]),
+                                               DXPtoE(new double[NI]), DYPtoN(new double[NJ]),
+                                               Se(new double[NJ]), Sn(new double[NI]),
                                                viscX(new double[NI * NJ]), viscY(new double[NI * NJ]),
                                                density(new double[NI * NJ]), volume(new double[NI * NJ])
 // IF EVER NON CONST DENSITY THIS HAS TO CHANGE
@@ -51,14 +51,14 @@ void Field::getGridInfoPassed(const Grid &myGrid, double &viscX_, double &viscY_
   forAllN(NI, NJ)
   {
     int index = i + j * NI;
-    X[index] = myGrid.X[index];
-    Y[index] = myGrid.Y[index];
-    XC[index] = myGrid.XC[index];
-    YC[index] = myGrid.YC[index];
-    FXE[index] = myGrid.XF[index];
-    FYN[index] = myGrid.YF[index];
-    FXP[index] = 1.0 - myGrid.XF[index];
-    FYP[index] = 1.0 - myGrid.YF[index];
+    X[i] = myGrid.X[i];
+    Y[j] = myGrid.Y[j];
+    XC[i] = myGrid.XC[i];
+    YC[j] = myGrid.YC[j];
+    FXE[i] = myGrid.XF[i];
+    FYN[j] = myGrid.YF[j];
+    FXP[i] = 1.0 - myGrid.XF[i];
+    FYP[j] = 1.0 - myGrid.YF[j];
     density[index] = 1.0;
     viscX[index] = viscX_;
     viscY[index] = viscY_;
@@ -67,13 +67,13 @@ void Field::getGridInfoPassed(const Grid &myGrid, double &viscX_, double &viscY_
   forAllInterior(NI, NJ)
   {
     int index = i + j * NI;
-    DXPtoE[index] = std::abs(myGrid.XC[index + 1] - myGrid.XC[index]);
-    DYPtoN[index] = std::abs(myGrid.YC[index + NI] - myGrid.YC[index]);
+    DXPtoE[i] = std::abs(myGrid.XC[i + 1] - myGrid.XC[i]);
+    DYPtoN[j] = std::abs(myGrid.YC[j + 1] - myGrid.YC[j]);
 
-    Se[index] = std::abs(myGrid.Y[index] - myGrid.Y[index - NI]);
-    Sn[index] = std::abs(myGrid.X[index] - myGrid.X[index - 1]);
+    Se[j] = std::abs(myGrid.Y[j] - myGrid.Y[j - 1]);
+    Sn[i] = std::abs(myGrid.X[i] - myGrid.X[i - 1]);
 
-    volume[index] = Se[index] * Sn[index];
+    volume[index] = Se[j] * Sn[i];
   }
 }
 
@@ -113,20 +113,20 @@ void Field::laminarFlow(double m, double yMin, double yMax)
 {
   forAllN(NI, NJ)
   {
-    double distanceToBot = YC[i + j * NI] - yMin;
-    double distanceToTop = yMax - YC[i + j * NI];
+    double distanceToBot = YC[j] - yMin;
+    double distanceToTop = yMax - YC[j];
     // std::cout << i << " " << j << " " << distanceToBot << " " << distanceToTop << std::endl;
     value[i + j * NI] = 6.0 * m / std::abs(m) * distanceToBot * distanceToTop;
   }
 }
 
-void Field::InitializeT(double &q, double xHotSpot, double yHotSpot,
+void Field::InitializeT(double &q, double xHotSpot,
                         double xMin, double xMax)
 {
   forAllN(NI, NJ)
   {
-    double pos = XC[i + j * NI] - xHotSpot;
-    double simmetricpos = XC[i + j * NI] - (xMin + xMax - xHotSpot);
+    double pos = XC[i] - xHotSpot;
+    double simmetricpos = XC[i] - (xMin + xMax - xHotSpot);
 
     double tanV = (atan(pos) - atan(-(xMax - xMin) / 2)) /
                   (atan((xMax - xMin) / 2) - atan(-(xMax - xMin) / 2));
@@ -145,7 +145,7 @@ void Field::InitializeF(double xHotSpot, double xMin, double xMax)
 {
   forAllN(NI, NJ)
   {
-    double pos = XC[i + j * NI] - xHotSpot;
+    double pos = XC[i] - xHotSpot;
 
     double tanV = (atan(pos) - atan(-(xMax - xMin) / 2)) /
                   (atan((xMax - xMin) / 2) - atan(-(xMax - xMin) / 2));
@@ -154,12 +154,12 @@ void Field::InitializeF(double xHotSpot, double xMin, double xMax)
 }
 
 void Field::InitializeZ(double T0hs, double r0hs,
-                        double xHotSpot, double yHotSpot, double xMax)
+                        double xHotSpot, double yHotSpot)
 {
   forAllN(NI, NJ)
   {
-    double rr = sqrt(pow(XC[i + j * NI] - xHotSpot, 2) +
-                     pow(YC[i + j * NI] - yHotSpot, 2));
+    double rr = sqrt(pow(XC[i] - xHotSpot, 2) +
+                     pow(YC[j] - yHotSpot, 2));
 
     value[i + j * NI] = T0hs * exp(-rr / r0hs);
   }
@@ -180,7 +180,7 @@ void Field::linearExtrapolateCondition(const Field::Direction &wallname)
     forWBoundary(NI, NJ)
     {
       int index = i + j * NI;
-      value[index] = value[index + 1] + (value[index + 1] - value[index + 2]) * FXE[index + 1];
+      value[index] = value[index + 1] + (value[index + 1] - value[index + 2]) * FXE[i + 1];
     }
   }
   else if (wallname == east)
@@ -188,7 +188,7 @@ void Field::linearExtrapolateCondition(const Field::Direction &wallname)
     forEBoundary(NI, NJ)
     {
       int index = i + j * NI;
-      value[index] = value[index - 1] + (value[index - 1] - value[index - 2]) * FXP[index - 1];
+      value[index] = value[index - 1] + (value[index - 1] - value[index - 2]) * FXP[i - 1];
     }
   }
   else if (wallname == south)
@@ -196,7 +196,7 @@ void Field::linearExtrapolateCondition(const Field::Direction &wallname)
     forSBoundary(NI, NJ)
     {
       int index = i + j * NI;
-      value[index] = value[index + NI] + (value[index + NI] - value[index + 2 * NI]) * FYN[index + NI];
+      value[index] = value[index + NI] + (value[index + NI] - value[index + 2 * NI]) * FYN[j + 1];
     }
   }
   else if (wallname == north)
@@ -204,30 +204,24 @@ void Field::linearExtrapolateCondition(const Field::Direction &wallname)
     forNBoundary(NI, NJ)
     {
       int index = i + j * NI;
-      value[index] = value[index - NI] + (value[index - NI] - value[index - 2 * NI]) * FYP[index - NI];
+      value[index] = value[index - NI] + (value[index - NI] - value[index - 2 * NI]) * FYP[j - 1];
     }
   }
 }
 
-void Field::interpolatedFieldEast(const Field &vec, const Grid &myGrid)
+void Field::interpolatedFieldEast(const Field &vec)
 {
   forAllInteriorUCVs(NI, NJ)
   {
-    double FXE = myGrid.XF[i + j * NI];
-    double FXP = 1.0 - FXE;
-
-    value[i + j * NI] = vec.value[i + 1 + j * NI] * FXE + vec.value[i + j * NI] * FXP;
+    value[i + j * NI] = vec.value[i + 1 + j * NI] * FXE[i] + vec.value[i + j * NI] * FXP[i];
   }
 }
 
-void Field::interpolatedFieldNorth(const Field &vec, const Grid &myGrid)
+void Field::interpolatedFieldNorth(const Field &vec)
 {
   forAllInteriorVCVs(NI, NJ)
   {
-    double FYN = myGrid.YF[i + j * NI];
-    double FYP = 1.0 - FYN;
-
-    value[i + j * NI] = vec.value[i + (j + 1) * NI] * FYN + vec.value[i + j * NI] * FYP;
+    value[i + j * NI] = vec.value[i + (j + 1) * NI] * FYN[j] + vec.value[i + j * NI] * FYP[j];
   }
 }
 
@@ -236,7 +230,7 @@ void Field::computeEastMassFluxes(const Field &U)
   // For non constant density forAllInteriorUCVs
   forAllInterior(NI, NJ)
   {
-    value[i + j * NI] = Se[i + j * NI] * density[i + j * NI] * U.value[i + j * NI];
+    value[i + j * NI] = Se[j] * density[i + j * NI] * U.value[i + j * NI];
   }
 }
 
@@ -245,6 +239,6 @@ void Field::computeNorthMassFluxes(const Field &V)
   // For non constant density forAllInteriorVCVs
   forAllInterior(NI, NJ)
   {
-    value[i + j * NI] = Sn[i + j * NI] * density[i + j * NI] * V.value[i + j * NI];
+    value[i + j * NI] = Sn[i] * density[i + j * NI] * V.value[i + j * NI];
   }
 }

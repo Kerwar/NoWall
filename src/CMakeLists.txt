@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.2.0)
 
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -std=c++17")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wunused-parameter -std=c++17")
 
 include_directories(${MPI_INCLUDE_PATH})
 include_directories(../inc)

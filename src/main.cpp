@@ -40,7 +40,7 @@ int main(int argc, char **argv)
     Problem *problem;
     if (n != 0)
     {
-      Problem *startProblem = new Problem(worldSize, n, m, ni, nj, mprevious);
+      Problem *startProblem = new Problem(n, m, ni, nj, mprevious);
       startProblem->setUpProblem();
       n = startProblem->N;
       m = startProblem->M;
@@ -48,11 +48,11 @@ int main(int argc, char **argv)
       nj = startProblem->paralel.myNy + 2;
       delete startProblem;
 
-      problem = new Problem(worldSize, n, m, ni, nj, mprevious);
+      problem = new Problem(n, m, ni, nj, mprevious);
     }
     else
     {
-      Problem *startProblem = new Problem(worldSize);
+      Problem *startProblem = new Problem();
       startProblem->setUpProblem();
       n = startProblem->N;
       m = startProblem->M;
@@ -60,7 +60,7 @@ int main(int argc, char **argv)
       nj = startProblem->paralel.myNy + 2;
       delete startProblem;
 
-      problem = new Problem(worldSize, n, m, ni, nj, mprevious);
+      problem = new Problem(n, m, ni, nj, mprevious);
     }
 
     problem->setUpProblem();
@@ -122,3 +122,4 @@ int main(int argc, char **argv)
   PMPI_Finalize();
   return 0;
 }
+

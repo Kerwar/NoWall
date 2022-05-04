@@ -10,8 +10,8 @@
 class Problem
 {
 public:
-  Problem(const int &worldsize);
-  Problem(const int &worldsize, const int &nx, const int &ny,
+  Problem();
+  Problem(const int &nx, const int &ny,
    const int &ni, const int &nj, const double &prevm);
   virtual ~Problem();
 

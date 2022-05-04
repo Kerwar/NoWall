@@ -12,7 +12,7 @@ using std::vector;
 class Paralel
 {
 public:
-  Paralel(int worldsize);
+  Paralel();
   virtual ~Paralel();
 
   enum Loc
@@ -54,11 +54,11 @@ public:
   int id(int, int);
   int worldid(int, int);
   void setUpComm(const int &NX, const int &NY);
-  void setUpMesh(const int &NX, const int &NY, double &channelWidth, int &exi1, int &exi2);
+  void setUpMesh(const int &NX, const int &NY, int &exi1, int &exi2);
   void SendInfoToNeighbours(Field &vec);
   void SendInfoToCommMainProc(Field &vec, Field &sol);
   void ExchangeWallTemperature(Field &TWall, Field &TNextToWall, double &exCte, int &solExI1, int &solExI2);
-  void GatherWallTemperature(Field &TWall, Field &TNextToWall, Field &T, double &exCte);
+  void GatherWallTemperature(Field &TWall, Field &TNextToWall, Field &T);
   void ShareWallTemperatureInfo(Field &TWall, Field &T);
   void SendWallTInTheChannel(Field &TWall);
   void MainsProcs(Loc location, int &proc);

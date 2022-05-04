@@ -38,55 +38,55 @@ public:
   void getGridInfoPassed(const Grid &myGrid, double &viscX, double &viscY);
   void inletBoundaryCondition(Direction side, double bvalue);
   void laminarFlow(double m, double yMin, double yMax);
-  void InitializeT(double &q, double xHotSpot, double yHotSpot, double xMin, double xMax);
-  void InitializeZ(double T0hs, double r0hs, double xHotSpot, double yHotSpot, double xMax);
+  void InitializeT(double &q, double xHotSpot, double xMin, double xMax);
+  void InitializeZ(double T0hs, double r0hs, double xHotSpot, double yHotSpot);
   void InitializeF(double xHotSpot, double xMin, double xMax);
   void initializeInternalField(double);
   void linearExtrapolateCondition(const Direction &wallname);
 
-  void interpolatedFieldEast(const Field &vec, const Grid &myGrid);
-  void interpolatedFieldNorth(const Field &vec, const Grid &myGrid);
+  void interpolatedFieldEast(const Field &vec);
+  void interpolatedFieldNorth(const Field &vec);
 
   void computeEastMassFluxes(const Field &U);
   void computeNorthMassFluxes(const Field &V);
 
-  friend void swap(Field &first, Field &second)
-  {
-    using std::swap;
+  // friend void swap(Field &first, Field &second)
+  // {
+  //   using std::swap;
 
-    swap(first.X, second.X);
-    swap(first.XC, second.XC);
+  //   swap(first.X, second.X);
+  //   swap(first.XC, second.XC);
     
-    swap(first.Y, second.Y);
-    swap(first.YC, second.YC);
+  //   swap(first.Y, second.Y);
+  //   swap(first.YC, second.YC);
     
-    swap(first.FXE, second.FXE);
-    swap(first.FXP, second.FXP);
+  //   swap(first.FXE, second.FXE);
+  //   swap(first.FXP, second.FXP);
     
-    swap(first.FYN, second.FYN);
-    swap(first.FYP, second.FYP);
+  //   swap(first.FYN, second.FYN);
+  //   swap(first.FYP, second.FYP);
 
-    swap(first.DXPtoE, second.DXPtoE);
-    swap(first.DYPtoN, second.DYPtoN);
+  //   swap(first.DXPtoE, second.DXPtoE);
+  //   swap(first.DYPtoN, second.DYPtoN);
 
-    swap(first.Se, second.Se);
-    swap(first.Sn, second.Sn);
+  //   swap(first.Se, second.Se);
+  //   swap(first.Sn, second.Sn);
     
-    swap(first.viscX, second.viscX);
-    swap(first.viscY, second.viscY);
+  //   swap(first.viscX, second.viscX);
+  //   swap(first.viscY, second.viscY);
     
-    swap(first.density, second.density);
-    swap(first.volume, second.volume);
+  //   swap(first.density, second.density);
+  //   swap(first.volume, second.volume);
 
-    swap(first.value, second.value);
-  };
+  //   swap(first.value, second.value);
+  // };
 
-  Field operator=(Field other)
-  {
-    swap(*this, other);
+  // constexpr Field operator=(Field other)
+  // {
+  //   swap(*this, other);
 
-    return *this;
-  };
+  //   return *this;
+  // };
 };
 
 #endif

@@ -5,7 +5,7 @@ using std::cout;
 using std::endl;
 using std::to_string;
 
-Paralel::Paralel(int worldsize)
+Paralel::Paralel()
 {
   MPI_Comm_rank(MPI_COMM_WORLD, &worldMyProc);
   MPI_Comm_size(MPI_COMM_WORLD, &worldNProcs);
@@ -66,7 +66,7 @@ void Paralel::setUpComm(const int &NX, const int &NY)
   MainsProcs(down, DCMainProc);
 }
 
-void Paralel::setUpMesh(const int &NX, const int &NY, double &channelWidth, int &exi1, int &exi2)
+void Paralel::setUpMesh(const int &NX, const int &NY, int &exi1, int &exi2)
 {
   PROFILE_FUNCTION();
   NYChannel = floor(NY / 2.0);
@@ -478,21 +478,18 @@ void Paralel::distributeToProcs(Field &sol, Field &vec)
   }
 }
 
-void Paralel::GatherWallTemperature(Field &TWall, Field &TNextToWall, Field &T, double &exCte)
+void Paralel::GatherWallTemperature(Field &TWall, Field &TNextToWall, Field &T)
 {
   PROFILE_FUNCTION();
-  // Field::vec1dfield TWall2Row(TWall.size());
   if (isLeftToRight())
   {
     GatherTemperature(T, TNextToWall, 2);
     GatherTemperature(T, TWall, 1);
-    // TWall = TIntoDerivative(TWall, TWall2Row, 1, exCte);
   }
   else if (isRightToLeft())
   {
     GatherTemperature(T, TNextToWall, T.NJ - 3);
     GatherTemperature(T, TWall, T.NJ - 2);
-    // TWall = TIntoDerivative(TWall, TWall2Row, 1, exCte);
   }
 }
 

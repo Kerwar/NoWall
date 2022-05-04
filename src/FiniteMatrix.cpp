@@ -107,17 +107,17 @@ void FiniteMatrix::correctNorthMassFluxes(Field::vectorField& massFN, Field::vec
 }
 */
 
-void FiniteMatrix::print2dmat(finiteMat &vec)
-{
-  for (unsigned int j = vec[0].size() - 1; j >= 0; j--)
-  {
-    for (unsigned int i = 0; i < vec.size(); i++)
-    {
-      std::cout << std::setprecision(3) << vec[i][j].value << " ";
-    }
-    std::cout << std::endl;
-  }
-}
+// void FiniteMatrix::print2dmat(finiteMat &vec)
+// {
+//   for (int j = vec[0].size() - 1; j >= 0; j--)
+//   {
+//     for (int i = 0; i < vec.size(); i++)
+//     {
+//       std::cout << std::setprecision(3) << vec[i][j].value << " ";
+//     }
+//     std::cout << std::endl;
+//   }
+// }
 
 FiniteMatrix::finiteMat operator-(const FiniteMatrix::finiteMat &lhs, const FiniteMatrix::finiteMat &rhs)
 {
