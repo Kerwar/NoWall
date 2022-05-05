@@ -12,8 +12,6 @@ public:
   typedef vector<FiniteMatrix> Svector1d;
   typedef FiniteMatrix::finiteMat Svector;
 
-  FiniteMatrix::finiteMat APinitial;
-
   double value;
   double Residual, RSM, RESOR;
 
@@ -21,17 +19,7 @@ public:
 	string EqnName;
 	double SOR;
 
-	FiniteMatrix::finiteMat AP;
-	FiniteMatrix::finiteMat AW;
-	FiniteMatrix::finiteMat AE;
-	FiniteMatrix::finiteMat AS;
-	FiniteMatrix::finiteMat AN;
-	FiniteMatrix::finiteMat rAP;
-	FiniteMatrix::finiteMat APU;
-  FiniteMatrix::finiteMat APReaction;
-	FiniteMatrix::finiteMat sourceInitial;
-	FiniteMatrix::finiteMat sourceB;
-	FiniteMatrix::finiteMat sourceFinal;
+	FiniteMatrix::finiteMat A;
 
   double DT;
   void assembleEquation();

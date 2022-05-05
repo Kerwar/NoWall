@@ -18,7 +18,7 @@ double Problem::tolerance, Problem::alpha;
 
 bool Problem::readFromFile;
 
-Problem::Problem() : maxit(10), iShow(1), m(2), N(600), M(20), variables(1,1,1,1)
+Problem::Problem() : maxit(10), iShow(1), m(2), N(600), M(100), variables(1,1,1,1)
 {
   PROFILE_FUNCTION();
 
@@ -56,7 +56,7 @@ Problem::Problem() : maxit(10), iShow(1), m(2), N(600), M(20), variables(1,1,1,1
 }
 
 Problem::Problem(const int &nx, const int &ny, const int &ni, const int &nj, const double &prevm) :
- maxit(10), iShow(1), m(prevm), N(nx), M(ny), variables(ni, nj, nx, ny)
+ maxit(10E6), iShow(3E5), m(prevm), N(nx), M(ny), variables(ni, nj, nx, ny)
 {
   PROFILE_FUNCTION();
   // if (nx > 20000)

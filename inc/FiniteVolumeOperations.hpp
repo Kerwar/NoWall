@@ -30,8 +30,8 @@ namespace fvm
     forAllInteriorUCVs(vec.NI, vec.NJ)
     {
       int index = i + j * NI;
-      APtemp[i][j].aevalue = -(vec.viscX[index] * vec.Se[j]) / vec.DXPtoE[i];
-      APtemp[i + 1][j].awvalue = APtemp[i][j].aevalue;
+      APtemp[i][j].ae = -(vec.viscX[index] * vec.Se[j]) / vec.DXPtoE[i];
+      APtemp[i + 1][j].aw = APtemp[i][j].ae;
     }
 
     for (int j = 1; j < NJ - 1; j++)
@@ -40,17 +40,17 @@ namespace fvm
       double DXPtoE = std::abs(vec.XC[i] - vec.XC[i -1]);
       double Se = std::abs(vec.Y[j] - vec.Y[j - 1]);
 
-      APtemp[i][j].awvalue = -(vec.viscX[i + j * NI] * Se) / DXPtoE;
+      APtemp[i][j].aw = -(vec.viscX[i + j * NI] * Se) / DXPtoE;
       i = NI - 2;
-      APtemp[i][j].aevalue = -(vec.viscX[i + j * NI] * vec.Se[j]) / vec.DXPtoE[i];
+      APtemp[i][j].ae = -(vec.viscX[i + j * NI] * vec.Se[j]) / vec.DXPtoE[i];
     }
 
     // Towards north side
     forAllInteriorVCVs(NI, NJ)
     { 
       int index = i + j * NI;
-      APtemp[i][j].anvalue = -(vec.viscY[index] * vec.Sn[i]) / vec.DYPtoN[j];
-      APtemp[i][j + 1].asvalue = APtemp[i][j].anvalue;
+      APtemp[i][j].an = -(vec.viscY[index] * vec.Sn[i]) / vec.DYPtoN[j];
+      APtemp[i][j + 1].as = APtemp[i][j].an;
     }
 
     for (int i = 1; i < NI - 1; i++)
@@ -58,9 +58,9 @@ namespace fvm
       int j = 1;
       double DYPtoN = std::abs(vec.YC[1] - vec.YC[0]);
       double Sn = std::abs(vec.X[i] - vec.X[i - 1]);
-      APtemp[i][j].asvalue = -(vec.viscY[i + j * NI] * Sn) / DYPtoN;
+      APtemp[i][j].as = -(vec.viscY[i + j * NI] * Sn) / DYPtoN;
       j = NJ - 2;
-      APtemp[i][j].anvalue = -(vec.viscY[i + j * NI] * vec.Sn[i]) / vec.DYPtoN[j];
+      APtemp[i][j].an = -(vec.viscY[i + j * NI] * vec.Sn[i]) / vec.DYPtoN[j];
     }
 
     return APtemp;
@@ -77,8 +77,8 @@ namespace fvm
     forAllInteriorUCVs(NI, NJ)
     {
       int index = i + j * NI;
-      APtemp[i][j].aevalue = m * massFluxEast.value[index] * vec.FXE[i];      //* minusupwind(massFluxEast.value[i + j *NI]);
-      APtemp[i + 1][j].awvalue = -m * massFluxEast.value[index] * vec.FXP[i]; // * plusupwind(massFluxEast.value[i + j *NI]);
+      APtemp[i][j].ae = m * massFluxEast.value[index] * vec.FXE[i];      //* minusupwind(massFluxEast.value[i + j *NI]);
+      APtemp[i + 1][j].aw = -m * massFluxEast.value[index] * vec.FXP[i]; // * plusupwind(massFluxEast.value[i + j *NI]);
       // double resultvalue = 0.0;
       // APtemp[i][j].svalue = APtemp[i][j].svalue + resultvalue;
     }
@@ -86,17 +86,17 @@ namespace fvm
     for (int j = 1; j < NJ; j++)
     {
       int i = 1;
-      APtemp[i][j].awvalue = -m * massFluxEast.value[i + j * NI] * vec.FXP[i]; //* plusupwind(massFluxEast.value[i + j *NI]);
+      APtemp[i][j].aw = -m * massFluxEast.value[i + j * NI] * vec.FXP[i]; //* plusupwind(massFluxEast.value[i + j *NI]);
       i = NI - 2;
-      APtemp[i][j].aevalue = m * massFluxEast.value[i + j * NI] * vec.FXE[i]; //* minusupwind(massFluxEast.value[i + j *NI]);
+      APtemp[i][j].ae = m * massFluxEast.value[i + j * NI] * vec.FXE[i]; //* minusupwind(massFluxEast.value[i + j *NI]);
     }
 
     // Towards north side
     forAllInteriorVCVs(NI, NJ)
     {
       int index = i + j * NI;
-      APtemp[i][j].anvalue = m * massFluxNorth.value[index] * vec.FYN[j];      //*minusupwind(massFluxNorth.value[i + j *NI]);
-      APtemp[i][j + 1].asvalue = - m * massFluxNorth.value[index] * vec.FYP[j]; //* plusupwind(massFluxNorth.value[i + j *NI]);
+      APtemp[i][j].an = m * massFluxNorth.value[index] * vec.FYN[j];      //*minusupwind(massFluxNorth.value[i + j *NI]);
+      APtemp[i][j + 1].as = - m * massFluxNorth.value[index] * vec.FYP[j]; //* plusupwind(massFluxNorth.value[i + j *NI]);
 
       // double resultvalue = 0.0;
       // APtemp[i][j].svalue = APtemp[i][j].svalue + resultvalue;
@@ -105,9 +105,9 @@ namespace fvm
     for (int i = 1; i < NI; i++)
     {
       int j = 1;
-      APtemp[i][j].asvalue = - m * massFluxNorth.value[i + j * NI] * vec.FYP[j]; //* plusupwind(massFluxNorth.value[i + j *NI]);
+      APtemp[i][j].as = - m * massFluxNorth.value[i + j * NI] * vec.FYP[j]; //* plusupwind(massFluxNorth.value[i + j *NI]);
       j = NJ - 2;
-      APtemp[i][j].anvalue = m * massFluxNorth.value[i + j * NI] * vec.FYN[j]; //* minusupwind(massFluxNorth.value[i + j *NI]);
+      APtemp[i][j].an = m * massFluxNorth.value[i + j * NI] * vec.FYN[j]; //* minusupwind(massFluxNorth.value[i + j *NI]);
     }
 
     return APtemp;

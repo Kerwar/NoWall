@@ -17,7 +17,7 @@ public:
 
   typedef vector<vector<FiniteMatrix>> finiteMat;
 
-  double value, awvalue, aevalue, asvalue, anvalue, apvalue, svalue;
+  double value, aw, ae, as, an, ap, svalue;
 
   void print2dmat(finiteMat&);
 

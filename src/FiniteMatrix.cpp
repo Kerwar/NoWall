@@ -1,6 +1,6 @@
 #include "FiniteMatrix.hpp"
 
-FiniteMatrix::FiniteMatrix() : value(0.0), awvalue(0.0), aevalue(0.0), asvalue(0.0), anvalue(0.0), apvalue(0.0), svalue(0.0)
+FiniteMatrix::FiniteMatrix() : value(0.0), aw(0.0), ae(0.0), as(0.0), an(0.0), ap(0.0), svalue(0.0)
 {
 }
 
@@ -15,10 +15,10 @@ FiniteMatrix::finiteMat operator+(const FiniteMatrix::finiteMat &lhs, const Fini
   forAllInternal(lhs)
   {
     result[i][j].value += rhs[i][j].value;
-    result[i][j].awvalue += rhs[i][j].awvalue;
-    result[i][j].aevalue += rhs[i][j].aevalue;
-    result[i][j].asvalue += rhs[i][j].asvalue;
-    result[i][j].anvalue += rhs[i][j].anvalue;
+    result[i][j].aw += rhs[i][j].aw;
+    result[i][j].ae += rhs[i][j].ae;
+    result[i][j].as += rhs[i][j].as;
+    result[i][j].an += rhs[i][j].an;
     result[i][j].svalue += rhs[i][j].svalue;
   }
 
@@ -126,10 +126,10 @@ FiniteMatrix::finiteMat operator-(const FiniteMatrix::finiteMat &lhs, const Fini
   forAllInternal(lhs)
   {
     result[i][j].value -= rhs[i][j].value;
-    result[i][j].awvalue -= rhs[i][j].awvalue;
-    result[i][j].aevalue -= rhs[i][j].aevalue;
-    result[i][j].asvalue -= rhs[i][j].asvalue;
-    result[i][j].anvalue -= rhs[i][j].anvalue;
+    result[i][j].aw -= rhs[i][j].aw;
+    result[i][j].ae -= rhs[i][j].ae;
+    result[i][j].as -= rhs[i][j].as;
+    result[i][j].an -= rhs[i][j].an;
     result[i][j].svalue -= rhs[i][j].svalue;
   }
 
@@ -143,10 +143,10 @@ FiniteMatrix::finiteMat operator&&(const FiniteMatrix::finiteMat &lhs, const Fin
   forAllInternal(lhs)
   {
     result[i][j].value *= rhs[i][j].value;
-    result[i][j].awvalue *= rhs[i][j].awvalue;
-    result[i][j].aevalue *= rhs[i][j].aevalue;
-    result[i][j].asvalue *= rhs[i][j].asvalue;
-    result[i][j].anvalue *= rhs[i][j].anvalue;
+    result[i][j].aw *= rhs[i][j].aw;
+    result[i][j].ae *= rhs[i][j].ae;
+    result[i][j].as *= rhs[i][j].as;
+    result[i][j].an *= rhs[i][j].an;
     result[i][j].svalue *= rhs[i][j].svalue;
   }
 
