@@ -6,7 +6,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wunused-parameter -std=c++17")
 include_directories(${MPI_INCLUDE_PATH})
 include_directories(../inc)
 
-SET(SOURCES main.cpp Grid.cpp Paralel.cpp Field.cpp FileWriter.cpp FiniteMatrix.cpp Equation.cpp FileReader.cpp Problem.cpp Variable.cpp)
+SET(SOURCES main.cpp Grid.cpp Field.cpp FileWriter.cpp FiniteMatrix.cpp Equation.cpp FileReader.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} ${MPI_LIBRARIES})

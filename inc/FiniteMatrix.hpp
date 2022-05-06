@@ -17,7 +17,7 @@ public:
 
   typedef vector<vector<FiniteMatrix>> finiteMat;
 
-  double value, aw, ae, as, an, ap, svalue;
+  double aw, ae, as, an, ap, svalue;
 
   void print2dmat(finiteMat&);
 
@@ -34,9 +34,11 @@ Field::vectorField&, FiniteMatrix::finiteMat&, Grid&);
   void correctNorthMassFluxes(Field::vectorField&, Field::vectorField&, FiniteMatrix::finiteMat&);
   */
   friend FiniteMatrix::finiteMat operator+(const FiniteMatrix::finiteMat&, const FiniteMatrix::finiteMat&);
+  friend FiniteMatrix::finiteMat operator+=(const FiniteMatrix::finiteMat&, const FiniteMatrix::finiteMat&);
   friend FiniteMatrix::finiteMat operator-(const FiniteMatrix::finiteMat&, const FiniteMatrix::finiteMat&);
+  friend FiniteMatrix::finiteMat operator-=(const FiniteMatrix::finiteMat&, const FiniteMatrix::finiteMat&);
   friend FiniteMatrix::finiteMat operator&&(const FiniteMatrix::finiteMat&, const FiniteMatrix::finiteMat&);
-  friend FiniteMatrix::finiteMat operator*(const double, const FiniteMatrix::finiteMat&);
+  // friend FiniteMatrix::finiteMat operator*(const double, const FiniteMatrix::finiteMat&);
 };
 
 #endif

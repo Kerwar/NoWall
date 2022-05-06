@@ -44,26 +44,6 @@ void Variable::passInfoGridToAll(const Grid &solGrid, const Grid &myGrid, double
   Z.getGridInfoPassed(myGrid, viscZx, viscZy);
 }
 
-void Variable::initializeLeftToRight(double m, double yMin, double yMax, double q, double xHS, double r0hs, double z0hs, double xMin, double xMax)
-{
-  PROFILE_FUNCTION();
-  U.laminarFlow(m, yMin, yMax);
-  V.initializeInternalField(0);
-  T.InitializeT(q, xHS, xMin, xMax);
-  F.InitializeF(xHS, xMin, xMax);
-  Z.InitializeZ(z0hs, r0hs, xHS, (yMin + yMax) / 2.0);
-}
-
-void Variable::initializeRightToLeft(double m, double yMin, double yMax, double q, double xHS, double r0hs, double z0hs, double xMin, double xMax)
-{
-  PROFILE_FUNCTION();
-  U.laminarFlow(-m, yMin, yMax);
-  V.initializeInternalField(0);
-  T.InitializeT(q, xHS, xMax, xMin);
-  F.InitializeF(xHS, xMax, xMin);
-  Z.InitializeZ(z0hs, r0hs, xHS, (yMin + yMax) / 2.0);
-}
-
 void Variable::initializeWall()
 {
   PROFILE_FUNCTION();
@@ -101,7 +81,7 @@ void Variable::setInletBoundaryConditionRightToLeft()
   Z.inletBoundaryCondition(Field::east, 0.0);
 }
 
-void Variable::sendInfoToCommMainProc(Paralel &paralel)
+void Variable::sendInfoToCommMainProc(Paralel<n,m,nprocs> &paralel)
 {
   PROFILE_FUNCTION();
   paralel.SendInfoToCommMainProc(T, solT);
@@ -126,34 +106,43 @@ void Variable::sendInfoToNeighbours(Paralel &paralel)
   paralel.SendInfoToNeighbours(Z);
 }
 
-void Variable::setWallEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, double &alphaWall, double &DT)
+void Variable::setChannelEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, const double &m, const double &q,
+                           const double &beta, double &gamma, double &DT,
+                           const int &iter)
 {
   PROFILE_FUNCTION();
+  if (iter == 1)
+  {
+    Teqn = new Equation(fvm::diffusiveTerm(T) +
+                        fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
+                        fvm::heatProduction(T, Z, q));
 
-  Teqn = new Equation(alphaWall * fvm::diffusiveTerm(T));
-  Feqn = new Equation(fvm::diffusiveTerm(F));
-  Zeqn = new Equation(fvm::diffusiveTerm(Z));
-  Teqn->DT = DT;
-}
+    Feqn = new Equation(fvm::diffusiveTerm(F) +
+                        fvm::convectiveTerm(F, massFluxE, massFluxN, m) -
+                        fvm::intermidiateReaction(F, Z, T, beta, gamma));
 
-void Variable::setChannelEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, double &m, double &q, double &beta, double &gamma, double &DT)
-{
-  PROFILE_FUNCTION();
-  Teqn = new Equation(fvm::diffusiveTerm(T) +
-                      fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
-                      fvm::heatProduction(T, Z, q));
+    Zeqn = new Equation(fvm::diffusiveTerm(Z) +
+                        fvm::convectiveTerm(Z, massFluxE, massFluxN, m) +
+                        fvm::intermidiateReaction(F, Z, T, beta, gamma) - fvm::zComsumptium(Z));
 
-  Feqn = new Equation(fvm::diffusiveTerm(F) +
-                      fvm::convectiveTerm(F, massFluxE, massFluxN, m) -
-                      fvm::intermidiateReaction(F, Z, T, beta, gamma));
+    Teqn->DT = DT;
+    Feqn->DT = DT;
+    Zeqn->DT = DT;
+  }
+  else
+  {
+    Teqn->updateEquation(fvm::diffusiveTerm(T) +
+                         fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
+                         fvm::heatProduction(T, Z, q));
 
-  Zeqn = new Equation(fvm::diffusiveTerm(Z) +
-                      fvm::convectiveTerm(Z, massFluxE, massFluxN, m) +
-                      fvm::intermidiateReaction(F, Z, T, beta, gamma) - fvm::zComsumptium(Z));
+    Feqn->updateEquation(fvm::diffusiveTerm(F) +
+                         fvm::convectiveTerm(F, massFluxE, massFluxN, m) -
+                         fvm::intermidiateReaction(F, Z, T, beta, gamma));
 
-  Teqn->DT = DT;
-  Feqn->DT = DT;
-  Zeqn->DT = DT;
+    Zeqn->updateEquation(fvm::diffusiveTerm(Z) +
+                         fvm::convectiveTerm(Z, massFluxE, massFluxN, m) +
+                         fvm::intermidiateReaction(F, Z, T, beta, gamma) - fvm::zComsumptium(Z));
+  }
 }
 
 void Variable::setWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side)
@@ -225,10 +214,9 @@ double Variable::solveEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeq
   return error;
 }
 
-double Variable::calculateNewM(double alpha, double m, double q)
+double Variable::calculateNewM(const double &alpha, const double &m, const double &q)
 {
   PROFILE_FUNCTION();
-
   int index = ifix + jfix * NI;
   T.value[index] = 0.7;
 
@@ -239,7 +227,7 @@ double Variable::calculateNewM(double alpha, double m, double q)
 
   double diffusiveTermY = T.viscY[index] * T.Sn[ifix] *
                               (T.value[index + NI] - T.value[index]) / T.DYPtoN[jfix] -
-                          T.viscY[index - NI] * T.Sn[ifix-1] *
+                          T.viscY[index - NI] * T.Sn[ifix - 1] *
                               (T.value[index] - T.value[index - NI]) / T.DYPtoN[jfix];
 
   double convectiveTermX = (T.value[index + 1] * massFluxE.value[index] * T.FXE[ifix] -
@@ -265,24 +253,24 @@ void Variable::setFixIndex(double xfix, double yfix)
   jfix = 0;
 
   double error = 1000;
-  double newerror = abs(T.XC[ifix + jfix * NI] - xfix);
+  double newerror = abs(T.XC[ifix] - xfix);
 
   while (newerror < error)
   {
-    error = abs(T.XC[ifix + jfix * NI] - xfix);
+    error = abs(T.XC[ifix] - xfix);
     ifix++;
-    newerror = abs(T.XC[ifix + jfix * NI] - xfix);
+    newerror = abs(T.XC[ifix] - xfix);
   }
   ifix--;
 
   error = 1000;
-  newerror = abs(T.YC[ifix + jfix * NI] - yfix);
+  newerror = abs(T.YC[jfix] - yfix);
 
   while (newerror < error)
   {
-    error = abs(T.YC[ifix + jfix * NI] - yfix);
+    error = abs(T.YC[jfix] - yfix);
     jfix++;
-    newerror = abs(T.YC[ifix + jfix * NI] - yfix);
+    newerror = abs(T.YC[jfix] - yfix);
   }
   jfix--;
 }

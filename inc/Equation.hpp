@@ -4,26 +4,26 @@
 #include "FiniteMatrix.hpp"
 #include <string>
 
-class Equation{
+class Equation
+{
 public:
-  Equation(const FiniteMatrix::finiteMat&);
+  Equation(const FiniteMatrix::finiteMat &);
   virtual ~Equation();
 
-  typedef vector<FiniteMatrix> Svector1d;
-  typedef FiniteMatrix::finiteMat Svector;
+  typedef vector<vector<double>> Svector;
 
   double value;
   double Residual, RSM, RESOR;
 
   double URF, rURF; // rUrf removable?
-	string EqnName;
-	double SOR;
+  string EqnName;
+  double SOR;
 
-	FiniteMatrix::finiteMat A;
+  FiniteMatrix::finiteMat A;
 
   double DT;
   void assembleEquation();
-  void relax(Field&);
+  void relax(Field &);
 
   void noWallShearXBoundaryConditions(Field &vec, int start, int end, Field::Direction side);
   void noWallShearYBoundaryConditions(Field &vec, int start, int end, Field::Direction side);
@@ -36,10 +36,11 @@ public:
   double solve(Field &phi, double &alpha, int &niter, int &iterations, int iterChange);
   double solveGaussSeidel(Field &phi, double &alpha, int &iterations);
   double solveExplicit(Field &phi);
+
+  void inline updateEquation(const FiniteMatrix::finiteMat &fvm){ A = fvm;  };
+
 private:
-
-	Svector UE, UN, LW, LS, LPR, RES;
-	int NI, NJ, NIM, NJM, Literations;
-
+  Svector UE, UN, LW, LS, LPR, RES;
+  int NI, NJ, NIM, NJM, Literations;
 };
 #endif

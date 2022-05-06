@@ -109,7 +109,7 @@ void Field::inletBoundaryCondition(Direction side, double bvalue)
   }
 }
 
-void Field::laminarFlow(double m, double yMin, double yMax)
+void Field::laminarFlow(const double &m, const double &yMin, const double &yMax)
 {
   forAllN(NI, NJ)
   {
@@ -120,8 +120,8 @@ void Field::laminarFlow(double m, double yMin, double yMax)
   }
 }
 
-void Field::InitializeT(double &q, double xHotSpot,
-                        double xMin, double xMax)
+void Field::InitializeT(const double &q, const double &xHotSpot,
+                        const double &xMin, const double &xMax)
 {
   forAllN(NI, NJ)
   {
@@ -141,7 +141,7 @@ void Field::InitializeT(double &q, double xHotSpot,
   }
 }
 
-void Field::InitializeF(double xHotSpot, double xMin, double xMax)
+void Field::InitializeF(const double &xHotSpot, const double &xMin, const double &xMax)
 {
   forAllN(NI, NJ)
   {
@@ -153,8 +153,8 @@ void Field::InitializeF(double xHotSpot, double xMin, double xMax)
   }
 }
 
-void Field::InitializeZ(double T0hs, double r0hs,
-                        double xHotSpot, double yHotSpot)
+void Field::InitializeZ(const double &T0hs, const double &r0hs,
+                        const double &xHotSpot, const double &yHotSpot)
 {
   forAllN(NI, NJ)
   {

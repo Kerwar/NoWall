@@ -4,12 +4,12 @@ Equation::Equation(const FiniteMatrix::finiteMat &Fmatrix) : value(0.0), Residua
                                                              EqnName("No Name"), SOR(0.2),
                                                              A(Fmatrix),
                                                              DT(10e-6),
-                                                             UE(Fmatrix.size(), vector<FiniteMatrix>(Fmatrix[0].size())),
-                                                             UN(Fmatrix.size(), vector<FiniteMatrix>(Fmatrix[0].size())),
-                                                             LW(Fmatrix.size(), vector<FiniteMatrix>(Fmatrix[0].size())),
-                                                             LS(Fmatrix.size(), vector<FiniteMatrix>(Fmatrix[0].size())),
-                                                             LPR(Fmatrix.size(), vector<FiniteMatrix>(Fmatrix[0].size())),
-                                                             RES(Fmatrix.size(), vector<FiniteMatrix>(Fmatrix[0].size())),
+                                                             UE(Fmatrix.size(), vector<double>(Fmatrix[0].size(),0)),
+                                                             UN(Fmatrix.size(), vector<double>(Fmatrix[0].size(),0)),
+                                                             LW(Fmatrix.size(), vector<double>(Fmatrix[0].size(),0)),
+                                                             LS(Fmatrix.size(), vector<double>(Fmatrix[0].size(),0)),
+                                                             LPR(Fmatrix.size(), vector<double>(Fmatrix[0].size(),0)),
+                                                             RES(Fmatrix.size(), vector<double>(Fmatrix[0].size(),0)),
                                                              NI(A.size()),
                                                              NJ(A[0].size()),
                                                              NIM(NI - 1),
@@ -142,16 +142,16 @@ double Equation::solve(Field &phi, double &alpha, int &niter, int &iterations, i
   {
     for (int j = 1; j < NJ - 1; j++)
     {
-      LW[i][j].value = A[i][j].aw / (1.0 + alpha * UN[i - 1][j].value);
-      LS[i][j].value = A[i][j].as / (1.0 + alpha * UE[i][j - 1].value);
+      LW[i][j] = A[i][j].aw / (1.0 + alpha * UN[i - 1][j]);
+      LS[i][j] = A[i][j].as / (1.0 + alpha * UE[i][j - 1]);
 
-      double P1 = alpha * LW[i][j].value * UN[i - 1][j].value;
-      double P2 = alpha * LS[i][j].value * UE[i][j - 1].value;
+      double P1 = alpha * LW[i][j] * UN[i - 1][j];
+      double P2 = alpha * LS[i][j] * UE[i][j - 1];
 
-      LPR[i][j].value = 1.0 / (A[i][j].ap + P1 + P2 - LW[i][j].value * UE[i - 1][j].value - LS[i][j].value * UN[i][j - 1].value);
+      LPR[i][j] = 1.0 / (A[i][j].ap + P1 + P2 - LW[i][j] * UE[i - 1][j] - LS[i][j] * UN[i][j - 1]);
 
-      UN[i][j].value = (A[i][j].an - P1) * LPR[i][j].value;
-      UE[i][j].value = (A[i][j].ae - P2) * LPR[i][j].value;
+      UN[i][j] = (A[i][j].an - P1) * LPR[i][j];
+      UE[i][j] = (A[i][j].ae - P2) * LPR[i][j];
     }
   }
   // Calculate Residual and overwriting with an intermidiate vector
@@ -163,9 +163,9 @@ double Equation::solve(Field &phi, double &alpha, int &niter, int &iterations, i
     {
       for (int j = 1; j < NJ - 1; j++)
       {
-        RES[i][j].value = A[i][j].svalue - (A[i][j].an * phi.value[i + (j + 1) * NI] + A[i][j].as * phi.value[i + (j - 1) * NI] + A[i][j].ae * phi.value[i + 1 + j * NI] + A[i][j].aw * phi.value[i - 1 + j * NI] + A[i][j].ap * phi.value[i + j * NI]);
-        Residual += std::abs(RES[i][j].value);
-        RES[i][j].value = LPR[i][j].value * (RES[i][j].value - LS[i][j].value * RES[i][j - 1].value - LW[i][j].value * RES[i - 1][j].value);
+        RES[i][j] = A[i][j].svalue - (A[i][j].an * phi.value[i + (j + 1) * NI] + A[i][j].as * phi.value[i + (j - 1) * NI] + A[i][j].ae * phi.value[i + 1 + j * NI] + A[i][j].aw * phi.value[i - 1 + j * NI] + A[i][j].ap * phi.value[i + j * NI]);
+        Residual += std::abs(RES[i][j]);
+        RES[i][j] = LPR[i][j] * (RES[i][j]- LS[i][j] * RES[i][j - 1]- LW[i][j] * RES[i - 1][j]);
       }
     }
     double small = 1e-20;
@@ -186,9 +186,9 @@ double Equation::solve(Field &phi, double &alpha, int &niter, int &iterations, i
     {
       for (unsigned int j = NJ - 2; j >= 1; j--)
       {
-        RES[i][j].value = RES[i][j].value - (UN[i][j].value * RES[i][j + 1].value + UE[i][j].value * RES[i + 1][j].value);
+        RES[i][j] = RES[i][j] - (UN[i][j] * RES[i][j + 1] + UE[i][j] * RES[i + 1][j]);
 
-        phi.value[i + j * NI] += RES[i][j].value;
+        phi.value[i + j * NI] += RES[i][j];
       }
     }
   }

@@ -1,6 +1,6 @@
 #include "FiniteMatrix.hpp"
 
-FiniteMatrix::FiniteMatrix() : value(0.0), aw(0.0), ae(0.0), as(0.0), an(0.0), ap(0.0), svalue(0.0)
+FiniteMatrix::FiniteMatrix() : aw(0.0), ae(0.0), as(0.0), an(0.0), ap(0.0), svalue(0.0)
 {
 }
 
@@ -8,13 +8,16 @@ FiniteMatrix::~FiniteMatrix()
 {
 }
 
+FiniteMatrix::finiteMat operator+=(const FiniteMatrix::finiteMat &lhs, const FiniteMatrix::finiteMat &rhs)
+{
+  return lhs+rhs;
+}
 FiniteMatrix::finiteMat operator+(const FiniteMatrix::finiteMat &lhs, const FiniteMatrix::finiteMat &rhs)
 {
   FiniteMatrix::finiteMat result(lhs);
 
   forAllInternal(lhs)
   {
-    result[i][j].value += rhs[i][j].value;
     result[i][j].aw += rhs[i][j].aw;
     result[i][j].ae += rhs[i][j].ae;
     result[i][j].as += rhs[i][j].as;
@@ -24,7 +27,6 @@ FiniteMatrix::finiteMat operator+(const FiniteMatrix::finiteMat &lhs, const Fini
 
   return result;
 }
-
 /* FUNCTIONS IN CASE U V AND P ARE IMPLEMENTED
 FiniteMatrix::finiteMat FiniteMatrix::intepolatedFieldEast(FiniteMatrix::finiteMat& vec, Grid& myGrid)
 {
@@ -125,7 +127,6 @@ FiniteMatrix::finiteMat operator-(const FiniteMatrix::finiteMat &lhs, const Fini
 
   forAllInternal(lhs)
   {
-    result[i][j].value -= rhs[i][j].value;
     result[i][j].aw -= rhs[i][j].aw;
     result[i][j].ae -= rhs[i][j].ae;
     result[i][j].as -= rhs[i][j].as;
@@ -136,13 +137,17 @@ FiniteMatrix::finiteMat operator-(const FiniteMatrix::finiteMat &lhs, const Fini
   return result;
 }
 
+FiniteMatrix::finiteMat operator-=(const FiniteMatrix::finiteMat &lhs, const FiniteMatrix::finiteMat &rhs)
+{
+  return lhs-rhs;
+}
+
 FiniteMatrix::finiteMat operator&&(const FiniteMatrix::finiteMat &lhs, const FiniteMatrix::finiteMat &rhs)
 {
   FiniteMatrix::finiteMat result(lhs);
 
   forAllInternal(lhs)
   {
-    result[i][j].value *= rhs[i][j].value;
     result[i][j].aw *= rhs[i][j].aw;
     result[i][j].ae *= rhs[i][j].ae;
     result[i][j].as *= rhs[i][j].as;
@@ -153,14 +158,14 @@ FiniteMatrix::finiteMat operator&&(const FiniteMatrix::finiteMat &lhs, const Fin
   return result;
 }
 
-FiniteMatrix::finiteMat operator*(const double dblvalue, const FiniteMatrix::finiteMat &rhs)
-{
-  FiniteMatrix::finiteMat result(rhs);
+// FiniteMatrix::finiteMat operator*(const double dblvalue, const FiniteMatrix::finiteMat &rhs)
+// {
+//   FiniteMatrix::finiteMat result(rhs);
 
-  forAllInternal(rhs)
-  {
-    result[i][j].value *= dblvalue;
-  }
+//   forAllInternal(rhs)
+//   {
+//     result[i][j].value *= dblvalue;
+//   }
 
-  return result;
-}
+//   return result;
+// }

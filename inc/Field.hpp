@@ -37,10 +37,10 @@ public:
 
   void getGridInfoPassed(const Grid &myGrid, double &viscX, double &viscY);
   void inletBoundaryCondition(Direction side, double bvalue);
-  void laminarFlow(double m, double yMin, double yMax);
-  void InitializeT(double &q, double xHotSpot, double xMin, double xMax);
-  void InitializeZ(double T0hs, double r0hs, double xHotSpot, double yHotSpot);
-  void InitializeF(double xHotSpot, double xMin, double xMax);
+  void laminarFlow(const double &m, const double &yMin, const double &yMax);
+  void InitializeT(const double &q, const double &xHotSpot, const double &xMin, const double &xMax);
+  void InitializeZ(const double &T0hs, const double &r0hs, const double &xHotSpot, const double &yHotSpot);
+  void InitializeF(const double &xHotSpot, const double &xMin, const double &xMax);
   void initializeInternalField(double);
   void linearExtrapolateCondition(const Direction &wallname);
 

@@ -1,24 +1,7 @@
 #include "Problem.hpp"
 
-double Problem::beta, Problem::gamma;
-double Problem::xMin, Problem::xMax, Problem::xExMin, Problem::xExMax;
-double Problem::yWall, Problem::yChannel, Problem::yMin, Problem::yMax;
-double Problem::xfix, Problem::yfix;
-double Problem::q, Problem::xHS_U, Problem::xHS_D, Problem::r0hs, Problem::z0hs;
-
-double Problem::alphaWall, Problem::DT;
-
-double Problem::LeF, Problem::LeZ;
-
-double Problem::a, Problem::a2;
-double Problem::bK, Problem::exCte;
-
-double Problem::viscX, Problem::viscY;
-double Problem::tolerance, Problem::alpha;
-
-bool Problem::readFromFile;
-
-Problem::Problem() : maxit(10), iShow(1), m(2), N(600), M(100), variables(1,1,1,1)
+template<int N, int M>
+Problem<N,M>::Problem() : maxit(10), iShow(1), m(2), variables(1,1,1,1)
 {
   PROFILE_FUNCTION();
 
@@ -55,8 +38,9 @@ Problem::Problem() : maxit(10), iShow(1), m(2), N(600), M(100), variables(1,1,1,
   viscY = a2;
 }
 
-Problem::Problem(const int &nx, const int &ny, const int &ni, const int &nj, const double &prevm) :
- maxit(10E6), iShow(3E5), m(prevm), N(nx), M(ny), variables(ni, nj, nx, ny)
+template<int N, int M>
+Problem<N,M>::Problem(const int &ni, const int &nj, const double &prevm) :
+ maxit(10E6), iShow(3E5), m(prevm), variables(ni, nj, N, M)
 {
   PROFILE_FUNCTION();
   // if (nx > 20000)
@@ -65,12 +49,14 @@ Problem::Problem(const int &nx, const int &ny, const int &ni, const int &nj, con
 	// maxit = 1000000;}
 }
 
-Problem::~Problem()
+template<int N, int M>
+Problem<N,M>::~Problem()
 {
   // delete variables;
 }
 
-void Problem::setUpProblem()
+template<int N, int M>
+void Problem<N,M>::setUpProblem()
 {
   PROFILE_FUNCTION();
   paralel.setUpComm(N, M);
@@ -101,7 +87,8 @@ void Problem::setUpProblem()
   solM = M;
 }
 
-void Problem::initializeVariables()
+template<int N, int M>
+void Problem<N,M>::initializeVariables()
 {
   PROFILE_FUNCTION();
   variables.passInfoGridToAll(mainGrid, myGrid, viscX, viscY, LeF, LeZ);
@@ -160,7 +147,8 @@ void Problem::initializeVariables()
   
 }
 
-void Problem::writeSolution(string &prefix, int i)
+template<int N, int M>
+void Problem<N,M>::writeSolution(string &prefix, int i)
 {
   PROFILE_FUNCTION();
 
@@ -191,7 +179,8 @@ void Problem::writeSolution(string &prefix, int i)
 
 }
 
-double Problem::mainIter(int i)
+template<int N, int M>
+double Problem<N,M>::mainIter(int i)
 {
   PROFILE_FUNCTION();
 
@@ -268,12 +257,14 @@ double Problem::mainIter(int i)
   return error_result;
 }
 
-void Problem::freeComm()
+template<int N, int M>
+void Problem<N,M>::freeComm()
 {
   paralel.freeComm();
 }
 
-bool Problem::fixPointInThisProc()
+template<int N, int M>
+bool Problem<N,M>::fixPointInThisProc()
 {
   PROFILE_FUNCTION();
   bool result = false;
@@ -285,7 +276,8 @@ bool Problem::fixPointInThisProc()
   return result;
 }
 
-void Problem::writefilename(string &filename)
+template<int N, int M>
+void Problem<N,M>::writefilename(string &filename)
 {
   PROFILE_FUNCTION();
   std::ostringstream temp;
@@ -353,7 +345,8 @@ void Problem::writefilename(string &filename)
   filename.append("_");
 }
 
-void Problem::retrieveNandM(int &nxOut, int &nyOut, double &mOut)
+template<int N, int M>
+void Problem<N,M>::retrieveNandM(int &nxOut, int &nyOut, double &mOut)
 {
   PROFILE_FUNCTION();
   // double xcellSize = (xMax - xMin) / N;
@@ -369,7 +362,8 @@ void Problem::retrieveNandM(int &nxOut, int &nyOut, double &mOut)
   mOut = m;
 }
 
-void Problem::setExchangeConstant(double &deltaY)
+template<int N, int M>
+void inline Problem<N,M>::setExchangeConstant(double &deltaY)
 {
   exCte = bK * a * a * 1.5 * deltaY ;
 }
