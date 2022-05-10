@@ -11,8 +11,8 @@
 template <int N, int M, int NPROCS>
 class Problem
 {
-  static constexpr int NX = N / (NPROCS/2);
-  static constexpr int NY = M / 2;
+  static constexpr int NI = N / (NPROCS / 2) + 2;
+  static constexpr int NJ = M / 2 + 2;
 
 public:
   Problem(const double &prevm);
@@ -55,7 +55,7 @@ private:
 
   static bool readFromFile;
   Grid mainGrid, myGrid;
-  Variable<N, M, NX+2, NY+2, NPROCS> variables;
+  Variable<N, M, NI, NJ, NPROCS> variables;
 
   int myProc, nProcs;
   double myXMin, myXMax;
@@ -163,10 +163,8 @@ double Problem<N, M, NPROCS>::alpha;
 template <int N, int M, int NPROCS>
 bool Problem<N, M, NPROCS>::readFromFile;
 
-#include "Problem.hpp"
-
 template <int N, int M, int NPROCS>
-Problem<N, M, NPROCS>::Problem(const double &prevm) : maxit(100), iShow(1), m(prevm)
+Problem<N, M, NPROCS>::Problem(const double &prevm) : maxit(10), iShow(1), m(prevm)
 {
   PROFILE_FUNCTION();
   readFromFile = false;
@@ -199,7 +197,7 @@ Problem<N, M, NPROCS>::Problem(const double &prevm) : maxit(100), iShow(1), m(pr
   a2 = 1 / (a * a);
   bK = 0.15;
   viscX = 1;
-  viscY = a2;// if (nx > 20000)
+  viscY = a2; // if (nx > 20000)
   // {
   // tolerance = 10e-6;
   // maxit = 1000000;}
@@ -232,7 +230,7 @@ void Problem<N, M, NPROCS>::setUpProblem()
     myYMax += yChannel + yWall;
   }
 
-  myGrid = Grid(paralel.myNx, paralel.myNy, myXMin, myXMax, myYMin, myYMax);
+  myGrid = Grid(NI-2, NJ-2, myXMin, myXMax, myYMin, myYMax);
   myGrid.SetIEx(xExMin, xExMax);
 
   solN = N;
@@ -334,8 +332,6 @@ double Problem<N, M, NPROCS>::mainIter(int i)
 {
   PROFILE_FUNCTION();
 
-  if(i == 1)
-  cout << paralel.worldMyProc << " " << NX << " " << myGrid.NI << endl;
   double error = 1;
 
   variables.setChannelEquations(Teqn, Feqn, Zeqn, m, q, beta, gamma, DT, i);
@@ -362,7 +358,7 @@ double Problem<N, M, NPROCS>::mainIter(int i)
                                    myGrid.exI1, myGrid.exI2);
   else
     variables.setDirichlet(Teqn, Feqn, Zeqn, side);
-  
+
   side = Field::north;
 
   if (paralel.isLastProcOfCol() && paralel.isRightToLeft())
@@ -391,6 +387,17 @@ double Problem<N, M, NPROCS>::mainIter(int i)
   MPI_Allreduce(&error, &error_result, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
   variables.sendInfoToNeighbours(paralel);
+  // if (paralel.isLeftToRight() && paralel.myProc == 0)
+  // {
+  //   std::cout << "+++++++++++++++++++" << endl;
+  //   for (int j = NJ - 1; j >= 0; j--)
+  //   {
+  //     for (int i = 0; i < NI; i++)
+  //       cout << variables.T.value[i + j * NI] << " ";
+  //     std::cout << endl;
+  //   }
+  //   std::cout << "********************" << endl;
+  // }
   variables.exchangeTemperature(paralel, exCte, mainGrid.exI1, mainGrid.exI2);
 
   MPI_Barrier(MPI_COMM_WORLD);

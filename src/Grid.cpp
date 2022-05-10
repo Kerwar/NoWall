@@ -77,7 +77,7 @@ void Grid::setYF(double *&vecY, double *&vecYC, double *&vecYF)
     vecYF[NJ - 1] = 0.0;
 }
 
-void Grid::SetIEx(double &ExMin, double &ExMax)
+void Grid::SetIEx(const double &ExMin, const double &ExMax)
 {
   int NXWall = 0;
 

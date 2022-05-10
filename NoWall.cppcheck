@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="1">
+    <builddir>NoWall-cppcheck-build-dir</builddir>
+    <platform>unknown</platform>
+    <analyze-all-vs-configs>false</analyze-all-vs-configs>
+    <check-headers>true</check-headers>
+    <check-unused-templates>true</check-unused-templates>
+    <max-ctu-depth>2</max-ctu-depth>
+    <max-template-recursion>100</max-template-recursion>
+    <includedir>
+        <dir name="/usr/include/openmpi/ompi/mpi/cxx/"/>
+        <dir name="inc/"/>
+    </includedir>
+    <paths>
+        <dir name="inc"/>
+        <dir name="src"/>
+    </paths>
+</project>

@@ -9,17 +9,17 @@
 namespace fvm
 {
 
-  inline double plusupwind(double &v)
+  inline double plusupwind(const double &v)
   {
     return (v + std::abs(v)) / 2;
   }
 
-  inline double minusupwind(double &v)
+  inline double minusupwind(const double &v)
   {
     return (v - std::abs(v)) / 2;
   }
 
-  inline FiniteMatrix::finiteMat diffusiveTerm(Field &vec)
+  inline FiniteMatrix::finiteMat diffusiveTerm(const Field &vec)
   {
     int NI = vec.NI;
     int NJ = vec.NJ;
@@ -37,7 +37,7 @@ namespace fvm
     for (int j = 1; j < NJ - 1; j++)
     {
       int i = 1;
-      double DXPtoE = std::abs(vec.XC[i] - vec.XC[i -1]);
+      double DXPtoE = std::abs(vec.XC[1] - vec.XC[0]);
       double Se = std::abs(vec.Y[j] - vec.Y[j - 1]);
 
       APtemp[i][j].aw = -(vec.viscX[i + j * NI] * Se) / DXPtoE;
@@ -47,7 +47,7 @@ namespace fvm
 
     // Towards north side
     forAllInteriorVCVs(NI, NJ)
-    { 
+    {
       int index = i + j * NI;
       APtemp[i][j].an = -(vec.viscY[index] * vec.Sn[i]) / vec.DYPtoN[j];
       APtemp[i][j + 1].as = APtemp[i][j].an;
@@ -66,8 +66,8 @@ namespace fvm
     return APtemp;
   }
 
-  inline FiniteMatrix::finiteMat convectiveTerm(Field &vec, Field &massFluxEast,
-                                                Field &massFluxNorth, double m)
+  inline FiniteMatrix::finiteMat convectiveTerm(const Field &vec, const Field &massFluxEast,
+                                                const Field &massFluxNorth, const double &m)
   {
     int NI = vec.NI;
     int NJ = vec.NJ;
@@ -96,7 +96,7 @@ namespace fvm
     {
       int index = i + j * NI;
       APtemp[i][j].an = m * massFluxNorth.value[index] * vec.FYN[j];      //*minusupwind(massFluxNorth.value[i + j *NI]);
-      APtemp[i][j + 1].as = - m * massFluxNorth.value[index] * vec.FYP[j]; //* plusupwind(massFluxNorth.value[i + j *NI]);
+      APtemp[i][j + 1].as = -m * massFluxNorth.value[index] * vec.FYP[j]; //* plusupwind(massFluxNorth.value[i + j *NI]);
 
       // double resultvalue = 0.0;
       // APtemp[i][j].svalue = APtemp[i][j].svalue + resultvalue;
@@ -105,7 +105,7 @@ namespace fvm
     for (int i = 1; i < NI; i++)
     {
       int j = 1;
-      APtemp[i][j].as = - m * massFluxNorth.value[i + j * NI] * vec.FYP[j]; //* plusupwind(massFluxNorth.value[i + j *NI]);
+      APtemp[i][j].as = -m * massFluxNorth.value[i + j * NI] * vec.FYP[j]; //* plusupwind(massFluxNorth.value[i + j *NI]);
       j = NJ - 2;
       APtemp[i][j].an = m * massFluxNorth.value[i + j * NI] * vec.FYN[j]; //* minusupwind(massFluxNorth.value[i + j *NI]);
     }
@@ -113,7 +113,7 @@ namespace fvm
     return APtemp;
   }
 
-  inline FiniteMatrix::finiteMat heatProduction(Field &vec, Field &Z, double q)
+  inline FiniteMatrix::finiteMat heatProduction(const Field &vec,const  Field &Z,const  double &q)
   {
     int NI = vec.NI;
     int NJ = vec.NJ;
@@ -128,8 +128,8 @@ namespace fvm
     return APtemp;
   }
 
-  inline FiniteMatrix::finiteMat intermidiateReaction(Field &vec, Field &vec2,
-                                                      Field &T, double beta, double gamma)
+  inline FiniteMatrix::finiteMat intermidiateReaction(const Field &vec, const Field &vec2,
+                                                      const Field &T, double beta, const double &gamma)
   {
     int NI = vec.NI;
     int NJ = vec.NJ;
@@ -138,13 +138,13 @@ namespace fvm
     forAllInterior(NI, NJ)
     {
       int index = i + j * NI;
-      double expPortion =  exp(beta * (T.value[index] - 1.0) / (1.0 + gamma * (T.value[index] - 1.0)));
+      double expPortion = exp(beta * (T.value[index] - 1.0) / (1.0 + gamma * (T.value[index] - 1.0)));
       APtemp[i][j].svalue = beta * beta * expPortion * vec.value[index] * vec2.value[index] * vec.Se[j] * vec.Sn[i];
     }
     return APtemp;
   }
 
-  inline FiniteMatrix::finiteMat zComsumptium(Field &vec)
+  inline FiniteMatrix::finiteMat zComsumptium(const Field &vec)
   {
     int NI = vec.NI;
     int NJ = vec.NJ;

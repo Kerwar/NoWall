@@ -4,14 +4,16 @@ Equation::Equation(const FiniteMatrix::finiteMat &Fmatrix) : value(0.0), Residua
                                                              EqnName("No Name"), SOR(0.2),
                                                              A(Fmatrix),
                                                              DT(10e-6),
-                                                             UE(Fmatrix.size(), vector<double>(Fmatrix[0].size(), 0)),
-                                                             UN(Fmatrix.size(), vector<double>(Fmatrix[0].size(), 0)),
-                                                             LW(Fmatrix.size(), vector<double>(Fmatrix[0].size(), 0)),
-                                                             LS(Fmatrix.size(), vector<double>(Fmatrix[0].size(), 0)),
-                                                             LPR(Fmatrix.size(), vector<double>(Fmatrix[0].size(), 0)),
-                                                             RES(Fmatrix.size(), vector<double>(Fmatrix[0].size(), 0)),
+                                                             UE(Fmatrix.size(), vector<double>(Fmatrix[0].size(),0)),
+                                                             UN(Fmatrix.size(), vector<double>(Fmatrix[0].size(),0)),
+                                                             LW(Fmatrix.size(), vector<double>(Fmatrix[0].size(),0)),
+                                                             LS(Fmatrix.size(), vector<double>(Fmatrix[0].size(),0)),
+                                                             LPR(Fmatrix.size(), vector<double>(Fmatrix[0].size(),0)),
+                                                             RES(Fmatrix.size(), vector<double>(Fmatrix[0].size(),0)),
                                                              NI(A.size()),
                                                              NJ(A[0].size()),
+                                                             NIM(NI - 1),
+                                                             NJM(NJ - 1),
                                                              Literations(5)
 {
 }
@@ -31,7 +33,7 @@ void Equation::assembleEquation()
   }
 }
 
-void Equation::relax(const Field &vec)
+void Equation::relax(Field &vec)
 {
   PROFILE_FUNCTION();
   if (URF != 1.0)
@@ -42,7 +44,7 @@ void Equation::relax(const Field &vec)
     }
 }
 
-void Equation::noWallShearXBoundaryConditions(const Field &vec, const int &start, const int &end, const Field::Direction &side) // Only U Velocity
+void Equation::noWallShearXBoundaryConditions(Field &vec, int start, int end, Field::Direction side) // Only U Velocity
 {
   PROFILE_FUNCTION();
 
@@ -73,7 +75,7 @@ void Equation::noWallShearXBoundaryConditions(const Field &vec, const int &start
 }
 
 void Equation::noWallShearYBoundaryConditions(
-    const Field &vec, const int &start, const int &end, const Field::Direction &side) // Only V velocity
+    Field &vec, int start, int end, Field::Direction side) // Only V velocity
 {
   PROFILE_FUNCTION();
   int i;
@@ -107,7 +109,7 @@ void Equation::noWallShearYBoundaryConditions(
   }
 }
 
-double Equation::solve(Field &phi,const double &alpha,const int &niter,int &iterations,const int &iterChange)
+double Equation::solve(Field &phi, double &alpha, int &niter, int &iterations, int iterChange)
 {
   // SOlver for the SIP(Strongly Implicit Procedure) method
   // Iterative methods: A = M - N -> (M * phi(n) = N * phi(n-1) + S) if phi(n)=phi(n-1) there is no residual
@@ -163,7 +165,7 @@ double Equation::solve(Field &phi,const double &alpha,const int &niter,int &iter
       {
         RES[i][j] = A[i][j].svalue - (A[i][j].an * phi.value[i + (j + 1) * NI] + A[i][j].as * phi.value[i + (j - 1) * NI] + A[i][j].ae * phi.value[i + 1 + j * NI] + A[i][j].aw * phi.value[i - 1 + j * NI] + A[i][j].ap * phi.value[i + j * NI]);
         Residual += std::abs(RES[i][j]);
-        RES[i][j] = LPR[i][j] * (RES[i][j] - LS[i][j] * RES[i][j - 1] - LW[i][j] * RES[i - 1][j]);
+        RES[i][j] = LPR[i][j] * (RES[i][j]- LS[i][j] * RES[i][j - 1]- LW[i][j] * RES[i - 1][j]);
       }
     }
     double small = 1e-20;
@@ -193,9 +195,9 @@ double Equation::solve(Field &phi,const double &alpha,const int &niter,int &iter
   return Residual;
 }
 
-void Equation::SetWallShearTX(const Field &vec, const int &iStr, const int &iEnd,
-                              const int &Ex1, const int &Ex2, const int &myEx1, const int &myEx2,
-                              const Field::Direction &side)
+void Equation::SetWallShearTX(Field &vec, int iStr, int iEnd,
+                              int Ex1, int Ex2, int myEx1, int myEx2,
+                              Field::Direction side)
 {
   PROFILE_FUNCTION();
 
@@ -214,19 +216,19 @@ void Equation::SetWallShearTX(const Field &vec, const int &iStr, const int &iEnd
   SetDirichlet(vec, side);
 }
 
-void Equation::SetWallShearX(const Field &vec, const Field::Direction &side)
+void Equation::SetWallShearX(Field &vec, Field::Direction side)
 {
   PROFILE_FUNCTION();
   noWallShearXBoundaryConditions(vec, 1, vec.NI, side);
 }
 
-void Equation::SetWallShearY(const Field &vec, const Field::Direction &side)
+void Equation::SetWallShearY(Field &vec, Field::Direction side)
 {
   PROFILE_FUNCTION();
   noWallShearYBoundaryConditions(vec, 1, vec.NJ, side);
 }
 
-void Equation::SetDirichlet(const Field &vec,const  Field::Direction &side)
+void Equation::SetDirichlet(Field &vec, Field::Direction side)
 {
   PROFILE_FUNCTION();
   switch (side)
@@ -236,7 +238,7 @@ void Equation::SetDirichlet(const Field &vec,const  Field::Direction &side)
     {
       int i = 1;
 
-      A[i][j].svalue -= vec.value[j * NI] * A[i][j].aw;
+      A[i][j].svalue -= vec.value[i - 1 + j * NI] * A[i][j].aw;
       A[i][j].ap -= A[i][j].aw;
       A[i][j].aw = 0;
     }
@@ -258,7 +260,7 @@ void Equation::SetDirichlet(const Field &vec,const  Field::Direction &side)
     {
       int j = 1;
 
-      A[i][j].svalue -= vec.value[i] * A[i][j].as;
+      A[i][j].svalue -= vec.value[i + (j - 1) * NI] * A[i][j].as;
       A[i][j].ap -= A[i][j].as;
       A[i][j].as = 0;
     }
@@ -280,7 +282,7 @@ void Equation::SetDirichlet(const Field &vec,const  Field::Direction &side)
   }
 }
 
-double Equation::solveGaussSeidel(Field &phi,const double &alpha,const int &iterations)
+double Equation::solveGaussSeidel(Field &phi, double &alpha, int &iterations)
 {
   PROFILE_FUNCTION();
   double error;
@@ -301,7 +303,7 @@ double Equation::solveGaussSeidel(Field &phi,const double &alpha,const int &iter
 double Equation::solveExplicit(Field &phi)
 {
   PROFILE_FUNCTION();
-  double error = 0;
+  double error;
 
   forAllInterior(NI, NJ)
   {

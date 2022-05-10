@@ -7,6 +7,10 @@
 #include "Field.hpp"
 #include "mpi.h"
 
+using std::cout;
+using std::endl;
+using std::to_string;
+
 using std::vector;
 
 enum Loc
@@ -24,8 +28,8 @@ public:
 
   static constexpr int nProcsInRow = NPROCS / 2;
   static constexpr int nProcsInCol = 1;
-  static constexpr int NI = floor((float)N / (float)nProcsInRow);
-  static constexpr int NJ = floor(M / 2.0);
+  static constexpr int NI = N / nProcsInRow + 2;
+  static constexpr int NJ = M / 2 + 2;
 
   int worldNProcs, worldMyProc;
 
@@ -41,7 +45,6 @@ public:
   int NYChannel, NXWall;
   int locIStr, locIEnd, locJStr, locJEnd;
   int exI1, exI2;
-  int myNx, myNy;
   int iStr, iEnd;
   int jStr, jEnd;
 
@@ -80,19 +83,9 @@ public:
 
 private:
   void setProcMesh();
-  double TWUinBorder(double (&T)[4], double &exCte);
-  double TWDinBorder(double (&T)[4], double &exCte);
   void GatherTemperature(Field &T, Field &TWall, int J);
-  int SetXProcs(double &nmRelation);
   // Field::vec1dfield TIntoDerivative(const Field &TWall,const Field &TW2R, double exCte, double ex2);
 };
-
-#include "Paralel.hpp"
-#include <iostream>
-
-using std::cout;
-using std::endl;
-using std::to_string;
 
 template <int N, int M, int NPROCS>
 Paralel<N, M, NPROCS>::Paralel()
@@ -148,7 +141,7 @@ void Paralel<N, M, NPROCS>::setUpMesh(int &exi1, int &exi2)
 
     locIStr = 0;
     locIEnd = N;
-    locJStr = NJ;
+    locJStr = NJ - 2;
     locJEnd = M - 1;
 
     for (int i = 0; i < NPROCS / 2; i++)
@@ -164,7 +157,7 @@ void Paralel<N, M, NPROCS>::setUpMesh(int &exi1, int &exi2)
     locIStr = 0;
     locIEnd = N;
     locJStr = 0;
-    locJEnd = NJ - 1;
+    locJEnd = NJ - 2;
     break;
   }
 
@@ -173,10 +166,7 @@ void Paralel<N, M, NPROCS>::setUpMesh(int &exi1, int &exi2)
   jStr = jStrAllProc[myProc];
   jEnd = jEndAllProc[myProc];
 
-  myNx = iEnd - iStr;
-  myNy = jEnd - jStr;
-
-  MPI_Type_vector(myNy + 2, 1, myNx + 2, MPI_DOUBLE_PRECISION, &column_type);
+  MPI_Type_vector(NJ, 1, NI, MPI_DOUBLE_PRECISION, &column_type);
   MPI_Type_commit(&column_type);
 }
 
@@ -216,7 +206,6 @@ void Paralel<N, M, NPROCS>::SendInfoToNeighbours(Field &vec)
 
   MPI_Barrier(myComm);
   // SENDING INFO TO THE LEFT
-
   MPI_Sendrecv(&vec.value[1], 1, column_type, myLeft, leftTag,
                &vec.value[NI - 1], 1, column_type, myRight, leftTag, myComm, MPI_STATUS_IGNORE);
 
@@ -267,7 +256,7 @@ void Paralel<N, M, NPROCS>::MainsProcs(Loc location, int &proc)
     break;
 
   case down:
-    sendProc = NPROCS/2;
+    sendProc = NPROCS / 2;
     break;
   }
   PMPI_Bcast(&buffer, 1, MPI_INT, sendProc, MPI_COMM_WORLD);
@@ -280,25 +269,25 @@ void Paralel<N, M, NPROCS>::ExchangeWallTemperature(Field &TWall, Field &TNextTo
 {
   PROFILE_FUNCTION();
 
-  int NI = TWall.NI;
-  double wallRecv[NI] = {};
-  double nextToWallRecv[NI] = {};
+  int NW = N + 2;
+  double wallRecv[NW] = {};
+  double nextToWallRecv[NW] = {};
 
   int wallID = 22;
   int nextToWallID = 23;
 
   if (isLeftToRight())
   {
-    PMPI_Sendrecv(&TWall.value[0], NI, MPI_DOUBLE_PRECISION, DCMainProc, wallID, &wallRecv, NI, MPI_DOUBLE_PRECISION, DCMainProc, wallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    PMPI_Sendrecv(&TNextToWall.value[0], NI, MPI_DOUBLE_PRECISION, DCMainProc, nextToWallID, &nextToWallRecv, NI, MPI_DOUBLE_PRECISION, DCMainProc, nextToWallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    PMPI_Sendrecv(&TWall.value[0], NW, MPI_DOUBLE_PRECISION, DCMainProc, wallID, &wallRecv, NW, MPI_DOUBLE_PRECISION, DCMainProc, wallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    PMPI_Sendrecv(&TNextToWall.value[0], NW, MPI_DOUBLE_PRECISION, DCMainProc, nextToWallID, &nextToWallRecv, NW, MPI_DOUBLE_PRECISION, DCMainProc, nextToWallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     for (int i = solExI1; i < solExI2; i++)
       TWall.value[i] = ((8.0 + exCte) * (9.0 * TWall.value[i] - TNextToWall.value[i]) + 9.0 * exCte * wallRecv[i] - exCte * nextToWallRecv[i]) / (64.0 + 16 * exCte);
   }
   else if (isRightToLeft())
   {
-    PMPI_Sendrecv(&TWall.value[0], NI, MPI_DOUBLE_PRECISION, UCMainProc, wallID, &wallRecv, NI, MPI_DOUBLE_PRECISION, UCMainProc, wallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    PMPI_Sendrecv(&TNextToWall.value[0], NI, MPI_DOUBLE_PRECISION, UCMainProc, nextToWallID, &nextToWallRecv, NI, MPI_DOUBLE_PRECISION, UCMainProc, nextToWallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    PMPI_Sendrecv(&TWall.value[0], NW, MPI_DOUBLE_PRECISION, UCMainProc, wallID, &wallRecv, NW, MPI_DOUBLE_PRECISION, UCMainProc, wallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    PMPI_Sendrecv(&TNextToWall.value[0], NW, MPI_DOUBLE_PRECISION, UCMainProc, nextToWallID, &nextToWallRecv, NW, MPI_DOUBLE_PRECISION, UCMainProc, nextToWallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     for (int i = solExI1; i < solExI2; i++)
       TWall.value[i] = ((8.0 + exCte) * (9.0 * TWall.value[i] - TNextToWall.value[i]) + 9.0 * exCte * wallRecv[i] - exCte * nextToWallRecv[i]) / (64.0 + 16 * exCte);
@@ -310,9 +299,7 @@ void Paralel<N, M, NPROCS>::ShareWallTemperatureInfo(Field &TWall, Field &T)
 {
   PROFILE_FUNCTION();
 
-  int NI = T.NI;
-  int NJ = T.NJ;
-  int n = T.NI - 1;
+  int n = NI - 1;
 
   switch (loc)
   {
@@ -334,16 +321,9 @@ template <int N, int M, int NPROCS>
 void Paralel<N, M, NPROCS>::SendWallTInTheChannel(Field &TWall)
 {
   PROFILE_FUNCTION();
-  int NI = TWall.NI;
 
-  PMPI_Bcast(&TWall.value[0], NI, MPI_DOUBLE, 0, myComm);
+  PMPI_Bcast(&TWall.value[0], N + 2, MPI_DOUBLE, 0, myComm);
 }
-
-template <int N, int M, int NPROCS>
-inline double Paralel<N, M, NPROCS>::TWDinBorder(double (&T)[4], double &exCte) { return (9.0 * (exCte * T[2] + T[1]) - (T[0] + exCte * T[3])) / (8.0 * (1.0 + exCte)); };
-
-template <int N, int M, int NPROCS>
-inline double Paralel<N, M, NPROCS>::TWUinBorder(double (&T)[4], double &exCte) { return (9.0 * (T[2] + exCte * T[1]) - (exCte * T[0] + T[3])) / (8.0 * (1.0 + exCte)); };
 
 template <int N, int M, int NPROCS>
 void Paralel<N, M, NPROCS>::setProcMesh()
@@ -359,11 +339,11 @@ void Paralel<N, M, NPROCS>::setProcMesh()
     for (int ColId = 0; ColId < nProcsInCol; ColId++)
     {
       int idN = id(RowId, ColId);
-      iStrAllProc[idN] = RowId * NI;
-      iEndAllProc[idN] = (RowId + 1) * NI;
+      iStrAllProc[idN] = RowId * (NI - 2);
+      iEndAllProc[idN] = (RowId + 1) * (NI - 2);
 
-      jStrAllProc[idN] = ColId * NJ;
-      jEndAllProc[idN] = (ColId + 1) * NJ;
+      jStrAllProc[idN] = ColId * (NJ - 2);
+      jEndAllProc[idN] = (ColId + 1) * (NJ - 2);
     }
 }
 
@@ -371,10 +351,6 @@ template <int N, int M, int NPROCS>
 void Paralel<N, M, NPROCS>::SendInfoToCommMainProc(Field &vec, Field &sol)
 {
   PROFILE_FUNCTION();
-
-  int NI = vec.NI;
-  int NJ = vec.NJ;
-
   int iIS = NI - 2;
   int jIS = NJ - 2;
   int sendCount = iIS * jIS;
@@ -383,7 +359,7 @@ void Paralel<N, M, NPROCS>::SendInfoToCommMainProc(Field &vec, Field &sol)
 
   forAllInterior(NI, NJ)
   {
-    sendBuffer[(i - 1) * jIS + (j - 1)] = vec.value[i + j * NI];
+    sendBuffer[(i - 1) + (j - 1) * iIS] = vec.value[i + j * NI];
   }
 
   int recvCount = 0;
@@ -393,8 +369,7 @@ void Paralel<N, M, NPROCS>::SendInfoToCommMainProc(Field &vec, Field &sol)
   for (int k = 0; k < nProcs; k++)
   {
     displacements[k] = recvCount;
-    counts[k] = (iEndAllProc[k] - iStrAllProc[k]) *
-                (jEndAllProc[k] - jStrAllProc[k]);
+    counts[k] = iIS * jIS;
     recvCount += counts[k];
   }
   double recvBuffer[recvCount];
@@ -410,51 +385,21 @@ void Paralel<N, M, NPROCS>::SendInfoToCommMainProc(Field &vec, Field &sol)
   }
 
   if (myProc == 0)
-  {
     for (int k = 0; k < nProcs; k++)
     {
-      int jSize = jEndAllProc[k] - jStrAllProc[k];
+      int iSize = iEndAllProc[k] - iStrAllProc[k];
       for (int i = iStrAllProc[k]; i < iEndAllProc[k]; i++)
-      {
         for (int j = jStrAllProc[k]; j < jEndAllProc[k]; j++)
         {
           int iRelative = i - iStrAllProc[k];
           int jRelative = j - jStrAllProc[k];
 
-          int ij = displacements[k] + iRelative * jSize + jRelative;
-          sol.value[i + j * sol.NI] = recvBuffer[ij];
+          int ij = displacements[k] + iRelative + jRelative * iSize;
+          sol.value[i + j * N] = recvBuffer[ij];
         }
-      }
     }
-  }
 
   MPI_Barrier(myComm);
-}
-
-template <int N, int M, int NPROCS>
-int Paralel<N, M, NPROCS>::SetXProcs(double &nmRelation)
-{
-  PROFILE_FUNCTION();
-
-  vector<int> divisors(nProcs, 1);
-
-  for (int i = 1; i < nProcs; i++)
-  {
-    if (nProcs % (i + 1) == 0)
-    {
-      divisors[i] = i + 1;
-    }
-  }
-
-  int result = divisors[0];
-  for (long unsigned int i = 1; i < divisors.size(); i++)
-  {
-    if (std::abs(nmRelation - divisors[i]) <= std::abs(nmRelation - result))
-    {
-      result = divisors[i];
-    }
-  }
-  return result;
 }
 
 template <int N, int M, int NPROCS>
@@ -485,13 +430,11 @@ void Paralel<N, M, NPROCS>::distributeToProcs(Field &sol, Field &vec)
 {
   PROFILE_FUNCTION();
 
-  int NI = vec.NI;
-
   int counts[nProcs];
   int sendCount = 0;
   int displacements[nProcs];
 
-  double buffer[sol.NI * sol.NJ];
+  double buffer[N * M];
 
   for (int k = 0; k < nProcs; k++)
   {
@@ -503,7 +446,7 @@ void Paralel<N, M, NPROCS>::distributeToProcs(Field &sol, Field &vec)
         int relative_i = i - iStrAllProc[k];
         int relative_j = j - jStrAllProc[k];
         int index = displacements[k] + relative_j * (iEndAllProc[k] - iStrAllProc[k]) + relative_i;
-        buffer[index] = sol.value[i + j * sol.NI];
+        buffer[index] = sol.value[i + j * N];
         // if(isWall()&&myProc == 0)
         // std::cout << index << " " << sol[i][j].value << std::endl;
         sendCount++;
@@ -555,14 +498,14 @@ void Paralel<N, M, NPROCS>::GatherTemperature(Field &T, Field &TWall, int J)
   }
 
   if (myProc == 0)
-    MPI_Gatherv(&T.value[1 + J * T.NI], T.NI - 2, MPI_DOUBLE, &TWall.value[1], count, displacement, MPI_DOUBLE, 0, myComm);
+    MPI_Gatherv(&T.value[1 + J * NI], NI - 2, MPI_DOUBLE, &TWall.value[1], count, displacement, MPI_DOUBLE, 0, myComm);
   else
-    MPI_Gatherv(&T.value[1 + J * T.NI], T.NI - 2, MPI_DOUBLE, NULL, NULL, NULL, MPI_DOUBLE, 0, myComm);
+    MPI_Gatherv(&T.value[1 + J * NI], NI - 2, MPI_DOUBLE, NULL, NULL, NULL, MPI_DOUBLE, 0, myComm);
 
   for (int i = 0; i < exI1; i++)
     TWall.value[i] = 0;
 
-  for (int i = exI2; i < TWall.NI; i++)
+  for (int i = exI2; i < N + 2; i++)
     TWall.value[i] = 0;
 }
 

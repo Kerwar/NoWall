@@ -29,17 +29,17 @@ int main(int argc, char **argv)
   MPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
   Instrumentor::Get().BeginSession("../Profiling/Profile-" + std::to_string(worldRank) + ".json");
   auto startTime = std::chrono::high_resolution_clock::now();
-  
+
   constexpr int n = 600;
   constexpr int M = 100;
-  constexpr int NPROCS = 64;
-  constexpr int N = n + (NPROCS/2 - n % (NPROCS/2));
+  constexpr int NPROCS = 4;
+  constexpr int N = n + (NPROCS / 2 - n % (NPROCS / 2));
 
-  double mprevious = 2;
   if (worldSize == NPROCS)
   {
-    Problem<N,M,NPROCS> problem(mprevious);
-    
+    double mprevious = 2;
+    Problem<N, M, NPROCS> problem(mprevious);
+
     problem.setUpProblem();
 
     problem.initializeVariables();
@@ -60,9 +60,9 @@ int main(int argc, char **argv)
       ;
     }
 
-    double error = 1;
     for (int i = 1; i < problem.maxit; i++)
     {
+      double error = 1;
       error = problem.mainIter(i);
 
       if (problem.isErrorSmallEnough(error) || i % problem.iShow == 0 || i == problem.maxit - 1)

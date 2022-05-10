@@ -19,23 +19,97 @@ public:
   void passInfoGridToAll(const Grid &solGrid, const Grid &myGrid, double &viscX, double &viscY, double &LeF, double &LeZ);
   void initializeWall();
   void readFile(Paralel<N, M, NPROCS> &paralel, int block, double &m, double yMin, double yMax);
-  void setMassFluxes(const Grid &myGrid);
-  void setInletBoundaryConditionLeftToRight();
-  void setInletBoundaryConditionRightToLeft();
-  void sendInfoToCommMainProc(Paralel<N, M, NPROCS> &paralel);
-  void sendInfoToNeighbours(Paralel<N, M, NPROCS> &paralel);
-  void exchangeTemperature(Paralel<N, M, NPROCS> &paralel, double &exCte, int &solExI1, int &solExI2);
+
+  inline void setMassFluxes(const Grid &myGrid)
+  {
+    PROFILE_FUNCTION();
+
+    massFluxE.getGridInfoPassed(myGrid, U.viscX[0], U.viscY[0]);
+    massFluxN.getGridInfoPassed(myGrid, V.viscX[0], V.viscY[0]);
+
+    massFluxE.computeEastMassFluxes(U);
+    massFluxN.computeNorthMassFluxes(V);
+  }
+
+  inline void setInletBoundaryConditionLeftToRight()
+  {
+    PROFILE_FUNCTION();
+    T.inletBoundaryCondition(Field::west, 0.0);
+    F.inletBoundaryCondition(Field::west, 1.0);
+    Z.inletBoundaryCondition(Field::west, 0.0);
+  }
+  inline void setInletBoundaryConditionRightToLeft()
+  {
+    PROFILE_FUNCTION();
+    T.inletBoundaryCondition(Field::east, 0.0);
+    F.inletBoundaryCondition(Field::east, 1.0);
+    Z.inletBoundaryCondition(Field::east, 0.0);
+  }
+
+  inline void sendInfoToCommMainProc(Paralel<N, M, NPROCS> &paralel)
+  {
+    PROFILE_FUNCTION();
+    paralel.SendInfoToCommMainProc(T, solT);
+    paralel.SendInfoToCommMainProc(F, solF);
+    paralel.SendInfoToCommMainProc(Z, solZ);
+    paralel.SendInfoToCommMainProc(U, solU);
+    paralel.SendInfoToCommMainProc(V, solV);
+  }
+  inline void sendInfoToNeighbours(Paralel<N, M, NPROCS> &paralel)
+  {
+    PROFILE_FUNCTION();
+    paralel.SendInfoToNeighbours(T);
+    paralel.SendInfoToNeighbours(F);
+    paralel.SendInfoToNeighbours(Z);
+  }
+
+  inline void exchangeTemperature(Paralel<N, M, NPROCS> &paralel, double &exCte, int &solExI1, int &solExI2)
+  {
+    PROFILE_FUNCTION();
+
+    paralel.GatherWallTemperature(TWall, TNextToWall, T);
+
+    if (paralel.myProc == 0)
+      paralel.ExchangeWallTemperature(TWall, TNextToWall, exCte, solExI1, solExI2);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    paralel.ShareWallTemperatureInfo(TWall, T);
+  }
   void setChannelEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, const double &m, const double &q,
                            const double &beta, double &gamma, double &DT,
                            const int &iter);
   void setWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side);
   void setExchangeWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side, int iStr, int iEnd, int mainexI1, int mainexI2, int exI1, int exI2);
-  void setDirichlet(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side);
-  void assembleEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn);
+  inline void setDirichlet(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side)
+  {
+    PROFILE_FUNCTION();
+    Teqn->SetDirichlet(T, side);
+    Feqn->SetDirichlet(F, side);
+    Zeqn->SetDirichlet(Z, side);
+  }
+
+  inline void assembleEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn)
+  {
+    PROFILE_FUNCTION();
+
+    Teqn->assembleEquation();
+    Feqn->assembleEquation();
+    Zeqn->assembleEquation();
+
+    Teqn->relax(T);
+    Feqn->relax(F);
+    Zeqn->relax(Z);
+  }
   double solveEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, double alpha, int &niter, int &itersol, int changeIter);
   double calculateNewM(const double &alpha, const double &m, const double &q);
   void setFixIndex(double xfix, double yfix);
-  void updateBoundFactors();
+  inline void updateBoundFactors()
+  {
+    PROFILE_FUNCTION();
+
+    lowerBoundFactorm *= 0.9;
+    upperBoundFactorm *= 1.1;
+  }
   bool isTOutEqualToQ(double q, Paralel<N, M, NPROCS> &paralel);
   void writeTInWall(Paralel<N, M, NPROCS> &paralel, const Grid &mainGrid, const Grid &myGrid, int iter);
 
@@ -44,11 +118,11 @@ public:
   Field solU, solV;
   bool manyIter = false;
 
+  Field T;
 private:
   int ifix, jfix;
   Field U, V;
 
-  Field T;
   Field F, Z;
 
   Field TWall, TNextToWall;
@@ -82,21 +156,21 @@ public:
 };
 
 template <int N, int M, int NI, int NJ, int NPROCS>
-Variable<N, M, NI, NJ, NPROCS>:: Variable() : solT(N, M), solF(N, M),
-                                            solZ(N, M), solU(N, M),
-                                            solV(N, M), U(NI, NJ),
-                                            V(NI, NJ), T(NI, NJ),
-                                            F(NI, NJ), Z(NI, NJ),
-                                            TWall(N + 2, 1), TNextToWall(N + 2, 1),
-                                            massFluxE(NI, NJ), massFluxN(NI, NJ)
+Variable<N, M, NI, NJ, NPROCS>::Variable() : solT(N, M), solF(N, M),
+                                             solZ(N, M), solU(N, M),
+                                             solV(N, M), U(NI, NJ),
+                                             V(NI, NJ), T(NI, NJ),
+                                             F(NI, NJ), Z(NI, NJ),
+                                             TWall(N + 2, 1), TNextToWall(N + 2, 1),
+                                             massFluxE(NI, NJ), massFluxN(NI, NJ)
 {
 }
 
 template <int N, int M, int NI, int NJ, int NPROCS>
-Variable<N, M, NI, NJ, NPROCS>:: ~Variable() {}
+Variable<N, M, NI, NJ, NPROCS>::~Variable() {}
 
 template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>:: passInfoGridToAll(const Grid &solGrid, const Grid &myGrid, double &viscX, double &viscY, double &LeF, double &LeZ)
+void Variable<N, M, NI, NJ, NPROCS>::passInfoGridToAll(const Grid &solGrid, const Grid &myGrid, double &viscX, double &viscY, double &LeF, double &LeZ)
 {
   PROFILE_FUNCTION();
 
@@ -124,70 +198,9 @@ void Variable<N, M, NI, NJ, NPROCS>:: passInfoGridToAll(const Grid &solGrid, con
 }
 
 template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>:: initializeWall()
-{
-  PROFILE_FUNCTION();
-  T.initializeInternalField(1.0);
-  T.linearExtrapolateCondition(Field::south);
-  T.linearExtrapolateCondition(Field::north);
-  T.linearExtrapolateCondition(Field::west);
-  T.linearExtrapolateCondition(Field::east);
-}
-
-template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>:: setMassFluxes(const Grid &myGrid)
-{
-  PROFILE_FUNCTION();
-
-  massFluxE.getGridInfoPassed(myGrid, U.viscX[0], U.viscY[0]);
-  massFluxN.getGridInfoPassed(myGrid, V.viscX[0], V.viscY[0]);
-
-  massFluxE.computeEastMassFluxes(U);
-  massFluxN.computeNorthMassFluxes(V);
-}
-
-template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>:: setInletBoundaryConditionLeftToRight()
-{
-  PROFILE_FUNCTION();
-  T.inletBoundaryCondition(Field::west, 0.0);
-  F.inletBoundaryCondition(Field::west, 1.0);
-  Z.inletBoundaryCondition(Field::west, 0.0);
-}
-
-template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>:: setInletBoundaryConditionRightToLeft()
-{
-  PROFILE_FUNCTION();
-  T.inletBoundaryCondition(Field::east, 0.0);
-  F.inletBoundaryCondition(Field::east, 1.0);
-  Z.inletBoundaryCondition(Field::east, 0.0);
-}
-
-template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>::sendInfoToCommMainProc(Paralel<N, M, NPROCS> &paralel)
-{
-  PROFILE_FUNCTION();
-  paralel.SendInfoToCommMainProc(T, solT);
-  paralel.SendInfoToCommMainProc(F, solF);
-  paralel.SendInfoToCommMainProc(Z, solZ);
-  paralel.SendInfoToCommMainProc(U, solU);
-  paralel.SendInfoToCommMainProc(V, solV);
-}
-
-template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>:: sendInfoToNeighbours(Paralel<N, M, NPROCS> &paralel)
-{
-  PROFILE_FUNCTION();
-  paralel.SendInfoToNeighbours(T);
-  paralel.SendInfoToNeighbours(F);
-  paralel.SendInfoToNeighbours(Z);
-}
-
-template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>:: setChannelEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, const double &m, const double &q,
-                                                        const double &beta, double &gamma, double &DT,
-                                                        const int &iter)
+void Variable<N, M, NI, NJ, NPROCS>::setChannelEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, const double &m, const double &q,
+                                                         const double &beta, double &gamma, double &DT,
+                                                         const int &iter)
 {
   PROFILE_FUNCTION();
   if (iter == 1)
@@ -225,7 +238,7 @@ void Variable<N, M, NI, NJ, NPROCS>:: setChannelEquations(Equation *&Teqn, Equat
 }
 
 template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>:: setWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side)
+void Variable<N, M, NI, NJ, NPROCS>::setWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side)
 {
   PROFILE_FUNCTION();
   if (side == Field::west || side == Field::east)
@@ -243,16 +256,7 @@ void Variable<N, M, NI, NJ, NPROCS>:: setWallShear(Equation *&Teqn, Equation *&F
 }
 
 template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>:: setDirichlet(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side)
-{
-  PROFILE_FUNCTION();
-  Teqn->SetDirichlet(T, side);
-  Feqn->SetDirichlet(F, side);
-  Zeqn->SetDirichlet(Z, side);
-}
-
-template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>:: setExchangeWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side, int iStr, int iEnd, int mainexI1, int mainexI2, int exI1, int exI2)
+void Variable<N, M, NI, NJ, NPROCS>::setExchangeWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side, int iStr, int iEnd, int mainexI1, int mainexI2, int exI1, int exI2)
 {
   PROFILE_FUNCTION();
 
@@ -260,25 +264,10 @@ void Variable<N, M, NI, NJ, NPROCS>:: setExchangeWallShear(Equation *&Teqn, Equa
                        exI1, exI2, side);
   Feqn->SetWallShearX(F, side);
   Zeqn->SetWallShearX(Z, side);
-  
 }
 
 template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>:: assembleEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn)
-{
-  PROFILE_FUNCTION();
-
-  Teqn->assembleEquation();
-  Feqn->assembleEquation();
-  Zeqn->assembleEquation();
-
-  Teqn->relax(T);
-  Feqn->relax(F);
-  Zeqn->relax(Z);
-}
-
-template <int N, int M, int NI, int NJ, int NPROCS>
-double Variable<N, M, NI, NJ, NPROCS>:: solveEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, double alpha, int &niter, int &itersol, int changeIter)
+double Variable<N, M, NI, NJ, NPROCS>::solveEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, double alpha, int &niter, int &itersol, int changeIter)
 {
   PROFILE_FUNCTION();
   double error = 10;
@@ -296,11 +285,13 @@ double Variable<N, M, NI, NJ, NPROCS>:: solveEquations(Equation *&Teqn, Equation
   {
     F.value[i + j * NI] = std::max(F.value[i + j * NI], 0.0);
   }
+ 
+
   return error;
 }
 
 template <int N, int M, int NI, int NJ, int NPROCS>
-double Variable<N, M, NI, NJ, NPROCS>:: calculateNewM(const double &alpha, const double &m, const double &q)
+double Variable<N, M, NI, NJ, NPROCS>::calculateNewM(const double &alpha, const double &m, const double &q)
 {
   PROFILE_FUNCTION();
   int index = ifix + jfix * NI;
@@ -332,7 +323,7 @@ double Variable<N, M, NI, NJ, NPROCS>:: calculateNewM(const double &alpha, const
 }
 
 template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>:: setFixIndex(double xfix, double yfix)
+void Variable<N, M, NI, NJ, NPROCS>::setFixIndex(double xfix, double yfix)
 {
   PROFILE_FUNCTION();
 
@@ -363,16 +354,7 @@ void Variable<N, M, NI, NJ, NPROCS>:: setFixIndex(double xfix, double yfix)
 }
 
 template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>:: updateBoundFactors()
-{
-  PROFILE_FUNCTION();
-
-  lowerBoundFactorm *= 0.9;
-  upperBoundFactorm *= 1.1;
-}
-
-template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>:: readFile(Paralel<N, M, NPROCS> &paralel, int block, double &m, double yMin, double yMax)
+void Variable<N, M, NI, NJ, NPROCS>::readFile(Paralel<N, M, NPROCS> &paralel, int block, double &m, double yMin, double yMax)
 {
   PROFILE_FUNCTION();
 
@@ -400,7 +382,7 @@ void Variable<N, M, NI, NJ, NPROCS>:: readFile(Paralel<N, M, NPROCS> &paralel, i
 }
 
 template <int N, int M, int NI, int NJ, int NPROCS>
-bool Variable<N, M, NI, NJ, NPROCS>:: isTOutEqualToQ(double q, Paralel<N, M, NPROCS> &paralel)
+bool Variable<N, M, NI, NJ, NPROCS>::isTOutEqualToQ(double q, Paralel<N, M, NPROCS> &paralel)
 {
   PROFILE_FUNCTION();
 
@@ -439,21 +421,7 @@ bool Variable<N, M, NI, NJ, NPROCS>:: isTOutEqualToQ(double q, Paralel<N, M, NPR
 }
 
 template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>:: exchangeTemperature(Paralel<N, M, NPROCS> &paralel, double &exCte, int &solExI1, int &solExI2)
-{
-  PROFILE_FUNCTION();
-
-  paralel.GatherWallTemperature(TWall, TNextToWall, T);
-
-  if (paralel.myProc == 0)
-    paralel.ExchangeWallTemperature(TWall, TNextToWall, exCte, solExI1, solExI2);
-  MPI_Barrier(MPI_COMM_WORLD);
-
-  paralel.ShareWallTemperatureInfo(TWall, T);
-}
-
-template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>:: writeTInWall(Paralel<N, M, NPROCS> &paralel, const Grid &mainGrid, const Grid &myGrid, int iter)
+void Variable<N, M, NI, NJ, NPROCS>::writeTInWall(Paralel<N, M, NPROCS> &paralel, const Grid &mainGrid, const Grid &myGrid, int iter)
 {
   PROFILE_FUNCTION();
 

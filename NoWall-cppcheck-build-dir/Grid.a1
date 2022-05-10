@@ -1,0 +1,169 @@
+<?xml version="1.0"?>
+<analyzerinfo checksum="3019222746">
+        <error id="uninitMemberVar" severity="warning" msg="Member variable &apos;Grid::N&apos; is not initialized in the constructor." verbose="Member variable &apos;Grid::N&apos; is not initialized in the constructor." cwe="398" hash="6552164912796862709">
+            <location file="src/Grid.cpp" line="4" column="7"/>
+            <symbol>Grid::N</symbol>
+        </error>
+        <error id="uninitMemberVar" severity="warning" msg="Member variable &apos;Grid::M&apos; is not initialized in the constructor." verbose="Member variable &apos;Grid::M&apos; is not initialized in the constructor." cwe="398" hash="10655201639158424419">
+            <location file="src/Grid.cpp" line="4" column="7"/>
+            <symbol>Grid::M</symbol>
+        </error>
+        <error id="uninitMemberVar" severity="warning" msg="Member variable &apos;Grid::NI&apos; is not initialized in the constructor." verbose="Member variable &apos;Grid::NI&apos; is not initialized in the constructor." cwe="398" hash="18080931129017912719">
+            <location file="src/Grid.cpp" line="4" column="7"/>
+            <symbol>Grid::NI</symbol>
+        </error>
+        <error id="uninitMemberVar" severity="warning" msg="Member variable &apos;Grid::NJ&apos; is not initialized in the constructor." verbose="Member variable &apos;Grid::NJ&apos; is not initialized in the constructor." cwe="398" hash="13720120578045651716">
+            <location file="src/Grid.cpp" line="4" column="7"/>
+            <symbol>Grid::NJ</symbol>
+        </error>
+        <error id="uninitMemberVar" severity="warning" msg="Member variable &apos;Grid::exI1&apos; is not initialized in the constructor." verbose="Member variable &apos;Grid::exI1&apos; is not initialized in the constructor." cwe="398" hash="12872248117672456510">
+            <location file="src/Grid.cpp" line="4" column="7"/>
+            <symbol>Grid::exI1</symbol>
+        </error>
+        <error id="uninitMemberVar" severity="warning" msg="Member variable &apos;Grid::exI2&apos; is not initialized in the constructor." verbose="Member variable &apos;Grid::exI2&apos; is not initialized in the constructor." cwe="398" hash="10067060345415787985">
+            <location file="src/Grid.cpp" line="4" column="7"/>
+            <symbol>Grid::exI2</symbol>
+        </error>
+        <error id="uninitMemberVar" severity="warning" msg="Member variable &apos;Grid::xMin&apos; is not initialized in the constructor." verbose="Member variable &apos;Grid::xMin&apos; is not initialized in the constructor." cwe="398" hash="10181751183137132664">
+            <location file="src/Grid.cpp" line="4" column="7"/>
+            <symbol>Grid::xMin</symbol>
+        </error>
+        <error id="uninitMemberVar" severity="warning" msg="Member variable &apos;Grid::xMax&apos; is not initialized in the constructor." verbose="Member variable &apos;Grid::xMax&apos; is not initialized in the constructor." cwe="398" hash="6843478351047863309">
+            <location file="src/Grid.cpp" line="4" column="7"/>
+            <symbol>Grid::xMax</symbol>
+        </error>
+        <error id="uninitMemberVar" severity="warning" msg="Member variable &apos;Grid::yMin&apos; is not initialized in the constructor." verbose="Member variable &apos;Grid::yMin&apos; is not initialized in the constructor." cwe="398" hash="10538917397679871935">
+            <location file="src/Grid.cpp" line="4" column="7"/>
+            <symbol>Grid::yMin</symbol>
+        </error>
+        <error id="uninitMemberVar" severity="warning" msg="Member variable &apos;Grid::yMax&apos; is not initialized in the constructor." verbose="Member variable &apos;Grid::yMax&apos; is not initialized in the constructor." cwe="398" hash="11741614015900198717">
+            <location file="src/Grid.cpp" line="4" column="7"/>
+            <symbol>Grid::yMax</symbol>
+        </error>
+        <error id="uninitMemberVar" severity="warning" msg="Member variable &apos;Grid::Xlength&apos; is not initialized in the constructor." verbose="Member variable &apos;Grid::Xlength&apos; is not initialized in the constructor." cwe="398" hash="7779938517412846887">
+            <location file="src/Grid.cpp" line="4" column="7"/>
+            <symbol>Grid::Xlength</symbol>
+        </error>
+        <error id="uninitMemberVar" severity="warning" msg="Member variable &apos;Grid::Ylength&apos; is not initialized in the constructor." verbose="Member variable &apos;Grid::Ylength&apos; is not initialized in the constructor." cwe="398" hash="5567208793843322051">
+            <location file="src/Grid.cpp" line="4" column="7"/>
+            <symbol>Grid::Ylength</symbol>
+        </error>
+        <error id="uninitMemberVar" severity="warning" msg="Member variable &apos;Grid::DX&apos; is not initialized in the constructor." verbose="Member variable &apos;Grid::DX&apos; is not initialized in the constructor." cwe="398" hash="7060983399980236978">
+            <location file="src/Grid.cpp" line="4" column="7"/>
+            <symbol>Grid::DX</symbol>
+        </error>
+        <error id="uninitMemberVar" severity="warning" msg="Member variable &apos;Grid::DY&apos; is not initialized in the constructor." verbose="Member variable &apos;Grid::DY&apos; is not initialized in the constructor." cwe="398" hash="10526843995698266911">
+            <location file="src/Grid.cpp" line="4" column="7"/>
+            <symbol>Grid::DY</symbol>
+        </error>
+        <error id="uninitMemberVar" severity="warning" msg="Member variable &apos;Grid::exI1&apos; is not initialized in the constructor." verbose="Member variable &apos;Grid::exI1&apos; is not initialized in the constructor." cwe="398" hash="14884556327990508623">
+            <location file="src/Grid.cpp" line="8" column="7"/>
+            <symbol>Grid::exI1</symbol>
+        </error>
+        <error id="uninitMemberVar" severity="warning" msg="Member variable &apos;Grid::exI2&apos; is not initialized in the constructor." verbose="Member variable &apos;Grid::exI2&apos; is not initialized in the constructor." cwe="398" hash="11802951207055592926">
+            <location file="src/Grid.cpp" line="8" column="7"/>
+            <symbol>Grid::exI2</symbol>
+        </error>
+        <error id="noCopyConstructor" severity="warning" msg="Class &apos;Grid&apos; does not have a copy constructor which is recommended since it has dynamic memory/resource allocation(s)." verbose="Class &apos;Grid&apos; does not have a copy constructor which is recommended since it has dynamic memory/resource allocation(s)." cwe="398" hash="13666302585890332227">
+            <location file="src/Grid.cpp" line="12" column="54"/>
+            <symbol>Grid</symbol>
+        </error>
+  <FileInfo check="Bounds checking">
+    <array-index>
+    <unsafe-usage my-id="/home/javier/Documentos/Programs/CFEM/NoWall/inc/Grid.hpp:16:8" my-argnr="1" my-argname="vecX" file="src/Grid.cpp" line="28" col="5" value="0"/>
+    <unsafe-usage my-id="/home/javier/Documentos/Programs/CFEM/NoWall/inc/Grid.hpp:17:8" my-argnr="1" my-argname="vecY" file="src/Grid.cpp" line="38" col="5" value="0"/>
+    <unsafe-usage my-id="/home/javier/Documentos/Programs/CFEM/NoWall/inc/Grid.hpp:19:8" my-argnr="2" my-argname="vecXC" file="src/Grid.cpp" line="48" col="5" value="0"/>
+    <unsafe-usage my-id="/home/javier/Documentos/Programs/CFEM/NoWall/inc/Grid.hpp:20:8" my-argnr="2" my-argname="vecYC" file="src/Grid.cpp" line="56" col="5" value="0"/>
+    </array-index>
+  </FileInfo>
+  <FileInfo check="Null pointer">
+    <unsafe-usage my-id="/home/javier/Documentos/Programs/CFEM/NoWall/inc/Grid.hpp:16:8" my-argnr="1" my-argname="vecX" file="src/Grid.cpp" line="28" col="5" value="0"/>
+    <unsafe-usage my-id="/home/javier/Documentos/Programs/CFEM/NoWall/inc/Grid.hpp:17:8" my-argnr="1" my-argname="vecY" file="src/Grid.cpp" line="38" col="5" value="0"/>
+    <unsafe-usage my-id="/home/javier/Documentos/Programs/CFEM/NoWall/inc/Grid.hpp:19:8" my-argnr="2" my-argname="vecXC" file="src/Grid.cpp" line="48" col="5" value="0"/>
+    <unsafe-usage my-id="/home/javier/Documentos/Programs/CFEM/NoWall/inc/Grid.hpp:20:8" my-argnr="2" my-argname="vecYC" file="src/Grid.cpp" line="56" col="5" value="0"/>
+  </FileInfo>
+  <FileInfo check="CheckUnusedFunctions">
+    <functiondecl functionName="setX" lineNumber="26"/>
+    <functiondecl functionName="setY" lineNumber="36"/>
+    <functiondecl functionName="setXC" lineNumber="46"/>
+    <functiondecl functionName="setYC" lineNumber="54"/>
+    <functiondecl functionName="setXF" lineNumber="62"/>
+    <functiondecl functionName="setYF" lineNumber="71"/>
+    <functiondecl functionName="SetIEx" lineNumber="80"/>
+    <functioncall functionName="DX"/>
+    <functioncall functionName="DY"/>
+    <functioncall functionName="Get"/>
+    <functioncall functionName="Grid"/>
+    <functioncall functionName="M"/>
+    <functioncall functionName="MPI_COMM_WORLD"/>
+    <functioncall functionName="MPI_Comm_rank"/>
+    <functioncall functionName="N"/>
+    <functioncall functionName="NI"/>
+    <functioncall functionName="NJ"/>
+    <functioncall functionName="NULL"/>
+    <functioncall functionName="NXWall"/>
+    <functioncall functionName="Name"/>
+    <functioncall functionName="Start"/>
+    <functioncall functionName="Stop"/>
+    <functioncall functionName="WriteFooter"/>
+    <functioncall functionName="WriteHeader"/>
+    <functioncall functionName="WriteProfile"/>
+    <functioncall functionName="X"/>
+    <functioncall functionName="XC"/>
+    <functioncall functionName="XF"/>
+    <functioncall functionName="Xlength"/>
+    <functioncall functionName="Y"/>
+    <functioncall functionName="YC"/>
+    <functioncall functionName="YF"/>
+    <functioncall functionName="Ylength"/>
+    <functioncall functionName="begin"/>
+    <functioncall functionName="close"/>
+    <functioncall functionName="count"/>
+    <functioncall functionName="end"/>
+    <functioncall functionName="endTimepoint"/>
+    <functioncall functionName="exI1"/>
+    <functioncall functionName="exI2"/>
+    <functioncall functionName="false"/>
+    <functioncall functionName="flush"/>
+    <functioncall functionName="for"/>
+    <functioncall functionName="get_id"/>
+    <functioncall functionName="i"/>
+    <functioncall functionName="if"/>
+    <functioncall functionName="j"/>
+    <functioncall functionName="m"/>
+    <functioncall functionName="m_CurrentSession"/>
+    <functioncall functionName="m_Name"/>
+    <functioncall functionName="m_ProfileCount"/>
+    <functioncall functionName="m_StartTimepoint"/>
+    <functioncall functionName="m_Stopped"/>
+    <functioncall functionName="myProc"/>
+    <functioncall functionName="n"/>
+    <functioncall functionName="name"/>
+    <functioncall functionName="now"/>
+    <functioncall functionName="nullptr"/>
+    <functioncall functionName="open"/>
+    <functioncall functionName="other"/>
+    <functioncall functionName="replace"/>
+    <functioncall functionName="setX"/>
+    <functioncall functionName="setXC"/>
+    <functioncall functionName="setXF"/>
+    <functioncall functionName="setY"/>
+    <functioncall functionName="setYC"/>
+    <functioncall functionName="setYF"/>
+    <functioncall functionName="start"/>
+    <functioncall functionName="swap"/>
+    <functioncall functionName="threadID"/>
+    <functioncall functionName="time_point_cast"/>
+    <functioncall functionName="time_since_epoch"/>
+    <functioncall functionName="true"/>
+    <functioncall functionName="while"/>
+    <functioncall functionName="xMax"/>
+    <functioncall functionName="xMin"/>
+    <functioncall functionName="xmax"/>
+    <functioncall functionName="xmin"/>
+    <functioncall functionName="yMax"/>
+    <functioncall functionName="yMin"/>
+    <functioncall functionName="ymax"/>
+    <functioncall functionName="ymin"/>
+  </FileInfo>
+</analyzerinfo>

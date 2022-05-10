@@ -10,7 +10,7 @@ FileWriter::~FileWriter()
   // dtor
 }
 
-void FileWriter::WriteInter(const string &prefix, string sufix, int time,
+void FileWriter::WriteInter(string prefix, string sufix, int time,
                             const Grid &mainGrid, const Grid &myGrid,
                             const Field &Utemp, const Field &Vtemp,
                             const Field &Ttemp, const Field &Ftemp,

@@ -7,7 +7,7 @@
 class Equation
 {
 public:
-  Equation(const FiniteMatrix::finiteMat &);
+  explicit Equation(const FiniteMatrix::finiteMat &);
   virtual ~Equation();
 
   typedef vector<vector<double>> Svector;
@@ -15,7 +15,7 @@ public:
   double value;
   double Residual, RSM, RESOR;
 
-  double URF, rURF; // rUrf removable?
+  double URF;
   string EqnName;
   double SOR;
 
@@ -23,24 +23,24 @@ public:
 
   double DT;
   void assembleEquation();
-  void relax(Field &);
+  void relax(const Field &);
 
-  void noWallShearXBoundaryConditions(Field &vec, int start, int end, Field::Direction side);
-  void noWallShearYBoundaryConditions(Field &vec, int start, int end, Field::Direction side);
+  void noWallShearXBoundaryConditions(const Field &vec, const int &start, const int &end, const Field::Direction &side);
+  void noWallShearYBoundaryConditions(const Field &vec, const int &start, const int &end, const Field::Direction &side);
 
-  void SetWallShearTX(Field &vec, int iStr, int iEnd, int Ex1, int Ex2, int myEx1, int myEx2, Field::Direction side);
-  void SetWallShearX(Field &vec, Field::Direction side);
-  void SetWallShearY(Field &vec, Field::Direction side);
+  void SetWallShearTX(const Field &vec, const int &iStr, const int &iEnd, const int &Ex1, const int &Ex2, const int &myEx1, const int &myEx2, const Field::Direction &side);
+  void SetWallShearX(const Field &vec, const Field::Direction &side);
+  void SetWallShearY(const Field &vec, const Field::Direction &side);
 
-  void SetDirichlet(Field &vec, Field::Direction side);
-  double solve(Field &phi, double &alpha, int &niter, int &iterations, int iterChange);
-  double solveGaussSeidel(Field &phi, double &alpha, int &iterations);
+  void SetDirichlet(const Field &vec, const Field::Direction &side);
+  double solve(Field &phi, const double &alpha, const int &niter, int &iterations, const int &iterChange);
+  double solveGaussSeidel(Field &phi,const double &alpha, const int &iterations);
   double solveExplicit(Field &phi);
 
-  void inline updateEquation(const FiniteMatrix::finiteMat &fvm){ A = fvm;  };
+  void inline updateEquation(const FiniteMatrix::finiteMat &fvm) { A = fvm; };
 
 private:
   Svector UE, UN, LW, LS, LPR, RES;
-  int NI, NJ, NIM, NJM, Literations;
+  int NI, NJ, Literations;
 };
 #endif

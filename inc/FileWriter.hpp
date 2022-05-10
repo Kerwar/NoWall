@@ -22,7 +22,7 @@ public:
   FileWriter();
   virtual ~FileWriter();
 
-  void WriteInter(string prefix, string sufix, int time,
+  void WriteInter(const string &prefix, string sufix, int time,
                   const Grid &mainGrid, const Grid &myGrid,
                   const Field &Utemp, const Field &Vtemp,
                   const Field &Ttemp, const Field &Ftemp, const Field &Ztemp,

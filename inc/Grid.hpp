@@ -65,7 +65,7 @@ public:
   // First Aprox of the distances
   double DX, DY;
 
-  void SetIEx(double &ExMin, double &ExMax);
+  void SetIEx(const double &ExMin, const double &ExMax);
 public:
   friend void swap(Grid &first, Grid &second)
   {
