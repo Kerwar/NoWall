@@ -164,7 +164,7 @@ template <int N, int M, int NPROCS>
 bool Problem<N, M, NPROCS>::readFromFile;
 
 template <int N, int M, int NPROCS>
-Problem<N, M, NPROCS>::Problem(const double &prevm) : maxit(10), iShow(1), m(prevm)
+Problem<N, M, NPROCS>::Problem(const double &prevm) : maxit(10E1), iShow(10E0), m(prevm)
 {
   PROFILE_FUNCTION();
   readFromFile = false;
@@ -181,7 +181,7 @@ Problem<N, M, NPROCS>::Problem(const double &prevm) : maxit(10), iShow(1), m(pre
   yChannel = 0.5;
   yMin = 0;
   yMax = 1;
-  xfix = 43;
+  xfix = 43.95;
   yfix = 0.75;
   q = 1.2;
   xHS_U = 44;
@@ -230,7 +230,7 @@ void Problem<N, M, NPROCS>::setUpProblem()
     myYMax += yChannel + yWall;
   }
 
-  myGrid = Grid(NI-2, NJ-2, myXMin, myXMax, myYMin, myYMax);
+  myGrid = Grid(NI - 2, NJ - 2, myXMin, myXMax, myYMin, myYMax);
   myGrid.SetIEx(xExMin, xExMax);
 
   solN = N;
@@ -281,7 +281,6 @@ void Problem<N, M, NPROCS>::initializeVariables()
   // fieldOper.getGridInfoPassed(UN, myGrid, viscX, viscY);
 
   variables.setMassFluxes(myGrid);
-
   if (paralel.isLeftToRight() && paralel.isProcNull(paralel.myLeft))
   {
     variables.setInletBoundaryConditionLeftToRight();
@@ -334,7 +333,7 @@ double Problem<N, M, NPROCS>::mainIter(int i)
 
   double error = 1;
 
-  variables.setChannelEquations(Teqn, Feqn, Zeqn, m, q, beta, gamma, DT, i);
+  variables.setChannelEquations(Teqn, Feqn, Zeqn, paralel, m, q, beta, gamma, DT, i);
   Field::Direction side = Field::west;
 
   if (paralel.isFirstProcOfRow() && paralel.isRightToLeft())
@@ -382,6 +381,7 @@ double Problem<N, M, NPROCS>::mainIter(int i)
   if (fixPointInThisProc())
     m = variables.calculateNewM(0.75 * alpha, m, q);
 
+  MPI_Barrier(MPI_COMM_WORLD);
   MPI_Bcast(&m, 1, MPI_DOUBLE, paralel.fixPointProc, MPI_COMM_WORLD);
 
   MPI_Allreduce(&error, &error_result, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -509,7 +509,7 @@ void Problem<N, M, NPROCS>::retrieveNandM(int &nxOut, int &nyOut, double &mOut)
 template <int N, int M, int NPROCS>
 void inline Problem<N, M, NPROCS>::setExchangeConstant(double &deltaY)
 {
-  exCte = bK * a * a * 1.5 * deltaY;
+  exCte = bK * a * a * deltaY / (4.0);
 }
 
 #endif

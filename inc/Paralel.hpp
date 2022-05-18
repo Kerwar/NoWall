@@ -71,14 +71,14 @@ public:
   void PrintProgress(string message, bool showProgress);
   void distributeToProcs(Field &sol, Field &vec);
 
-  inline bool isLeftToRight() { return loc == up ? true : false; };
-  inline bool isRightToLeft() { return loc == down ? true : false; };
+  inline bool isLeftToRight() const { return loc == up ? true : false; };
+  inline bool isRightToLeft() const { return loc == down ? true : false; };
 
-  inline bool isProcNull(int &proc) { return proc == MPI_PROC_NULL ? true : false; };
-  inline bool isFirstProcOfRow() { return myRowId == 0 ? true : false; };
-  inline bool isLastProcOfRow() { return myRowId == nProcsInRow - 1 ? true : false; };
-  inline bool isFirstProcOfCol() { return myColId == 0 ? true : false; };
-  inline bool isLastProcOfCol() { return myColId == nProcsInCol - 1 ? true : false; };
+  inline bool isProcNull(int &proc) const { return proc == MPI_PROC_NULL ? true : false; };
+  inline bool isFirstProcOfRow() const { return myRowId == 0 ? true : false; };
+  inline bool isLastProcOfRow() const { return myRowId == nProcsInRow - 1 ? true : false; };
+  inline bool isFirstProcOfCol() const { return myColId == 0 ? true : false; };
+  inline bool isLastProcOfCol() const { return myColId == nProcsInCol - 1 ? true : false; };
   string PrintMyRank();
 
 private:
@@ -280,18 +280,30 @@ void Paralel<N, M, NPROCS>::ExchangeWallTemperature(Field &TWall, Field &TNextTo
   {
     PMPI_Sendrecv(&TWall.value[0], NW, MPI_DOUBLE_PRECISION, DCMainProc, wallID, &wallRecv, NW, MPI_DOUBLE_PRECISION, DCMainProc, wallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     PMPI_Sendrecv(&TNextToWall.value[0], NW, MPI_DOUBLE_PRECISION, DCMainProc, nextToWallID, &nextToWallRecv, NW, MPI_DOUBLE_PRECISION, DCMainProc, nextToWallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    for (int i = solExI1; i < solExI2; i++)
-      TWall.value[i] = ((8.0 + exCte) * (9.0 * TWall.value[i] - TNextToWall.value[i]) + 9.0 * exCte * wallRecv[i] - exCte * nextToWallRecv[i]) / (64.0 + 16 * exCte);
   }
   else if (isRightToLeft())
   {
     PMPI_Sendrecv(&TWall.value[0], NW, MPI_DOUBLE_PRECISION, UCMainProc, wallID, &wallRecv, NW, MPI_DOUBLE_PRECISION, UCMainProc, wallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     PMPI_Sendrecv(&TNextToWall.value[0], NW, MPI_DOUBLE_PRECISION, UCMainProc, nextToWallID, &nextToWallRecv, NW, MPI_DOUBLE_PRECISION, UCMainProc, nextToWallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-    for (int i = solExI1; i < solExI2; i++)
-      TWall.value[i] = ((8.0 + exCte) * (9.0 * TWall.value[i] - TNextToWall.value[i]) + 9.0 * exCte * wallRecv[i] - exCte * nextToWallRecv[i]) / (64.0 + 16 * exCte);
+    // for (int i = solExI1; i < solExI2; i++)
+    // TWall.value[i] = //((8.0 + exCte) * (9.0 * TWall.value[i] - TNextToWall.value[i]) + 9.0 * exCte * wallRecv[i] - exCte * nextToWallRecv[i]) / (64.0 + 16 * exCte);
   }
+  for (int i = 0; i < NW; i++)
+  {
+    if (i >= solExI1 && i < solExI2)
+    {
+      if (isLeftToRight())
+        TNextToWall.value[i] = exCte * (TWall.value[i] - wallRecv[i]);
+      else
+        TNextToWall.value[i] = exCte * (wallRecv[i] - TWall.value[i]);
+    }
+    else
+      TNextToWall.value[i] = 0;
+  }
+
+  for (int i = solExI1; i < solExI2; i++)
+    TWall.value[i] = ((exCte + 1) * TWall.value[i] + exCte * wallRecv[i]) / (2 * exCte + 1); //((8.0 + exCte) * (9.0 * TWall.value[i] - TNextToWall.value[i]) + 9.0 * exCte * wallRecv[i] - exCte * nextToWallRecv[i]) / (64.0 + 16 * exCte);
 }
 
 template <int N, int M, int NPROCS>

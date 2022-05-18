@@ -107,7 +107,7 @@ void Equation::noWallShearYBoundaryConditions(
   }
 }
 
-double Equation::solve(Field &phi,const double &alpha,const int &niter,int &iterations,const int &iterChange)
+double Equation::solve(Field &phi, const double &alpha, const int &niter, int &iterations, const int &iterChange)
 {
   // SOlver for the SIP(Strongly Implicit Procedure) method
   // Iterative methods: A = M - N -> (M * phi(n) = N * phi(n-1) + S) if phi(n)=phi(n-1) there is no residual
@@ -226,7 +226,7 @@ void Equation::SetWallShearY(const Field &vec, const Field::Direction &side)
   noWallShearYBoundaryConditions(vec, 1, vec.NJ, side);
 }
 
-void Equation::SetDirichlet(const Field &vec,const  Field::Direction &side)
+void Equation::SetDirichlet(const Field &vec, const Field::Direction &side)
 {
   PROFILE_FUNCTION();
   switch (side)
@@ -280,7 +280,7 @@ void Equation::SetDirichlet(const Field &vec,const  Field::Direction &side)
   }
 }
 
-double Equation::solveGaussSeidel(Field &phi,const double &alpha,const int &iterations)
+double Equation::solveGaussSeidel(Field &phi, const double &alpha, const int &iterations)
 {
   PROFILE_FUNCTION();
   double error;
@@ -292,7 +292,7 @@ double Equation::solveGaussSeidel(Field &phi,const double &alpha,const int &iter
     {
       double newvalue = (A[i][j].svalue - A[i][j].aw * phi.value[i - 1 + j * NI] - A[i][j].ae * phi.value[i + 1 + j * NI] - A[i][j].as * phi.value[i + (j - 1) * NI] - A[i][j].an * phi.value[i + (j + 1) * NI]) / A[i][j].ap;
       error += std::abs(newvalue - phi.value[i + j * NI]);
-      phi.value[i + j * NI] = newvalue * (1.0 - alpha) + alpha * phi.value[i + j * NI];
+      phi.value[i + j * NI] = newvalue * alpha + (1.0 - alpha) * phi.value[i + j * NI];
     }
   }
   return error;

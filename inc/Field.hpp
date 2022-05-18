@@ -23,7 +23,7 @@ public:
   // Field();
 
   // Overlad constructor
-  Field(const int &_NI,const  int& _NJ);
+  Field(const int &_NI, const int &_NJ);
   virtual ~Field();
 
   enum Direction
@@ -50,43 +50,7 @@ public:
   void computeEastMassFluxes(const Field &U);
   void computeNorthMassFluxes(const Field &V);
 
-  // friend void swap(Field &first, Field &second)
-  // {
-  //   using std::swap;
-
-  //   swap(first.X, second.X);
-  //   swap(first.XC, second.XC);
-    
-  //   swap(first.Y, second.Y);
-  //   swap(first.YC, second.YC);
-    
-  //   swap(first.FXE, second.FXE);
-  //   swap(first.FXP, second.FXP);
-    
-  //   swap(first.FYN, second.FYN);
-  //   swap(first.FYP, second.FYP);
-
-  //   swap(first.DXPtoE, second.DXPtoE);
-  //   swap(first.DYPtoN, second.DYPtoN);
-
-  //   swap(first.Se, second.Se);
-  //   swap(first.Sn, second.Sn);
-    
-  //   swap(first.viscX, second.viscX);
-  //   swap(first.viscY, second.viscY);
-    
-  //   swap(first.density, second.density);
-  //   swap(first.volume, second.volume);
-
-  //   swap(first.value, second.value);
-  // };
-
-  // constexpr Field operator=(Field other)
-  // {
-  //   swap(*this, other);
-
-  //   return *this;
-  // };
+  double operator[](const int &i) { return value[i]; };
 };
 
 #endif

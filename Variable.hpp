@@ -74,12 +74,8 @@ public:
     MPI_Barrier(MPI_COMM_WORLD);
 
     paralel.ShareWallTemperatureInfo(TWall, T);
-
-    for (int i = 0; i < NI; i++)
-      DTinWall[i] = TNextToWall.value[i + std::max(paralel.iStr - 1, 0)] * (2.0 / DY);
   }
-  void setChannelEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
-                           const Paralel<N, M, NPROCS> &paralel, const double &m, const double &q,
+  void setChannelEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, const double &m, const double &q,
                            const double &beta, double &gamma, double &DT,
                            const int &iter);
   void setWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side);
@@ -122,19 +118,18 @@ public:
   Field solU, solV;
   bool manyIter = false;
 
+  Field T;
+
 private:
   int ifix, jfix;
   Field U, V;
 
-  Field T;
   Field F, Z;
 
   Field TWall, TNextToWall;
 
-  vector<double> DTinWall;
   Field massFluxE, massFluxN;
   double lowerBoundFactorm = 0.9, upperBoundFactorm = 1.1;
-  double DY;
 
   string initialsol = "Sol-1.f";
 
@@ -168,7 +163,6 @@ Variable<N, M, NI, NJ, NPROCS>::Variable() : solT(N, M), solF(N, M),
                                              V(NI, NJ), T(NI, NJ),
                                              F(NI, NJ), Z(NI, NJ),
                                              TWall(N + 2, 1), TNextToWall(N + 2, 1),
-                                             DTinWall(NI, 0),
                                              massFluxE(NI, NJ), massFluxN(NI, NJ)
 {
 }
@@ -190,8 +184,6 @@ void Variable<N, M, NI, NJ, NPROCS>::passInfoGridToAll(const Grid &solGrid, cons
   double viscZx = viscX / LeZ;
   double viscZy = viscY / LeZ;
 
-  DY = solGrid.DY;
-
   solU.getGridInfoPassed(solGrid, viscTx, viscTy);
   solV.getGridInfoPassed(solGrid, viscTx, viscTy);
   solT.getGridInfoPassed(solGrid, viscTx, viscTy);
@@ -207,23 +199,16 @@ void Variable<N, M, NI, NJ, NPROCS>::passInfoGridToAll(const Grid &solGrid, cons
 }
 
 template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>::setChannelEquations(
-    Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
-    const Paralel<N, M, NPROCS> &paralel, const double &m, const double &q,
-    const double &beta, double &gamma, double &DT,
-    const int &iter)
+void Variable<N, M, NI, NJ, NPROCS>::setChannelEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, const double &m, const double &q,
+                                                         const double &beta, double &gamma, double &DT,
+                                                         const int &iter)
 {
   PROFILE_FUNCTION();
   if (iter == 1)
   {
-    if (paralel.isLeftToRight())
-      Teqn = new Equation(fvm::diffusiveTermS(T, DTinWall) +
-                          fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
-                          fvm::heatProduction(T, Z, q));
-    else
-      Teqn = new Equation(fvm::diffusiveTermN(T, DTinWall) +
-                          fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
-                          fvm::heatProduction(T, Z, q));
+    Teqn = new Equation(fvm::diffusiveTerm(T) +
+                        fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
+                        fvm::heatProduction(T, Z, q));
 
     Feqn = new Equation(fvm::diffusiveTerm(F) +
                         fvm::convectiveTerm(F, massFluxE, massFluxN, m) -
@@ -239,14 +224,9 @@ void Variable<N, M, NI, NJ, NPROCS>::setChannelEquations(
   }
   else
   {
-    if (paralel.isLeftToRight())
-      Teqn->updateEquation(fvm::diffusiveTermS(T, DTinWall) +
-                           fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
-                           fvm::heatProduction(T, Z, q));
-    else
-      Teqn->updateEquation(fvm::diffusiveTermN(T, DTinWall) +
-                           fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
-                           fvm::heatProduction(T, Z, q));
+    Teqn->updateEquation(fvm::diffusiveTerm(T) +
+                         fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
+                         fvm::heatProduction(T, Z, q));
 
     Feqn->updateEquation(fvm::diffusiveTerm(F) +
                          fvm::convectiveTerm(F, massFluxE, massFluxN, m) -
@@ -325,7 +305,7 @@ double Variable<N, M, NI, NJ, NPROCS>::calculateNewM(const double &alpha, const 
   double diffusiveTermY = T.viscY[index] * T.Sn[ifix] *
                               (T.value[index + NI] - T.value[index]) / T.DYPtoN[jfix] -
                           T.viscY[index - NI] * T.Sn[ifix - 1] *
-                              (T.value[index] - T.value[index - NI]) / T.DYPtoN[jfix - 1];
+                              (T.value[index] - T.value[index - NI]) / T.DYPtoN[jfix];
 
   double convectiveTermX = massFluxE.value[index] * (T.value[index + 1] * T.FXE[ifix] + T.value[index] * T.FXP[ifix]) -
                            massFluxE.value[index - 1] * (T.value[index] * T.FXE[ifix - 1] + T.value[index - 1] * T.FXP[ifix - 1]);
@@ -337,8 +317,6 @@ double Variable<N, M, NI, NJ, NPROCS>::calculateNewM(const double &alpha, const 
 
   double newM = alpha * (reactionTerm + diffusiveTermX + diffusiveTermY) / (convectiveTermX + convectiveTermY) + (1 - alpha) * m;
 
-  // std::cout << reactionTerm << " " << diffusiveTermX << " " << diffusiveTermY << " " << convectiveTermX << " " << convectiveTermY<< endl;
-  // std::cout << diffusiveTermY << " " << T.viscY[index] * T.Sn[ifix] << " " << T.viscY[index] << " " << T.Sn[ifix] << endl;
   newM = std::min(m * upperBoundFactorm, newM);
   newM = std::max(m * lowerBoundFactorm, newM);
   return newM;

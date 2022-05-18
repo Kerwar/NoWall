@@ -32,7 +32,7 @@ int main(int argc, char **argv)
 
   constexpr int n = 600;
   constexpr int M = 100;
-  constexpr int NPROCS = 4;
+  constexpr int NPROCS = 2;
   constexpr int N = n + (NPROCS / 2 - n % (NPROCS / 2));
 
   if (worldSize == NPROCS)
@@ -59,7 +59,6 @@ int main(int argc, char **argv)
            << " M : " << problem.m << endl;
       ;
     }
-
     for (int i = 1; i < problem.maxit; i++)
     {
       double error = 1;
