@@ -4,3 +4,4 @@ Results/
 .vscode/
 Profiling/
 Profiling/*
+NoWall-cppcheck-build-dir/

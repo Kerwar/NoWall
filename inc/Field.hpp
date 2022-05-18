@@ -17,7 +17,9 @@ public:
 
   double *value;
 
-  double *X, *XC, *FXE, *FXP, *Y, *YC, *FYN, *FYP, *DXPtoE, *DYPtoN;
+  std::shared_ptr<double[]> X, XC, FXE, FYN, Y, YC;
+
+  double *FXP, *FYP, *DXPtoE, *DYPtoN;
   double *Se, *Sn, *viscX, *viscY, *density, *volume;
 
   // Field();

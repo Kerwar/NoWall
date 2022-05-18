@@ -28,6 +28,7 @@ int main(int argc, char **argv)
   MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
   MPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
   Instrumentor::Get().BeginSession("../Profiling/Profile-" + std::to_string(worldRank) + ".json");
+
   auto startTime = std::chrono::high_resolution_clock::now();
 
   constexpr int n = 600;

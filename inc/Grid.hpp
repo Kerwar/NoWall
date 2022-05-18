@@ -2,6 +2,7 @@
 #define GRID_H
 
 #include "ForAllOperators.hpp"
+#include <memory>
 
 using std::vector;
 
@@ -9,18 +10,17 @@ class Grid
 {
 public:
   Grid();
-  Grid(const int &n,const int &m,const double &xmin,const double &xmax,const double &ymin,const double &ymax);
+  Grid(const int &n, const int &m, const double &xmin, const double &xmax, const double &ymin, const double &ymax);
   virtual ~Grid();
 
+  void setX(std::shared_ptr<double[]> &X);
+  void setY(std::shared_ptr<double[]> &Y);
 
-  void setX(double* & X);
-  void setY(double* & Y);
+  void setXC(std::shared_ptr<double[]> &X, std::shared_ptr<double[]> &XC);
+  void setYC(std::shared_ptr<double[]> &Y, std::shared_ptr<double[]> &YC);
 
-  void setXC(double* &X, double* &XC);
-  void setYC(double* &Y, double* &YC);
-
-  void setXF(double* &X, double* &XC, double* &XF);
-  void setYF(double* &Y, double* &YC, double* &YF);
+  void setXF(std::shared_ptr<double[]> &X, std::shared_ptr<double[]> &XC, std::shared_ptr<double[]> &XF);
+  void setYF(std::shared_ptr<double[]> &Y, std::shared_ptr<double[]> &YC, std::shared_ptr<double[]> &YF);
 
   // Number of points introduced by the User
   int N, M;
@@ -54,18 +54,19 @@ public:
   // xc1  xc2         xc3         xc4         xc5   xc6
 
   // Values of the X, Y coordinates.
-  double *X, *Y;
+  std::shared_ptr<double[]> X, Y;
 
   // Values of the Center of the Volumes
-  double *XC, *YC;
+  std::shared_ptr<double[]> XC, YC;
 
   // (Distance of the face to the node) / (Distance Between nodes)
-  double *XF, *YF;
+  std::shared_ptr<double[]> XF, YF;
 
   // First Aprox of the distances
   double DX, DY;
 
   void SetIEx(const double &ExMin, const double &ExMax);
+
 public:
   friend void swap(Grid &first, Grid &second)
   {
@@ -80,10 +81,10 @@ public:
     swap(first.exI1, second.exI1);
     swap(first.exI2, second.exI2);
 
-        swap(first.xMin, second.xMin);
+    swap(first.xMin, second.xMin);
     swap(first.xMax, second.xMax);
 
-        swap(first.yMin, second.yMin);
+    swap(first.yMin, second.yMin);
     swap(first.yMax, second.yMax);
 
     swap(first.Xlength, second.Xlength);
@@ -98,10 +99,9 @@ public:
 
     swap(first.DX, second.DX);
     swap(first.DY, second.DY);
-
   };
-  
-  Grid& operator=(Grid other)
+
+  Grid &operator=(Grid other)
   {
     swap(*this, other);
 

@@ -13,10 +13,7 @@
 // }
 
 Field::Field(const int &_NI, const int &_NJ) : NI(_NI), NJ(_NJ), value(new double[NI * NJ]),
-                                               X(new double[NI]), XC(new double[NI]),
-                                               FXE(new double[NI]), FXP(new double[NI]),
-                                               Y(new double[NJ]), YC(new double[NJ]),
-                                               FYN(new double[NJ]), FYP(new double[NJ]),
+                                               FXP(new double[NI]), FYP(new double[NJ]),
                                                DXPtoE(new double[NI]), DYPtoN(new double[NJ]),
                                                Se(new double[NJ]), Sn(new double[NI]),
                                                viscX(new double[NI * NJ]), viscY(new double[NI * NJ]),
@@ -28,13 +25,7 @@ Field::Field(const int &_NI, const int &_NJ) : NI(_NI), NJ(_NJ), value(new doubl
 Field::~Field()
 {
   delete[] value;
-  delete[] X;
-  delete[] XC;
-  delete[] FXE;
   delete[] FXP;
-  delete[] Y;
-  delete[] YC;
-  delete[] FYN;
   delete[] FYP;
   delete[] DXPtoE;
   delete[] DYPtoN;
@@ -48,15 +39,15 @@ Field::~Field()
 
 void Field::getGridInfoPassed(const Grid &myGrid, double &viscX_, double &viscY_)
 {
+  X = myGrid.X;
+  Y = myGrid.Y;
+  XC = myGrid.XC;
+  YC = myGrid.YC;
+  FXE = myGrid.XF;
+  FYN = myGrid.YF;
   forAllN(NI, NJ)
   {
     int index = i + j * NI;
-    X[i] = myGrid.X[i];
-    Y[j] = myGrid.Y[j];
-    XC[i] = myGrid.XC[i];
-    YC[j] = myGrid.YC[j];
-    FXE[i] = myGrid.XF[i];
-    FYN[j] = myGrid.YF[j];
     FXP[i] = 1.0 - myGrid.XF[i];
     FYP[j] = 1.0 - myGrid.YF[j];
     density[index] = 1.0;

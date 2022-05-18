@@ -23,58 +23,58 @@ Grid::Grid(const int &n, const int &m,
   setYF(Y, YC, YF);
 }
 
-void Grid::setX(double *&vecX)
+void Grid::setX(std::shared_ptr<double[]> &vecX)
 {
-    vecX[0] = xMin;
+  vecX[0] = xMin;
 
   for (int i = 1; i < NI - 1; i++)
-      vecX[i] = vecX[i - 1] + DX;
+    vecX[i] = vecX[i - 1] + DX;
 
-    vecX[NI - 1] = vecX[NI - 2];
+  vecX[NI - 1] = vecX[NI - 2];
 }
 
-void Grid::setY(double *&vecY)
+void Grid::setY(std::shared_ptr<double[]> &vecY)
 {
-    vecY[0] = yMin;
+  vecY[0] = yMin;
 
-    for (int j = 1; j < NJ - 1; j++)
-      vecY[ j] = vecY[j - 1] + DY;
+  for (int j = 1; j < NJ - 1; j++)
+    vecY[j] = vecY[j - 1] + DY;
 
-    vecY[NJ - 1] = vecY[NJ - 2];
+  vecY[NJ - 1] = vecY[NJ - 2];
 }
 
-void Grid::setXC(double *&vecX, double *&vecXC)
+void Grid::setXC(std::shared_ptr<double[]> &vecX, std::shared_ptr<double[]> &vecXC)
 {
-    vecXC[0] = xMin;
+  vecXC[0] = xMin;
 
   for (int i = 1; i < NI; i++)
-      vecXC[i ] = (vecX[i ] + vecX[i - 1 ]) * 0.5;
+    vecXC[i] = (vecX[i] + vecX[i - 1]) * 0.5;
 }
 
-void Grid::setYC(double *&vecY, double *&vecYC)
+void Grid::setYC(std::shared_ptr<double[]> &vecY, std::shared_ptr<double[]> &vecYC)
 {
-    vecYC[0] = yMin;
+  vecYC[0] = yMin;
 
-    for (int j = 1; j < NJ; j++)
-      vecYC[j] = (vecY[j] + vecY[j - 1]) * 0.5;
+  for (int j = 1; j < NJ; j++)
+    vecYC[j] = (vecY[j] + vecY[j - 1]) * 0.5;
 }
 
-void Grid::setXF(double *&vecX, double *&vecXC, double *&vecXF)
+void Grid::setXF(std::shared_ptr<double[]> &vecX, std::shared_ptr<double[]> &vecXC, std::shared_ptr<double[]> &vecXF)
 {
   for (int i = 0; i < NI - 1; i++)
-      vecXF[i ] = (vecX[i ] - vecXC[i ]) / (vecXC[i + 1 ] - vecXC[i]);
+    vecXF[i] = (vecX[i] - vecXC[i]) / (vecXC[i + 1] - vecXC[i]);
 
-    vecXF[0] = 0.0;
-    vecXF[NI - 1] = 0.0;
+  vecXF[0] = 0.0;
+  vecXF[NI - 1] = 0.0;
 }
 
-void Grid::setYF(double *&vecY, double *&vecYC, double *&vecYF)
+void Grid::setYF(std::shared_ptr<double[]> &vecY, std::shared_ptr<double[]> &vecYC, std::shared_ptr<double[]> &vecYF)
 {
-    for (int j = 0; j < NJ - 1; j++)
-      vecYF[j] = (vecY[j] - vecYC[j]) / (vecYC[j + 1] - vecYC[j]);
+  for (int j = 0; j < NJ - 1; j++)
+    vecYF[j] = (vecY[j] - vecYC[j]) / (vecYC[j + 1] - vecYC[j]);
 
-    vecYF[0] = 0.0;
-    vecYF[NJ - 1] = 0.0;
+  vecYF[0] = 0.0;
+  vecYF[NJ - 1] = 0.0;
 }
 
 void Grid::SetIEx(const double &ExMin, const double &ExMax)
@@ -97,10 +97,4 @@ void Grid::SetIEx(const double &ExMin, const double &ExMax)
 
 Grid::~Grid()
 {
-  delete[] X;
-  delete[] Y;
-  delete[] XC;
-  delete[] YC;
-  delete[] XF;
-  delete[] YF;
 }
