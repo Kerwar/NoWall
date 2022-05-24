@@ -23,7 +23,7 @@ public:
   void writeSolution(string &filename, int i);
   void freeComm();
   double mainIter(int i);
-  void inline setExchangeConstant(double &deltaY);
+  void inline setExchangeConstant() { exCte = bK * a * a / 2.0; };
   void writefilename(string &filename);
   void retrieveNandM(int &nxOut, int &nyOut, double &mOut);
   inline bool fixPointInThisProc();
@@ -164,7 +164,7 @@ template <int N, int M, int NPROCS>
 bool Problem<N, M, NPROCS>::readFromFile;
 
 template <int N, int M, int NPROCS>
-Problem<N, M, NPROCS>::Problem(const double &prevm) : maxit(10E1), iShow(10E0), m(prevm)
+Problem<N, M, NPROCS>::Problem(const double &prevm) : maxit(10E4), iShow(10E1), m(prevm)
 {
   PROFILE_FUNCTION();
   readFromFile = false;
@@ -195,7 +195,7 @@ Problem<N, M, NPROCS>::Problem(const double &prevm) : maxit(10E1), iShow(10E0), 
   LeZ = 0.3;
   a = 0.1;
   a2 = 1 / (a * a);
-  bK = 0.15;
+  bK = 0.;
   viscX = 1;
   viscY = a2; // if (nx > 20000)
   // {
@@ -242,7 +242,7 @@ void Problem<N, M, NPROCS>::initializeVariables()
 {
   PROFILE_FUNCTION();
   variables.passInfoGridToAll(mainGrid, myGrid, viscX, viscY, LeF, LeZ);
-  setExchangeConstant(myGrid.DY);
+  setExchangeConstant();
   int fixPointProcBuffer = 0;
 
   if (fixPointInThisProc())
@@ -333,7 +333,7 @@ double Problem<N, M, NPROCS>::mainIter(int i)
 
   double error = 1;
 
-  variables.setChannelEquations(Teqn, Feqn, Zeqn, paralel, m, q, beta, gamma, DT, i);
+  variables.setChannelEquations(Teqn, Feqn, Zeqn, paralel, m, q, beta, gamma, DT, exCte, i);
   Field::Direction side = Field::west;
 
   if (paralel.isFirstProcOfRow() && paralel.isRightToLeft())
@@ -350,23 +350,19 @@ double Problem<N, M, NPROCS>::mainIter(int i)
 
   side = Field::south;
 
-  if (paralel.isFirstProcOfCol() && paralel.isRightToLeft())
+  if (paralel.isRightToLeft())
     variables.setWallShear(Teqn, Feqn, Zeqn, side);
-  else if (paralel.isFirstProcOfCol() && paralel.isLeftToRight())
+  else if (paralel.isLeftToRight())
     variables.setExchangeWallShear(Teqn, Feqn, Zeqn, side, paralel.iStr, paralel.iEnd, mainGrid.exI1, mainGrid.exI2,
                                    myGrid.exI1, myGrid.exI2);
-  else
-    variables.setDirichlet(Teqn, Feqn, Zeqn, side);
 
   side = Field::north;
 
-  if (paralel.isLastProcOfCol() && paralel.isRightToLeft())
+  if (paralel.isRightToLeft())
     variables.setExchangeWallShear(Teqn, Feqn, Zeqn, side, paralel.iStr, paralel.iEnd, mainGrid.exI1, mainGrid.exI2,
                                    myGrid.exI1, myGrid.exI2);
-  else if (paralel.isLastProcOfCol() && paralel.isLeftToRight())
+  else if (paralel.isLeftToRight())
     variables.setWallShear(Teqn, Feqn, Zeqn, side);
-  else
-    variables.setDirichlet(Teqn, Feqn, Zeqn, side);
 
   variables.assembleEquations(Teqn, Feqn, Zeqn);
 
@@ -374,7 +370,7 @@ double Problem<N, M, NPROCS>::mainIter(int i)
   Feqn->EqnName = "F-Eqn";
   Zeqn->EqnName = "Z-Eqn";
 
-  error = variables.solveEquations(Teqn, Feqn, Zeqn, alpha, i, itersol, 50 * iShow);
+  error = variables.solveEquations(Teqn, Feqn, Zeqn, alpha, i, itersol, 0 * iShow);
 
   double error_result = 0;
 
@@ -504,12 +500,6 @@ void Problem<N, M, NPROCS>::retrieveNandM(int &nxOut, int &nyOut, double &mOut)
   // nyOut = M;
   //  }
   mOut = m;
-}
-
-template <int N, int M, int NPROCS>
-void inline Problem<N, M, NPROCS>::setExchangeConstant(double &deltaY)
-{
-  exCte = bK * a * a * deltaY / (4.0);
 }
 
 #endif

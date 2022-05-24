@@ -57,6 +57,8 @@ public:
   MPI_Comm myComm;
   MPI_Datatype column_type;
 
+  double DY = 1.0 / M;
+
   int id(int, int);
   inline int worldid(int row, int col) { return col + row * nProcsInCol; };
   void setUpMesh(int &exi1, int &exi2);
@@ -270,40 +272,13 @@ void Paralel<N, M, NPROCS>::ExchangeWallTemperature(Field &TWall, Field &TNextTo
   PROFILE_FUNCTION();
 
   int NW = N + 2;
-  double wallRecv[NW] = {};
-  double nextToWallRecv[NW] = {};
 
   int wallID = 22;
-  int nextToWallID = 23;
 
   if (isLeftToRight())
-  {
-    PMPI_Sendrecv(&TWall.value[0], NW, MPI_DOUBLE_PRECISION, DCMainProc, wallID, &wallRecv, NW, MPI_DOUBLE_PRECISION, DCMainProc, wallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    PMPI_Sendrecv(&TNextToWall.value[0], NW, MPI_DOUBLE_PRECISION, DCMainProc, nextToWallID, &nextToWallRecv, NW, MPI_DOUBLE_PRECISION, DCMainProc, nextToWallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-  }
+    PMPI_Sendrecv(&TWall.value[0], NW, MPI_DOUBLE_PRECISION, DCMainProc, wallID, &TWall.value[0], NW, MPI_DOUBLE_PRECISION, DCMainProc, wallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
   else if (isRightToLeft())
-  {
-    PMPI_Sendrecv(&TWall.value[0], NW, MPI_DOUBLE_PRECISION, UCMainProc, wallID, &wallRecv, NW, MPI_DOUBLE_PRECISION, UCMainProc, wallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    PMPI_Sendrecv(&TNextToWall.value[0], NW, MPI_DOUBLE_PRECISION, UCMainProc, nextToWallID, &nextToWallRecv, NW, MPI_DOUBLE_PRECISION, UCMainProc, nextToWallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    // for (int i = solExI1; i < solExI2; i++)
-    // TWall.value[i] = //((8.0 + exCte) * (9.0 * TWall.value[i] - TNextToWall.value[i]) + 9.0 * exCte * wallRecv[i] - exCte * nextToWallRecv[i]) / (64.0 + 16 * exCte);
-  }
-  for (int i = 0; i < NW; i++)
-  {
-    if (i >= solExI1 && i < solExI2)
-    {
-      if (isLeftToRight())
-        TNextToWall.value[i] = exCte * (TWall.value[i] - wallRecv[i]);
-      else
-        TNextToWall.value[i] = exCte * (wallRecv[i] - TWall.value[i]);
-    }
-    else
-      TNextToWall.value[i] = 0;
-  }
-
-  for (int i = solExI1; i < solExI2; i++)
-    TWall.value[i] = ((exCte + 1) * TWall.value[i] + exCte * wallRecv[i]) / (2 * exCte + 1); //((8.0 + exCte) * (9.0 * TWall.value[i] - TNextToWall.value[i]) + 9.0 * exCte * wallRecv[i] - exCte * nextToWallRecv[i]) / (64.0 + 16 * exCte);
+    PMPI_Sendrecv(&TWall.value[0], NW, MPI_DOUBLE_PRECISION, UCMainProc, wallID, &TWall.value[0], NW, MPI_DOUBLE_PRECISION, UCMainProc, wallID, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 }
 
 template <int N, int M, int NPROCS>
@@ -487,12 +462,12 @@ void Paralel<N, M, NPROCS>::GatherWallTemperature(Field &TWall, Field &TNextToWa
   PROFILE_FUNCTION();
   if (isLeftToRight())
   {
-    GatherTemperature(T, TNextToWall, 2);
+    // GatherTemperature(T, TNextToWall, 2);
     GatherTemperature(T, TWall, 1);
   }
   else if (isRightToLeft())
   {
-    GatherTemperature(T, TNextToWall, T.NJ - 3);
+    // GatherTemperature(T, TNextToWall, T.NJ - 3);
     GatherTemperature(T, TWall, T.NJ - 2);
   }
 }

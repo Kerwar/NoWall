@@ -32,9 +32,8 @@ namespace fvm
     {
       int i = 1;
       double DXPtoE = std::abs(vec.XC[1] - vec.XC[0]);
-      double Se = std::abs(vec.Y[j] - vec.Y[j - 1]);
 
-      APtemp[i][j].aw = -(vec.viscX[i + j * NI] * Se) / DXPtoE;
+      APtemp[i][j].aw = -(vec.viscX[i + j * NI] * vec.Se[j]) / DXPtoE;
       i = NI - 2;
       APtemp[i][j].ae = -(vec.viscX[i + j * NI] * vec.Se[j]) / vec.DXPtoE[i];
     }
@@ -51,8 +50,7 @@ namespace fvm
     {
       int j = 1;
       double DYPtoN = std::abs(vec.YC[1] - vec.YC[0]);
-      double Sn = std::abs(vec.X[i] - vec.X[i - 1]);
-      APtemp[i][j].as = -(vec.viscY[i + j * NI] * Sn) / DYPtoN;
+      APtemp[i][j].as = -(vec.viscY[i + j * NI] * vec.Sn[i]) / DYPtoN;
       j = NJ - 2;
       APtemp[i][j].an = -(vec.viscY[i + j * NI] * vec.Sn[i]) / vec.DYPtoN[j];
     }
@@ -60,7 +58,7 @@ namespace fvm
     return APtemp;
   }
 
-  inline FiniteMatrix::finiteMat diffusiveTermS(const Field &vec, const vector<double> &Tdiff)
+  inline FiniteMatrix::finiteMat diffusiveTermS(const Field &vec, const vector<double> &TWall, const double &exCte)
   {
     int NI = vec.NI;
     int NJ = vec.NJ;
@@ -73,8 +71,11 @@ namespace fvm
     {
       int j = 1;
       APtemp[i][j].as = 0;
-      double Sn = std::abs(vec.X[i] - vec.X[i - 1]);
-      APtemp[i][j].svalue = -Sn * vec.viscY[i + j * NI] * Tdiff[i];
+      if (std::abs(TWall[i]) >= 10e-8)
+      {
+        APtemp[i][j].ap = exCte * vec.Sn[i] * vec.viscY[i + j * NI];
+        APtemp[i][j].svalue = exCte * vec.Sn[i] * vec.viscY[i + j * NI] * TWall[i];
+      }
       j = NJ - 2;
       APtemp[i][j].an = -(vec.viscY[i + j * NI] * vec.Sn[i]) / vec.DYPtoN[j];
     }
@@ -82,7 +83,7 @@ namespace fvm
     return APtemp;
   }
 
-  inline FiniteMatrix::finiteMat diffusiveTermN(const Field &vec, const vector<double> &Tdiff)
+  inline FiniteMatrix::finiteMat diffusiveTermN(const Field &vec, const vector<double> &TWall, const double &exCte)
   {
     int NI = vec.NI;
     int NJ = vec.NJ;
@@ -93,13 +94,15 @@ namespace fvm
 
     for (int i = 1; i < NI - 1; i++)
     {
-      int j = 1;
-      double DYPtoN = std::abs(vec.YC[1] - vec.YC[0]);
-      double Sn = std::abs(vec.X[i] - vec.X[i - 1]);
-      APtemp[i][j].as = -(vec.viscY[i + j * NI] * Sn) / DYPtoN;
-      j = NJ - 2;
+      int j = NJ - 2;
       APtemp[i][j].an = 0;
-      APtemp[i][j].svalue = vec.viscY[i + j * NI] * vec.Sn[i] * Tdiff[i];
+      if (std::abs(TWall[i]) >= 10e-8)
+      {
+        APtemp[i][j].ap = exCte * vec.Sn[i] * vec.viscY[i + j * NI];
+        APtemp[i][j].svalue = exCte * vec.Sn[i] * vec.viscY[i + j * NI] * TWall[i];
+      }
+      // if (Tdiff[i] != 0)
+      // std::cout << APtemp[i][j].svalue << endl;
     }
 
     return APtemp;
@@ -169,13 +172,13 @@ namespace fvm
     forAllInterior(NI, NJ)
     {
       int index = i + j * NI;
-      APtemp[i][j].svalue = q * Z.value[index] * vec.Se[j] * vec.Sn[i];
+      APtemp[i][j].svalue = q * Z.value[index] * vec.volume[index];
     }
     return APtemp;
   }
 
-  inline FiniteMatrix::finiteMat intermidiateReaction(const Field &vec, const Field &vec2,
-                                                      const Field &T, double beta, const double &gamma)
+  inline FiniteMatrix::finiteMat intermidiateReaction(const Field &vec, const Field &vec2, const Field &T,
+                                                      const double &beta, const double &gamma)
   {
     int NI = vec.NI;
     int NJ = vec.NJ;
@@ -185,7 +188,7 @@ namespace fvm
     {
       int index = i + j * NI;
       double expPortion = exp(beta * (T.value[index] - 1.0) / (1.0 + gamma * (T.value[index] - 1.0)));
-      APtemp[i][j].svalue = beta * beta * expPortion * vec.value[index] * vec2.value[index] * vec.Se[j] * vec.Sn[i];
+      APtemp[i][j].svalue = beta * beta * expPortion * vec.value[index] * vec2.value[index] * vec.volume[index];
     }
     return APtemp;
   }
@@ -199,8 +202,7 @@ namespace fvm
 
     forAllInterior(NI, NJ)
     {
-      int index = i + j * NI;
-      APtemp[i][j].svalue = vec.Se[j] * vec.Sn[i] * vec.value[index];
+      APtemp[i][j].svalue = vec.volume[i + j * NI] * vec.value[i + j * NI];
     }
     return APtemp;
   }

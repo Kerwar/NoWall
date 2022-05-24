@@ -4,8 +4,8 @@
 #include "Field.hpp"
 #include "Grid.hpp"
 #include "Paralel.hpp"
-#include "Equation.hpp"
 #include "FiniteVolumeOperations.hpp"
+#include "Equation.hpp"
 #include "FileReader.hpp"
 
 template <int N, int M, int NI, int NJ, int NPROCS>
@@ -75,12 +75,12 @@ public:
 
     paralel.ShareWallTemperatureInfo(TWall, T);
 
-    for (int i = 0; i < NI; i++)
-      DTinWall[i] = TNextToWall.value[i + std::max(paralel.iStr - 1, 0)] * (2.0 / DY);
+    MPI_Scatter(&TWall.value[1], NI - 2, MPI_DOUBLE, &DTinWall[1], NI - 2, MPI_DOUBLE, 0, paralel.myComm);
   }
+
   void setChannelEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
                            const Paralel<N, M, NPROCS> &paralel, const double &m, const double &q,
-                           const double &beta, double &gamma, double &DT,
+                           const double &beta, const double &gamma, double &DT, const double &exCte,
                            const int &iter);
   void setWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side);
   void setExchangeWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Field::Direction side, int iStr, int iEnd, int mainexI1, int mainexI2, int exI1, int exI2);
@@ -197,6 +197,7 @@ void Variable<N, M, NI, NJ, NPROCS>::passInfoGridToAll(const Grid &solGrid, cons
   solT.getGridInfoPassed(solGrid, viscTx, viscTy);
   solF.getGridInfoPassed(solGrid, viscFx, viscFy);
   solZ.getGridInfoPassed(solGrid, viscZy, viscZy);
+  TNextToWall.XC = solU.XC;
 
   U.getGridInfoPassed(myGrid, viscX, viscY);
   V.getGridInfoPassed(myGrid, viscX, viscY);
@@ -210,18 +211,17 @@ template <int N, int M, int NI, int NJ, int NPROCS>
 void Variable<N, M, NI, NJ, NPROCS>::setChannelEquations(
     Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
     const Paralel<N, M, NPROCS> &paralel, const double &m, const double &q,
-    const double &beta, double &gamma, double &DT,
-    const int &iter)
+    const double &beta, const double &gamma, double &DT, const double &exCte, const int &iter)
 {
   PROFILE_FUNCTION();
   if (iter == 1)
   {
     if (paralel.isLeftToRight())
-      Teqn = new Equation(fvm::diffusiveTermS(T, DTinWall) +
+      Teqn = new Equation(fvm::diffusiveTermS(T, DTinWall, exCte) +
                           fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
                           fvm::heatProduction(T, Z, q));
     else
-      Teqn = new Equation(fvm::diffusiveTermN(T, DTinWall) +
+      Teqn = new Equation(fvm::diffusiveTermN(T, DTinWall, exCte) +
                           fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
                           fvm::heatProduction(T, Z, q));
 
@@ -240,11 +240,11 @@ void Variable<N, M, NI, NJ, NPROCS>::setChannelEquations(
   else
   {
     if (paralel.isLeftToRight())
-      Teqn->updateEquation(fvm::diffusiveTermS(T, DTinWall) +
+      Teqn->updateEquation(fvm::diffusiveTermS(T, DTinWall, exCte) +
                            fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
                            fvm::heatProduction(T, Z, q));
     else
-      Teqn->updateEquation(fvm::diffusiveTermN(T, DTinWall) +
+      Teqn->updateEquation(fvm::diffusiveTermN(T, DTinWall, exCte) +
                            fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
                            fvm::heatProduction(T, Z, q));
 
@@ -333,7 +333,7 @@ double Variable<N, M, NI, NJ, NPROCS>::calculateNewM(const double &alpha, const 
   double convectiveTermY = massFluxN.value[index] * (T.value[index + NI] * T.FYN[jfix] + T.value[index] * T.FYP[jfix]) -
                            massFluxN.value[index - NI] * (T.value[index] * T.FYN[jfix - 1] + T.value[index - NI] * T.FYP[jfix - 1]);
 
-  double reactionTerm = q * Z.value[index] * T.Se[jfix] * T.Sn[ifix];
+  double reactionTerm = q * Z.value[index] * T.volume[ifix];
 
   double newM = alpha * (reactionTerm + diffusiveTermX + diffusiveTermY) / (convectiveTermX + convectiveTermY) + (1 - alpha) * m;
 
@@ -459,7 +459,7 @@ void Variable<N, M, NI, NJ, NPROCS>::writeTInWall(Paralel<N, M, NPROCS> &paralel
   for (int i = paralel.iStr; i < paralel.iEnd; i++)
   {
     if (paralel.isLeftToRight())
-      outfile << i << " " << i - paralel.iStr + 1 << " " << mainGrid.XC[i + 1] << " " << myGrid.XC[i - paralel.iStr + 1] << " " << TWall.value[i + 1] << " " << T.value[i - paralel.iStr + 1] << " " << std::endl;
+      outfile << i << " " << i - paralel.iStr + 1 << " " << mainGrid.XC[i + 1] << " " << myGrid.XC[i - paralel.iStr + 1] << " " << TWall.value[i + 1] << " " << DTinWall[i + 1] << " " << std::endl;
     else
       outfile << i << " " << i - paralel.iStr + 1 << " " << mainGrid.XC[i + 1] << " " << myGrid.XC[i - paralel.iStr + 1] << " " << TWall.value[i + 1] << " " << T.value[i - paralel.iStr + 1 + (NJ - 1) * NI] << " " << std::endl;
   }
