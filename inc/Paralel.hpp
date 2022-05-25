@@ -6,6 +6,7 @@
 #include <string>
 #include "Field.hpp"
 #include "mpi.h"
+#include <iostream>
 
 using std::cout;
 using std::endl;

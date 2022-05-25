@@ -33,7 +33,7 @@ int main(int argc, char **argv)
 
   constexpr int n = 600;
   constexpr int M = 10;
-  constexpr int NPROCS = 2;
+  constexpr int NPROCS = 64;
   constexpr int N = n + (NPROCS / 2 - n % (NPROCS / 2));
 
   if (worldSize == NPROCS)
