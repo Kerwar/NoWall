@@ -31,8 +31,8 @@ int main(int argc, char **argv)
 
   auto startTime = std::chrono::high_resolution_clock::now();
 
-  constexpr int n = 600;
-  constexpr int M = 10;
+  constexpr int n = 12000;
+  constexpr int M = 100;
   constexpr int NPROCS = 64;
   constexpr int N = n + (NPROCS / 2 - n % (NPROCS / 2));
 

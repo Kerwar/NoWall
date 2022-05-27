@@ -76,8 +76,6 @@ namespace fvm
         APtemp[i][j].ap = exCte * vec.Sn[i] * vec.viscY[i + j * NI];
         APtemp[i][j].svalue = exCte * vec.Sn[i] * vec.viscY[i + j * NI] * TWall[i];
       }
-      j = NJ - 2;
-      APtemp[i][j].an = -(vec.viscY[i + j * NI] * vec.Sn[i]) / vec.DYPtoN[j];
     }
 
     return APtemp;
@@ -130,7 +128,7 @@ namespace fvm
     {
       int i = 1;
       // APtemp[i][j].ae = m * minusupwind(massFluxEast.value[i + j *NI]);
-      APtemp[i][j].aw = -m * massFluxEast.value[i + j * NI] * vec.FXP[i]; //* plusupwind(massFluxEast.value[i + j *NI]);
+      APtemp[i][j].aw = -m * massFluxEast.value[i + j * NI] * vec.FXP[i-1]; //* plusupwind(massFluxEast.value[i + j *NI]);
       i = NI - 2;
       // APtemp[i + 1][j].aw = m * plusupwind(massFluxEast.value[i + j *NI]);
       APtemp[i][j].ae = m * massFluxEast.value[i + j * NI] * vec.FXE[i]; //* minusupwind(massFluxEast.value[i + j *NI]);
@@ -153,7 +151,7 @@ namespace fvm
     {
       int j = 1;
       // APtemp[i][j].an = m * minusupwind(massFluxNorth.value[i + j * NI]);
-      APtemp[i][j].as = -m * massFluxNorth.value[i + j * NI] * vec.FYP[j]; //* plusupwind(massFluxNorth.value[i + j *NI]);
+      APtemp[i][j].as = -m * massFluxNorth.value[i + j * NI] * vec.FYP[j-1]; //* plusupwind(massFluxNorth.value[i + j *NI]);
       j = NJ - 2;
       // APtemp[i + 1][j].as = m * plusupwind(massFluxNorth.value[i + j * NI]);
       APtemp[i][j].an = m * massFluxNorth.value[i + j * NI] * vec.FYN[j]; //* minusupwind(massFluxNorth.value[i + j *NI]);

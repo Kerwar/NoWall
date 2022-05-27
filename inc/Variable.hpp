@@ -333,7 +333,7 @@ double Variable<N, M, NI, NJ, NPROCS>::calculateNewM(const double &alpha, const 
   double convectiveTermY = massFluxN.value[index] * (T.value[index + NI] * T.FYN[jfix] + T.value[index] * T.FYP[jfix]) -
                            massFluxN.value[index - NI] * (T.value[index] * T.FYN[jfix - 1] + T.value[index - NI] * T.FYP[jfix - 1]);
 
-  double reactionTerm = q * Z.value[index] * T.volume[ifix];
+  double reactionTerm = q * Z.value[index] * T.volume[index];
 
   double newM = alpha * (reactionTerm + diffusiveTermX + diffusiveTermY) / (convectiveTermX + convectiveTermY) + (1 - alpha) * m;
 
@@ -341,6 +341,7 @@ double Variable<N, M, NI, NJ, NPROCS>::calculateNewM(const double &alpha, const 
   // std::cout << diffusiveTermY << " " << T.viscY[index] * T.Sn[ifix] << " " << T.viscY[index] << " " << T.Sn[ifix] << endl;
   newM = std::min(m * upperBoundFactorm, newM);
   newM = std::max(m * lowerBoundFactorm, newM);
+  newM = std::max(newM, 0.4);
   return newM;
 }
 

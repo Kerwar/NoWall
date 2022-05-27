@@ -23,7 +23,7 @@ public:
   void writeSolution(string &filename, int i);
   void freeComm();
   double mainIter(int i);
-  void inline setExchangeConstant() { exCte = bK * a * a / 2.0; };
+  void inline setExchangeConstant() { exCte = bK * a * a / 2.0; exCte /=(1.0+mainGrid.DY *exCte);};
   void writefilename(string &filename);
   void retrieveNandM(int &nxOut, int &nyOut, double &mOut);
   inline bool fixPointInThisProc();
@@ -164,10 +164,10 @@ template <int N, int M, int NPROCS>
 bool Problem<N, M, NPROCS>::readFromFile;
 
 template <int N, int M, int NPROCS>
-Problem<N, M, NPROCS>::Problem(const double &prevm) : maxit(10E4), iShow(10E1), m(prevm)
+Problem<N, M, NPROCS>::Problem(const double &prevm) : maxit(10E7), iShow(10E4), m(prevm)
 {
   PROFILE_FUNCTION();
-  readFromFile = false;
+  readFromFile = true;
   tolerance = 10e-12;
   alpha = 0.95;
 
@@ -195,7 +195,7 @@ Problem<N, M, NPROCS>::Problem(const double &prevm) : maxit(10E4), iShow(10E1), 
   LeZ = 0.3;
   a = 0.1;
   a2 = 1 / (a * a);
-  bK = 0.;
+  bK = 0.15;
   viscX = 1;
   viscY = a2; // if (nx > 20000)
   // {
@@ -370,12 +370,12 @@ double Problem<N, M, NPROCS>::mainIter(int i)
   Feqn->EqnName = "F-Eqn";
   Zeqn->EqnName = "Z-Eqn";
 
-  error = variables.solveEquations(Teqn, Feqn, Zeqn, alpha, i, itersol, 0 * iShow);
+  error = variables.solveEquations(Teqn, Feqn, Zeqn, alpha, i, itersol, 50 * iShow);
 
   double error_result = 0;
 
-  if (fixPointInThisProc())
-    m = variables.calculateNewM(0.75 * alpha, m, q);
+  // if (fixPointInThisProc())
+  //   m = variables.calculateNewM(0.75 * alpha, m, q);
 
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Bcast(&m, 1, MPI_DOUBLE, paralel.fixPointProc, MPI_COMM_WORLD);
@@ -383,17 +383,7 @@ double Problem<N, M, NPROCS>::mainIter(int i)
   MPI_Allreduce(&error, &error_result, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
   variables.sendInfoToNeighbours(paralel);
-  // if (paralel.isLeftToRight() && paralel.myProc == 0)
-  // {
-  //   std::cout << "+++++++++++++++++++" << endl;
-  //   for (int j = NJ - 1; j >= 0; j--)
-  //   {
-  //     for (int i = 0; i < NI; i++)
-  //       cout << variables.T.value[i + j * NI] << " ";
-  //     std::cout << endl;
-  //   }
-  //   std::cout << "********************" << endl;
-  // }
+  
   variables.exchangeTemperature(paralel, exCte, mainGrid.exI1, mainGrid.exI2);
 
   MPI_Barrier(MPI_COMM_WORLD);
