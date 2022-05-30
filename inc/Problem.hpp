@@ -164,7 +164,7 @@ template <int N, int M, int NPROCS>
 bool Problem<N, M, NPROCS>::readFromFile;
 
 template <int N, int M, int NPROCS>
-Problem<N, M, NPROCS>::Problem(const double &prevm) : maxit(10E7), iShow(10E4), m(prevm)
+Problem<N, M, NPROCS>::Problem(const double &prevm) : maxit(10E0), iShow(10E-1), m(prevm)
 {
   PROFILE_FUNCTION();
   readFromFile = true;
@@ -292,7 +292,7 @@ void Problem<N, M, NPROCS>::initializeVariables()
 
   variables.sendInfoToCommMainProc(paralel);
 
-  variables.exchangeTemperature(paralel, exCte, mainGrid.exI1, mainGrid.exI2);
+  variables.exchangeTemperature(paralel);
 }
 
 template <int N, int M, int NPROCS>
@@ -370,7 +370,7 @@ double Problem<N, M, NPROCS>::mainIter(int i)
   Feqn->EqnName = "F-Eqn";
   Zeqn->EqnName = "Z-Eqn";
 
-  error = variables.solveEquations(Teqn, Feqn, Zeqn, alpha, i, itersol, 50 * iShow);
+  error = variables.solveEquations(Teqn, Feqn, Zeqn, alpha, i, itersol, 0 * iShow);
 
   double error_result = 0;
 
@@ -384,7 +384,7 @@ double Problem<N, M, NPROCS>::mainIter(int i)
 
   variables.sendInfoToNeighbours(paralel);
   
-  variables.exchangeTemperature(paralel, exCte, mainGrid.exI1, mainGrid.exI2);
+  variables.exchangeTemperature(paralel);
 
   MPI_Barrier(MPI_COMM_WORLD);
   return error_result;

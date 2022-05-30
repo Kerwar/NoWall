@@ -63,14 +63,14 @@ public:
     paralel.SendInfoToNeighbours(Z);
   }
 
-  inline void exchangeTemperature(Paralel<N, M, NPROCS> &paralel, double &exCte, int &solExI1, int &solExI2)
+  inline void exchangeTemperature(Paralel<N, M, NPROCS> &paralel)
   {
     PROFILE_FUNCTION();
 
-    paralel.GatherWallTemperature(TWall, TNextToWall, T);
+    paralel.GatherWallTemperature(TWall, T);
 
     if (paralel.myProc == 0)
-      paralel.ExchangeWallTemperature(TWall, TNextToWall, exCte, solExI1, solExI2);
+      paralel.ExchangeWallTemperature(TWall);
     MPI_Barrier(MPI_COMM_WORLD);
 
     paralel.ShareWallTemperatureInfo(TWall, T);

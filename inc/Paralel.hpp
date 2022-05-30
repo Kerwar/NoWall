@@ -65,8 +65,8 @@ public:
   void setUpMesh(int &exi1, int &exi2);
   void SendInfoToNeighbours(Field &vec);
   void SendInfoToCommMainProc(Field &vec, Field &sol);
-  void ExchangeWallTemperature(Field &TWall, Field &TNextToWall, double &exCte, int &solExI1, int &solExI2);
-  void GatherWallTemperature(Field &TWall, Field &TNextToWall, Field &T);
+  void ExchangeWallTemperature(Field &TWall);
+  void GatherWallTemperature(Field &TWall, Field &T);
   void ShareWallTemperatureInfo(Field &TWall, Field &T);
   void SendWallTInTheChannel(Field &TWall);
   void MainsProcs(Loc location, int &proc);
@@ -268,7 +268,7 @@ void Paralel<N, M, NPROCS>::MainsProcs(Loc location, int &proc)
 }
 
 template <int N, int M, int NPROCS>
-void Paralel<N, M, NPROCS>::ExchangeWallTemperature(Field &TWall, Field &TNextToWall, double &exCte, int &solExI1, int &solExI2)
+void Paralel<N, M, NPROCS>::ExchangeWallTemperature(Field &TWall)
 {
   PROFILE_FUNCTION();
 
@@ -458,19 +458,13 @@ void Paralel<N, M, NPROCS>::distributeToProcs(Field &sol, Field &vec)
 }
 
 template <int N, int M, int NPROCS>
-void Paralel<N, M, NPROCS>::GatherWallTemperature(Field &TWall, Field &TNextToWall, Field &T)
+void Paralel<N, M, NPROCS>::GatherWallTemperature(Field &TWall, Field &T)
 {
   PROFILE_FUNCTION();
   if (isLeftToRight())
-  {
-    // GatherTemperature(T, TNextToWall, 2);
     GatherTemperature(T, TWall, 1);
-  }
   else if (isRightToLeft())
-  {
-    // GatherTemperature(T, TNextToWall, T.NJ - 3);
     GatherTemperature(T, TWall, T.NJ - 2);
-  }
 }
 
 template <int N, int M, int NPROCS>
