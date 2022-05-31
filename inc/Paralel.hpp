@@ -54,10 +54,10 @@ struct Paralel {
   inline int worldid(int row, int col) { return col + row * nProcsInCol; };
   void SendInfoToNeighbours(Field &vec);
   void SendInfoToCommMainProc(Field &vec, Field &sol);
-  void ExchangeWallTemperature(Field &TWall);
-  void GatherWallTemperature(Field &TWall, Field &T);
-  void ShareWallTemperatureInfo(Field &TWall, Field &T);
-  void SendWallTInTheChannel(Field &TWall);
+  vector<double> ExchangeWallTemperature(const Field &TWall) const;
+  void GatherWallTemperature(Field &TWall, Field &T) const;
+  void ShareWallTemperatureInfo(Field &TWall, Field &T) const;
+  void SendWallTInTheChannel(Field &TWall) const;
   void MainsProcs(Loc location, int &proc);
   void freeComm();
   void PrintProgress(const string &message, bool showProgress);
@@ -81,7 +81,7 @@ struct Paralel {
 
  private:
   void setProcMesh();
-  void GatherTemperature(Field &T, Field &TWall, int J);
+  void GatherTemperature(Field &T, Field &TWall, int J) const;
   // Field::vec1dfield TIntoDerivative(const Field &TWall,const Field &TW2R,
   // double exCte, double ex2);
 };
@@ -121,7 +121,7 @@ Paralel<N, M, NPROCS>::Paralel() {
 
   MainsProcs(up, UCMainProc);
   MainsProcs(down, DCMainProc);
-  
+
   switch (loc) {
     case up:
       setProcMesh();
@@ -248,25 +248,30 @@ void Paralel<N, M, NPROCS>::MainsProcs(Loc location, int &proc) {
 }
 
 template <int N, int M, int NPROCS>
-void Paralel<N, M, NPROCS>::ExchangeWallTemperature(Field &TWall) {
+vector<double> Paralel<N, M, NPROCS>::ExchangeWallTemperature(
+    const Field &TWall) const {
   PROFILE_FUNCTION();
 
   int NW = N + 2;
 
+  vector<double> recv(NW, 0);
   int wallID = 22;
 
   if (isLeftToRight())
     PMPI_Sendrecv(&TWall.value[0], NW, MPI_DOUBLE_PRECISION, DCMainProc, wallID,
-                  &TWall.value[0], NW, MPI_DOUBLE_PRECISION, DCMainProc, wallID,
+                  &recv[0], NW, MPI_DOUBLE_PRECISION, DCMainProc, wallID,
                   MPI_COMM_WORLD, MPI_STATUS_IGNORE);
   else if (isRightToLeft())
     PMPI_Sendrecv(&TWall.value[0], NW, MPI_DOUBLE_PRECISION, UCMainProc, wallID,
-                  &TWall.value[0], NW, MPI_DOUBLE_PRECISION, UCMainProc, wallID,
+                  &recv[0], NW, MPI_DOUBLE_PRECISION, UCMainProc, wallID,
                   MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+  return recv;
 }
 
 template <int N, int M, int NPROCS>
-void Paralel<N, M, NPROCS>::ShareWallTemperatureInfo(Field &TWall, Field &T) {
+void Paralel<N, M, NPROCS>::ShareWallTemperatureInfo(Field &TWall,
+                                                     Field &T) const {
   PROFILE_FUNCTION();
 
   int n = NI - 1;
@@ -286,7 +291,7 @@ void Paralel<N, M, NPROCS>::ShareWallTemperatureInfo(Field &TWall, Field &T) {
 }
 
 template <int N, int M, int NPROCS>
-void Paralel<N, M, NPROCS>::SendWallTInTheChannel(Field &TWall) {
+void Paralel<N, M, NPROCS>::SendWallTInTheChannel(Field &TWall) const {
   PROFILE_FUNCTION();
 
   PMPI_Bcast(&TWall.value[0], N + 2, MPI_DOUBLE, 0, myComm);
@@ -369,7 +374,8 @@ string Paralel<N, M, NPROCS>::PrintMyRank() {
 }
 
 template <int N, int M, int NPROCS>
-void Paralel<N, M, NPROCS>::PrintProgress(const string &message, bool showProgress) {
+void Paralel<N, M, NPROCS>::PrintProgress(const string &message,
+                                          bool showProgress) {
   if (showProgress == true) {
     MPI_Barrier(MPI_COMM_WORLD);
     cout << message << PrintMyRank() << ".\n";
@@ -424,7 +430,8 @@ void Paralel<N, M, NPROCS>::distributeToProcs(Field &sol, Field &vec) {
 }
 
 template <int N, int M, int NPROCS>
-void Paralel<N, M, NPROCS>::GatherWallTemperature(Field &TWall, Field &T) {
+void Paralel<N, M, NPROCS>::GatherWallTemperature(Field &TWall,
+                                                  Field &T) const {
   PROFILE_FUNCTION();
   if (isLeftToRight())
     GatherTemperature(T, TWall, 1);
@@ -433,22 +440,10 @@ void Paralel<N, M, NPROCS>::GatherWallTemperature(Field &TWall, Field &T) {
 }
 
 template <int N, int M, int NPROCS>
-void Paralel<N, M, NPROCS>::GatherTemperature(Field &T, Field &TWall, int J) {
-  int count[nProcs];
-  int displacement[nProcs];
-
-  for (int i = 0; i < nProcs; i++) {
-    count[i] = iEndAllProc[i] - iStrAllProc[i];
-    displacement[i] = iStrAllProc[i];
-  }
-
-  if (myProc == 0)
-    MPI_Gatherv(&T.value[1 + J * NI], NI - 2, MPI_DOUBLE, &TWall.value[1],
-                count, displacement, MPI_DOUBLE, 0, myComm);
-  else
-    MPI_Gatherv(&T.value[1 + J * NI], NI - 2, MPI_DOUBLE, NULL, NULL, NULL,
-                MPI_DOUBLE, 0, myComm);
-
+void Paralel<N, M, NPROCS>::GatherTemperature(Field &T, Field &TWall,
+                                              int J) const {
+  MPI_Gather(&T.value[1 + J * NI], NI - 2, MPI_DOUBLE, &TWall.value[1], NI - 2,
+             MPI_DOUBLE, 0, myComm);
   // for (int i = 0; i < exI1; i++) TWall.value[i] = 0;
 
   // for (int i = exI2; i < N + 2; i++) TWall.value[i] = 0;

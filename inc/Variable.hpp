@@ -58,12 +58,16 @@ class Variable {
     paralel.SendInfoToNeighbours(Z);
   }
 
-  inline void exchangeTemperature(Paralel<N, M, NPROCS> &paralel) {
+  inline void exchangeTemperature(const Paralel<N, M, NPROCS> &paralel,
+                                  const Grid &mainGrid) {
     PROFILE_FUNCTION();
 
     paralel.GatherWallTemperature(TWall, T);
 
-    if (paralel.myProc == 0) paralel.ExchangeWallTemperature(TWall);
+    for (int i = 0; i < mainGrid.exI1; i++) TWall.value[i] = 0;
+    for (int i = mainGrid.exI2; i < N + 2; i++) TWall.value[i] = 0;
+
+    if (paralel.myProc == 0) TWall.value = paralel.ExchangeWallTemperature(TWall);
     MPI_Barrier(MPI_COMM_WORLD);
 
     paralel.ShareWallTemperatureInfo(TWall, T);
@@ -264,17 +268,6 @@ void Variable<N, M, NI, NJ, NPROCS>::setChannelEquations(
                          fvm::convectiveTerm(Z, massFluxE, massFluxN, m) +
                          fvm::intermidiateReaction(F, Z, T, beta, gamma) -
                          fvm::zComsumptium(Z));
-
-    if (paralel.isLeftToRight()) {
-      std::cout << "------------------------------------------------\n";
-      for (int j = 0; j < NJ; j++) {
-        for (int i = 0; i < NI; i++) {
-          std::cout << std::setprecision(8) << T[i + j * NI] << " ";
-        }
-        std::cout << "\n";
-      }
-      std::cout << "------------------------------------------------\n";
-    }
   }
 }
 

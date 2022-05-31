@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 #include <thread>
 
 #include "Instrumentor.hpp"
@@ -26,6 +27,17 @@ string showTime(std::chrono::duration<double> time) {
   return result;
 }
 
+void PrintCurrentStep(const std::chrono::duration<double> &tStart,
+                      const std::chrono::duration<double> &tIter,
+                      const int &iter, const double &error, const double &m) {
+  cout << " |Time from start: " << std::setw(7) << showTime(tStart)
+       << " |Time of last step: " << std::setw(7) << showTime(tIter)
+       << " |Iteration number: " << std::setw(10) << iter 
+       << " |Error: " << std::setw(12) << std::setprecision(7) << error 
+       << " |M : " << std::setw(8) << std::setprecision(6) << m << "|\n";
+       
+}
+
 int main(int argc, char **argv) {
   PMPI_Init(&argc, &argv);
 
@@ -37,7 +49,7 @@ int main(int argc, char **argv) {
 
   auto startTime = std::chrono::high_resolution_clock::now();
 
-  constexpr int n = 600;
+  constexpr int n = 1200;
   constexpr int M = 10;
   constexpr int NPROCS = 2;
   constexpr int N = n + (NPROCS / 2 - n % (NPROCS / 2));
@@ -60,10 +72,8 @@ int main(int argc, char **argv) {
 
     if (worldRank == 0) {
       cout << "The size of the Mesh is " << N << "x" << M << endl;
-      cout << "Time from start: " << showTime(durationFromStart)
-           << " Time of last step: " << showTime(durationFromPrev)
-           << " Iteration number: 0 Error: 1"
-           << " M : " << problem.m << endl;
+      cout << " " << std::setfill('_') << std::setw(120) << "\n" << std::setfill(' ');
+      PrintCurrentStep(durationFromStart, durationFromPrev, 0, 0, problem.m);
       ;
     }
     for (int i = 1; i < problem.maxit; i++) {
@@ -77,12 +87,10 @@ int main(int argc, char **argv) {
         fromStart = std::chrono::high_resolution_clock::now();
         durationFromStart = fromStart - startTime;
         if (worldRank == 0)
-          cout << "Time from start: " << showTime(durationFromStart)
-               << " Time of last step: " << showTime(durationFromPrev)
-               << " Iteration number: " << i << " Error: " << std::setprecision(8) <<   error
-               << " M : " << std::setprecision(6) << problem.m << endl;
+          PrintCurrentStep(durationFromStart, durationFromPrev, i, error,
+                           problem.m);
         problem.writeSolution(filename, i);
-        // if (problem.isErrorSmallEnough(error)) break;
+        if (problem.isErrorSmallEnough(error)) break;
       }
     }
 

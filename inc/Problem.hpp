@@ -172,7 +172,7 @@ bool Problem<N, M, NPROCS>::readFromFile;
 
 template <int N, int M, int NPROCS>
 Problem<N, M, NPROCS>::Problem(const double &prevm)
-    : maxit(10E0), iShow(10E-1), m(prevm) {
+    : maxit(10E2), iShow(10E1), m(prevm) {
   PROFILE_FUNCTION();
   readFromFile = false;
   tolerance = 10e-12;
@@ -290,7 +290,7 @@ void Problem<N, M, NPROCS>::initializeVariables() {
 
   variables.sendInfoToCommMainProc(paralel);
 
-  variables.exchangeTemperature(paralel);
+  variables.exchangeTemperature(paralel, mainGrid);
 }
 
 template <int N, int M, int NPROCS>
@@ -393,7 +393,7 @@ double Problem<N, M, NPROCS>::mainIter(int i) {
 
   variables.sendInfoToNeighbours(paralel);
 
-  variables.exchangeTemperature(paralel);
+  variables.exchangeTemperature(paralel, mainGrid);
 
   MPI_Barrier(MPI_COMM_WORLD);
   return error_result;
