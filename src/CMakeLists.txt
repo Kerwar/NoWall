@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.0.0)
 
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wunused-parameter -std=c++17 -fsanitize=undefined,address")
-
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wunused-parameter -std=c++17 ")
+# -fsanitize=undefined,address
 include_directories(${MPI_INCLUDE_PATH})
 include_directories(/home/javier/Documentos/Programs/CFEM/NoWall/inc)
 

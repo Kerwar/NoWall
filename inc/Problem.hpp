@@ -2,19 +2,19 @@
 #define PROBLEM_H
 
 #include <memory>
-#include "Paralel.hpp"
-#include "Grid.hpp"
-#include "Variable.hpp"
-#include "FileWriter.hpp"
+
 #include "Equation.hpp"
+#include "FileWriter.hpp"
+#include "Grid.hpp"
+#include "Paralel.hpp"
+#include "Variable.hpp"
 
 template <int N, int M, int NPROCS>
-class Problem
-{
+class Problem {
   static constexpr int NI = N / (NPROCS / 2) + 2;
   static constexpr int NJ = M / 2 + 2;
 
-public:
+ public:
   Problem(const double &prevm);
   virtual ~Problem();
 
@@ -23,17 +23,22 @@ public:
   void writeSolution(string &filename, int i);
   void freeComm();
   double mainIter(int i);
-  void inline setExchangeConstant() { exCte = bK * a * a / 2.0; exCte /=(1.0+mainGrid.DY *exCte);};
+  void inline setExchangeConstant() {
+    exCte = bK * a * a / 2.0;
+    exCte /= (1.0 + mainGrid.DY * exCte);
+  };
   void writefilename(string &filename);
   void retrieveNandM(int &nxOut, int &nyOut, double &mOut);
   inline bool fixPointInThisProc();
-  inline bool isSolutionNotGoodEnough() { return !variables.isTOutEqualToQ(q, paralel); };
+  inline bool isSolutionNotGoodEnough() {
+    return !variables.isTOutEqualToQ(q, paralel);
+  };
 
   int maxit, iShow;
   double m;
   Paralel<N, M, NPROCS> paralel;
 
-private:
+ private:
   static double tolerance;
   static double alpha;
 
@@ -69,8 +74,10 @@ private:
 
   string sufix;
 
-public:
-  inline bool isErrorSmallEnough(double &error) { return error < tolerance ? true : false; };
+ public:
+  inline bool isErrorSmallEnough(double &error) {
+    return error < tolerance ? true : false;
+  };
 };
 
 template <int N, int M, int NPROCS>
@@ -164,10 +171,10 @@ template <int N, int M, int NPROCS>
 bool Problem<N, M, NPROCS>::readFromFile;
 
 template <int N, int M, int NPROCS>
-Problem<N, M, NPROCS>::Problem(const double &prevm) : maxit(10E0), iShow(10E-1), m(prevm)
-{
+Problem<N, M, NPROCS>::Problem(const double &prevm)
+    : maxit(10E0), iShow(10E-1), m(prevm) {
   PROFILE_FUNCTION();
-  readFromFile = true;
+  readFromFile = false;
   tolerance = 10e-12;
   alpha = 0.95;
 
@@ -197,24 +204,20 @@ Problem<N, M, NPROCS>::Problem(const double &prevm) : maxit(10E0), iShow(10E-1),
   a2 = 1 / (a * a);
   bK = 0.15;
   viscX = 1;
-  viscY = a2; // if (nx > 20000)
+  viscY = a2;  // if (nx > 20000)
   // {
   // tolerance = 10e-6;
   // maxit = 1000000;}
 }
 
 template <int N, int M, int NPROCS>
-Problem<N, M, NPROCS>::~Problem()
-{
-}
+Problem<N, M, NPROCS>::~Problem() {}
 
 template <int N, int M, int NPROCS>
-void Problem<N, M, NPROCS>::setUpProblem()
-{
+void Problem<N, M, NPROCS>::setUpProblem() {
   PROFILE_FUNCTION();
   mainGrid = Grid(N, M, xMin, xMax, yMin, yMax);
   mainGrid.SetIEx(xExMin, xExMax);
-  paralel.setUpMesh(mainGrid.exI1, mainGrid.exI2);
 
   myProc = paralel.myProc;
   nProcs = paralel.nProcs;
@@ -224,8 +227,7 @@ void Problem<N, M, NPROCS>::setUpProblem()
   myYMin = 0.0;
   myYMax = yChannel;
 
-  if (paralel.isLeftToRight())
-  {
+  if (paralel.isLeftToRight()) {
     myYMin += yChannel + yWall;
     myYMax += yChannel + yWall;
   }
@@ -238,32 +240,30 @@ void Problem<N, M, NPROCS>::setUpProblem()
 }
 
 template <int N, int M, int NPROCS>
-void Problem<N, M, NPROCS>::initializeVariables()
-{
+void Problem<N, M, NPROCS>::initializeVariables() {
   PROFILE_FUNCTION();
   variables.passInfoGridToAll(mainGrid, myGrid, viscX, viscY, LeF, LeZ);
   setExchangeConstant();
   int fixPointProcBuffer = 0;
 
-  if (fixPointInThisProc())
-  {
+  if (fixPointInThisProc()) {
     fixPointProcBuffer += paralel.worldMyProc;
     variables.setFixIndex(xfix, yfix);
   }
 
-  MPI_Allreduce(&fixPointProcBuffer, &paralel.fixPointProc, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&fixPointProcBuffer, &paralel.fixPointProc, 1, MPI_INT, MPI_SUM,
+                MPI_COMM_WORLD);
 
-  if (!readFromFile)
-  {
+  if (!readFromFile) {
     if (paralel.isLeftToRight())
-      variables.initializeLeftToRight(m, myYMin, myYMax + yChannel, q, xHS_U, r0hs, z0hs, xMin, xMax);
+      variables.initializeLeftToRight(m, myYMin, myYMax + yChannel, q, xHS_U,
+                                      r0hs, z0hs, xMin, xMax);
     else if (paralel.isRightToLeft())
-      variables.initializeRightToLeft(m, myYMin - yChannel, myYMax, q, xHS_D, r0hs, z0hs, xMin, xMax);
+      variables.initializeRightToLeft(m, myYMin - yChannel, myYMax, q, xHS_D,
+                                      r0hs, z0hs, xMin, xMax);
 
     readFromFile = true;
-  }
-  else
-  {
+  } else {
     if (paralel.isLeftToRight())
       variables.readFile(paralel, 2, m, myYMin, myYMax + yChannel);
 
@@ -273,7 +273,8 @@ void Problem<N, M, NPROCS>::initializeVariables()
 
     variables.sendInfoToNeighbours(paralel);
   }
-  //  If density non constant this interpolate the Velocities and the mass fluxes have to be calculated with them
+  //  If density non constant this interpolate the Velocities and the mass
+  //  fluxes have to be calculated with them
   // Field::vectorField UE(fieldOper.interpolatedFieldEast(U, myGrid));
   // Field::vectorField UN(fieldOper.interpolatedFieldNorth(V, myGrid));
 
@@ -281,12 +282,9 @@ void Problem<N, M, NPROCS>::initializeVariables()
   // fieldOper.getGridInfoPassed(UN, myGrid, viscX, viscY);
 
   variables.setMassFluxes(myGrid);
-  if (paralel.isLeftToRight() && paralel.isProcNull(paralel.myLeft))
-  {
+  if (paralel.isLeftToRight() && paralel.isProcNull(paralel.myLeft)) {
     variables.setInletBoundaryConditionLeftToRight();
-  }
-  else if (paralel.isRightToLeft() && paralel.isProcNull(paralel.myRight))
-  {
+  } else if (paralel.isRightToLeft() && paralel.isProcNull(paralel.myRight)) {
     variables.setInletBoundaryConditionRightToLeft();
   }
 
@@ -296,19 +294,15 @@ void Problem<N, M, NPROCS>::initializeVariables()
 }
 
 template <int N, int M, int NPROCS>
-void Problem<N, M, NPROCS>::writeSolution(string &prefix, int i)
-{
+void Problem<N, M, NPROCS>::writeSolution(string &prefix, int i) {
   PROFILE_FUNCTION();
 
   FileWriter fileWriter;
 
-  if (i == 0)
-  {
+  if (i == 0) {
     sufix = "";
     writefilename(sufix);
-  }
-  else if (i == -1)
-  {
+  } else if (i == -1) {
     sufix = "";
     variables.writeTInWall(paralel, mainGrid, myGrid, 0);
   }
@@ -317,49 +311,63 @@ void Problem<N, M, NPROCS>::writeSolution(string &prefix, int i)
 
   MPI_Barrier(MPI_COMM_WORLD);
   if (myProc == 0 && paralel.isRightToLeft())
-    fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables.solU, variables.solV, variables.solT, variables.solF, variables.solZ, paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.loc);
-  // fileWriter.WriteBin(prefix, sufix, i, mainGrid, variables.solU, variables.solV, variables.solT, variables.solF, variables.solZ, paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd, paralel.loc);
+    fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables.solU,
+                          variables.solV, variables.solT, variables.solF,
+                          variables.solZ, paralel.locIStr, paralel.locIEnd,
+                          paralel.locJStr, paralel.loc);
+  // fileWriter.WriteBin(prefix, sufix, i, mainGrid, variables.solU,
+  // variables.solV, variables.solT, variables.solF, variables.solZ,
+  // paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd,
+  // paralel.loc);
   MPI_Barrier(MPI_COMM_WORLD);
   if (myProc == 0 && paralel.isLeftToRight())
-    fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables.solU, variables.solV, variables.solT, variables.solF, variables.solZ, paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.loc);
-  // fileWriter.WriteBin(prefix, sufix, i, mainGrid, variables.solU, variables.solV, variables.solT, variables.solF, variables.solZ, paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd, paralel.loc);
+    fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables.solU,
+                          variables.solV, variables.solT, variables.solF,
+                          variables.solZ, paralel.locIStr, paralel.locIEnd,
+                          paralel.locJStr, paralel.loc);
+  // fileWriter.WriteBin(prefix, sufix, i, mainGrid, variables.solU,
+  // variables.solV, variables.solT, variables.solF, variables.solZ,
+  // paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd,
+  // paralel.loc);
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
 template <int N, int M, int NPROCS>
-double Problem<N, M, NPROCS>::mainIter(int i)
-{
+double Problem<N, M, NPROCS>::mainIter(int i) {
   PROFILE_FUNCTION();
 
   double error = 1;
 
-  variables.setChannelEquations(Teqn, Feqn, Zeqn, paralel, m, q, beta, gamma, DT, exCte, i);
-  Field::Direction side = Field::west;
+  variables.setChannelEquations(Teqn, Feqn, Zeqn, paralel, m, q, beta, gamma,
+                                DT, exCte, i);
+  Direction side = west;
 
   if (paralel.isFirstProcOfRow() && paralel.isRightToLeft())
     variables.setWallShear(Teqn, Feqn, Zeqn, side);
   else
     variables.setDirichlet(Teqn, Feqn, Zeqn, side);
 
-  side = Field::east;
+  side = east;
 
   if (paralel.isLastProcOfRow() && paralel.isLeftToRight())
     variables.setWallShear(Teqn, Feqn, Zeqn, side);
   else
     variables.setDirichlet(Teqn, Feqn, Zeqn, side);
 
-  side = Field::south;
+  side = south;
 
   if (paralel.isRightToLeft())
     variables.setWallShear(Teqn, Feqn, Zeqn, side);
   else if (paralel.isLeftToRight())
-    variables.setExchangeWallShear(Teqn, Feqn, Zeqn, side, paralel.iStr, paralel.iEnd, mainGrid.exI1, mainGrid.exI2,
+    variables.setExchangeWallShear(Teqn, Feqn, Zeqn, side, paralel.iStr,
+                                   paralel.iEnd, mainGrid.exI1, mainGrid.exI2,
                                    myGrid.exI1, myGrid.exI2);
 
-  side = Field::north;
+  side = north;
 
   if (paralel.isRightToLeft())
-    variables.setExchangeWallShear(Teqn, Feqn, Zeqn, side, paralel.iStr, paralel.iEnd, mainGrid.exI1, mainGrid.exI2,
+    variables.setExchangeWallShear(Teqn, Feqn, Zeqn, side, paralel.iStr,
+                                   paralel.iEnd, mainGrid.exI1, mainGrid.exI2,
                                    myGrid.exI1, myGrid.exI2);
   else if (paralel.isLeftToRight())
     variables.setWallShear(Teqn, Feqn, Zeqn, side);
@@ -370,12 +378,13 @@ double Problem<N, M, NPROCS>::mainIter(int i)
   Feqn->EqnName = "F-Eqn";
   Zeqn->EqnName = "Z-Eqn";
 
-  error = variables.solveEquations(Teqn, Feqn, Zeqn, alpha, i, itersol, 0 * iShow);
+  error =
+      variables.solveEquations(Teqn, Feqn, Zeqn, alpha, i, itersol, 0 * iShow);
 
   double error_result = 0;
 
-  // if (fixPointInThisProc())
-  //   m = variables.calculateNewM(0.75 * alpha, m, q);
+  if (fixPointInThisProc())
+    m = variables.calculateNewM(0.75 * alpha, m, q);
 
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Bcast(&m, 1, MPI_DOUBLE, paralel.fixPointProc, MPI_COMM_WORLD);
@@ -383,7 +392,7 @@ double Problem<N, M, NPROCS>::mainIter(int i)
   MPI_Allreduce(&error, &error_result, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
   variables.sendInfoToNeighbours(paralel);
-  
+
   variables.exchangeTemperature(paralel);
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -391,24 +400,20 @@ double Problem<N, M, NPROCS>::mainIter(int i)
 }
 
 template <int N, int M, int NPROCS>
-void Problem<N, M, NPROCS>::freeComm()
-{
+void Problem<N, M, NPROCS>::freeComm() {
   paralel.freeComm();
 }
 
 template <int N, int M, int NPROCS>
-inline bool Problem<N, M, NPROCS>::fixPointInThisProc()
-{
+inline bool Problem<N, M, NPROCS>::fixPointInThisProc() {
   if (myXMin <= xfix && xfix <= myXMax)
-    if (myYMin <= yfix && yfix <= myYMax)
-      return true;
+    if (myYMin <= yfix && yfix <= myYMax) return true;
 
   return false;
 }
 
 template <int N, int M, int NPROCS>
-void Problem<N, M, NPROCS>::writefilename(string &filename)
-{
+void Problem<N, M, NPROCS>::writefilename(string &filename) {
   PROFILE_FUNCTION();
   std::ostringstream temp;
 
@@ -476,8 +481,8 @@ void Problem<N, M, NPROCS>::writefilename(string &filename)
 }
 
 template <int N, int M, int NPROCS>
-void Problem<N, M, NPROCS>::retrieveNandM(int &nxOut, int &nyOut, double &mOut)
-{
+void Problem<N, M, NPROCS>::retrieveNandM(int &nxOut, int &nyOut,
+                                          double &mOut) {
   PROFILE_FUNCTION();
   // double xcellSize = (xMax - xMin) / N;
   // double ycellSize = (yMax - yMin) / M;

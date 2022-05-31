@@ -1,62 +1,59 @@
 //
 // Basic instrumentation profiler by Cherno
 
-// Usage: include this header file somewhere in your code (eg. precompiled header), and then use like:
+// Usage: include this header file somewhere in your code (eg. precompiled
+// header), and then use like:
 //
 // Instrumentor::Get().BeginSession("Session Name");        // Begin session
 // {
-//     InstrumentationTimer timer("Profiled Scope Name");   // Place code like this in scopes you'd like to include in profiling
+//     InstrumentationTimer timer("Profiled Scope Name");   // Place code like
+//     this in scopes you'd like to include in profiling
 //     // Code
 // }
 // Instrumentor::Get().EndSession();                        // End Session
 //
-// You will probably want to macro-fy this, to switch on/off easily and use things like __FUNCSIG__ for the profile name.
+// You will probably want to macro-fy this, to switch on/off easily and use
+// things like __FUNCSIG__ for the profile name.
 //
 #pragma once
 
-#include <string>
-#include <chrono>
 #include <algorithm>
+#include <chrono>
 #include <fstream>
-
+#include <string>
 #include <thread>
+
 #include "mpi.h"
 
-struct ProfileResult
-{
+struct ProfileResult {
   std::string Name;
   long long Start, End;
   uint32_t ThreadID;
   int ProcID;
 };
 
-struct InstrumentationSession
-{
+struct InstrumentationSession {
   std::string Name;
 };
 
-class Instrumentor
-{
-private:
+class Instrumentor {
+ private:
   InstrumentationSession *m_CurrentSession;
   std::ofstream m_OutputStream;
   int m_ProfileCount;
 
-public:
-  Instrumentor()
-      : m_CurrentSession(nullptr), m_ProfileCount(0)
-  {
-  }
+ public:
+  Instrumentor() : m_CurrentSession(nullptr), m_ProfileCount(0) {}
 
-  void BeginSession(const std::string &name) //, const std::string& filepath = "results.json")
+  void BeginSession(const std::string &
+                        name)  //, const std::string& filepath = "results.json")
   {
     m_OutputStream.open(name);
     WriteHeader();
     m_CurrentSession = new InstrumentationSession{name};
   }
 
-  void EndSession()
-  {
+  void EndSession() {
     WriteFooter();
     m_OutputStream.close();
     delete m_CurrentSession;
@@ -64,10 +61,8 @@ public:
     m_ProfileCount = 0;
   }
 
-  void WriteProfile(const ProfileResult &result)
-  {
-    if (m_ProfileCount++ > 0)
-      m_OutputStream << ",";
+  void WriteProfile(const ProfileResult &result) {
+    if (m_ProfileCount++ > 0) m_OutputStream << ",";
 
     std::string name = result.Name;
     std::replace(name.begin(), name.end(), '"', '\'');
@@ -85,47 +80,47 @@ public:
     m_OutputStream.flush();
   }
 
-  void WriteHeader()
-  {
+  void WriteHeader() {
     m_OutputStream << "{\"otherData\": {},\"traceEvents\":[";
     m_OutputStream.flush();
   }
 
-  void WriteFooter()
-  {
+  void WriteFooter() {
     m_OutputStream << "]}";
     m_OutputStream.flush();
   }
 
-  static Instrumentor &Get()
-  {
+  static Instrumentor &Get() {
     static Instrumentor instance;
     return instance;
   }
 };
 
-class InstrumentationTimer
-{
-public:
+class InstrumentationTimer {
+ public:
   explicit InstrumentationTimer(const char *name)
-      : m_Name(name), m_StartTimepoint(std::chrono::high_resolution_clock::now()), m_Stopped(false)
-  {
+      : m_Name(name),
+        m_StartTimepoint(std::chrono::high_resolution_clock::now()),
+        m_Stopped(false) {}
+
+  ~InstrumentationTimer() {
+    if (!m_Stopped) Stop();
   }
 
-  ~InstrumentationTimer()
-  {
-    if (!m_Stopped)
-      Stop();
-  }
-
-  void Stop()
-  {
+  void Stop() {
     auto endTimepoint = std::chrono::high_resolution_clock::now();
 
-    long long start = std::chrono::time_point_cast<std::chrono::microseconds>(m_StartTimepoint).time_since_epoch().count();
-    long long end = std::chrono::time_point_cast<std::chrono::microseconds>(endTimepoint).time_since_epoch().count();
+    long long start = std::chrono::time_point_cast<std::chrono::microseconds>(
+                          m_StartTimepoint)
+                          .time_since_epoch()
+                          .count();
+    long long end =
+        std::chrono::time_point_cast<std::chrono::microseconds>(endTimepoint)
+            .time_since_epoch()
+            .count();
 
-    uint32_t threadID = std::hash<std::thread::id>{}(std::this_thread::get_id());
+    uint32_t threadID =
+        std::hash<std::thread::id>{}(std::this_thread::get_id());
     int myProc;
     MPI_Comm_rank(MPI_COMM_WORLD, &myProc);
     Instrumentor::Get().WriteProfile({m_Name, start, end, threadID, myProc});
@@ -133,7 +128,7 @@ public:
     m_Stopped = true;
   }
 
-private:
+ private:
   const char *m_Name;
   std::chrono::time_point<std::chrono::high_resolution_clock> m_StartTimepoint;
   bool m_Stopped;
