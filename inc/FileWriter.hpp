@@ -27,6 +27,11 @@ class FileWriter {
                   const Field &Vtemp, const Field &Ttemp, const Field &Ftemp,
                   const Field &Ztemp, int iStr, int iEnd, int jStr, Loc loc);
 
+  void WriteTec(const string &prefix, string sufix, int time,
+                  const Grid &mainGrid, const Grid &myGrid, const Field &Utemp,
+                  const Field &Vtemp, const Field &Ttemp, const Field &Ftemp,
+                  const Field &Ztemp, int iStr, int iEnd, int jStr, Loc loc);
+
   const inline int id(const int &I, const int &J, const int &NI,
                       const int &NJ) {
     return std::min(std::max(I, 0), NI - 3) +

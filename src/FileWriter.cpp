@@ -8,6 +8,70 @@ FileWriter::~FileWriter() {
   // dtor
 }
 
+void FileWriter::WriteTec(const string &prefix, string sufix, int time,
+                          const Grid &mainGrid, const Grid &myGrid,
+                          const Field &Utemp, const Field &Vtemp,
+                          const Field &Ttemp, const Field &Ftemp,
+                          const Field &Ztemp, int iStr, int iEnd, int jStr,
+                          Loc loc) {
+  int mainNI = mainGrid.NI;
+  int NJ = myGrid.NJ;
+
+  string timename;
+
+  std::ostringstream temp;
+  temp << time;
+
+  timename = temp.str();
+
+  string newname = "Sol";
+
+  string name = prefix + newname;
+  name.append(sufix);
+
+  string newfilename = name.append(timename);
+
+  std::ofstream outfile;
+
+  string myType = ".dat";
+
+  string name2 = newfilename.append(myType);
+  char qstr[name2.size() + 2];
+  strcpy(qstr, name2.c_str());
+
+  int NXtemp = mainGrid.NI;
+  int NYtemp = myGrid.NJ;
+  if (loc == Loc::down) {
+    outfile.open(qstr);
+
+    outfile << "VARIABLES=\"X\", \"Y\", \"U\", \"V\", \"T\", \"F\", \"Z\" \n";
+    outfile << "ZONE T=\"Down\""
+            << " ,I=" << NXtemp << ", J=" << NYtemp << ", DATAPACKING=POINT\n";
+  } else {
+    outfile.open(qstr, std::ios::app);
+    outfile << "ZONE T=\"Up\"" << " ,I=" << NXtemp << ", J=" << NYtemp << ", DATAPACKING=POINT\n";
+  }
+
+  int jMax = myGrid.NJ + jStr;
+  for (int i = iStr - 1; i < iEnd + 1; i++)
+    for (int j = jStr; j < jMax; j++) {
+      outfile << mainGrid.XC[i] << " ";
+      outfile << mainGrid.YC[j] << " ";
+      double value = Utemp.value[id(i, j, mainNI, NJ + jStr)];
+      outfile << value << " ";
+      value = Vtemp.value[id(i, j, mainNI, NJ + jStr)];
+      outfile << value << " ";
+      value = Ttemp.value[id(i, j, mainNI, NJ + jStr)];
+      outfile << value << " ";
+      value = Ftemp.value[id(i, j, mainNI, NJ + jStr)];
+      outfile << value << " ";
+      value = Ztemp.value[id(i, j, mainNI, NJ + jStr)];
+      outfile << value << "\n";
+    }
+
+  outfile.close();
+}
+
 void FileWriter::WriteInter(const string &prefix, string sufix, int time,
                             const Grid &mainGrid, const Grid &myGrid,
                             const Field &Utemp, const Field &Vtemp,
@@ -61,16 +125,13 @@ void FileWriter::WriteInter(const string &prefix, string sufix, int time,
 
       for (int j = jStr; j < NJ + jStr; j++)
         for (int i = 0; i < mainNI; i++)
-          outfile.write((char*)(&mainGrid.XC[i]),
-                        sizeof(mainGrid.XC[i]));
+          outfile.write((char *)(&mainGrid.XC[i]), sizeof(mainGrid.XC[i]));
 
       for (int j = jStr; j < NJ + jStr - 1; j++)
         for (int i = 0; i < mainNI; i++)
-          outfile.write((char*)(&mainGrid.YC[j]),
-                        sizeof(mainGrid.YC[j]));
+          outfile.write((char *)(&mainGrid.YC[j]), sizeof(mainGrid.YC[j]));
       for (int i = 0; i < mainNI; i++)
-        outfile.write((char*)(&myGrid.YC[NJ - 1]),
-                      sizeof(myGrid.YC[NJ - 1]));
+        outfile.write((char *)(&myGrid.YC[NJ - 1]), sizeof(myGrid.YC[NJ - 1]));
 
       outfile.close();
     } else if (loc == Loc::up) {
@@ -92,16 +153,13 @@ void FileWriter::WriteInter(const string &prefix, string sufix, int time,
 
       for (int j = jStr; j < jMax; j++)
         for (int i = 0; i < mainNI; i++)
-          outfile.write((char*)(&mainGrid.XC[i]),
-                        sizeof(mainGrid.XC[i]));
+          outfile.write((char *)(&mainGrid.XC[i]), sizeof(mainGrid.XC[i]));
 
       for (int i = 0; i < mainNI; i++)
-        outfile.write((char*)(&myGrid.YC[0]),
-                      sizeof(myGrid.YC[0]));
+        outfile.write((char *)(&myGrid.YC[0]), sizeof(myGrid.YC[0]));
       for (int j = jStr + 1; j < jMax; j++)
         for (int i = 0; i < mainNI; i++)
-          outfile.write((char*)(&mainGrid.YC[j]),
-                        sizeof(mainGrid.YC[j]));
+          outfile.write((char *)(&mainGrid.YC[j]), sizeof(mainGrid.YC[j]));
 
       outfile.close();
     }

@@ -304,6 +304,7 @@ void Problem<N, M, NPROCS>::writeSolution(string &prefix, int i) {
     writefilename(sufix);
   } else if (i == -1) {
     sufix = "";
+    writefilename(sufix);
     variables.writeTInWall(paralel, mainGrid, myGrid, 0);
   }
 
@@ -311,7 +312,7 @@ void Problem<N, M, NPROCS>::writeSolution(string &prefix, int i) {
 
   MPI_Barrier(MPI_COMM_WORLD);
   if (myProc == 0 && paralel.isRightToLeft())
-    fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables.solU,
+    fileWriter.WriteTec(prefix, sufix, i, mainGrid, myGrid, variables.solU,
                           variables.solV, variables.solT, variables.solF,
                           variables.solZ, paralel.locIStr, paralel.locIEnd,
                           paralel.locJStr, paralel.loc);
@@ -321,7 +322,7 @@ void Problem<N, M, NPROCS>::writeSolution(string &prefix, int i) {
   // paralel.loc);
   MPI_Barrier(MPI_COMM_WORLD);
   if (myProc == 0 && paralel.isLeftToRight())
-    fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables.solU,
+    fileWriter.WriteTec(prefix, sufix, i, mainGrid, myGrid, variables.solU,
                           variables.solV, variables.solT, variables.solF,
                           variables.solZ, paralel.locIStr, paralel.locIEnd,
                           paralel.locJStr, paralel.loc);

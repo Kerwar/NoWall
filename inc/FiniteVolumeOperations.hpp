@@ -9,9 +9,9 @@
 
 namespace fvm {
 
-inline double plusupwind(const double &v) { return (v + std::abs(v)) / 2; };
+inline double plusupwind(const double &v) { return (v + std::abs(v)) / 2; }
 
-inline double minusupwind(const double &v) { return (v - std::abs(v)) / 2; };
+inline double minusupwind(const double &v) { return (v - std::abs(v)) / 2; }
 
 inline FiniteMatrix::finiteMat diffusiveTerm(const Field &vec) {
   int NI = vec.NI;

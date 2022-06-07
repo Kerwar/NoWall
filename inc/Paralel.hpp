@@ -320,11 +320,11 @@ void Paralel<N, M, NPROCS>::setProcMesh() {
 template <int N, int M, int NPROCS>
 void Paralel<N, M, NPROCS>::SendInfoToCommMainProc(Field &vec, Field &sol) {
   PROFILE_FUNCTION();
-  int iIS = NI - 2;
-  int jIS = NJ - 2;
-  int sendCount = iIS * jIS;
+  const int iIS = NI - 2;
+  const int jIS = NJ - 2;
+  const int sendCount = iIS * jIS;
 
-  double sendBuffer[sendCount] = {};
+  double sendBuffer[sendCount];
 
   forAllInterior(NI, NJ) {
     sendBuffer[(i - 1) + (j - 1) * iIS] = vec.value[i + j * NI];
