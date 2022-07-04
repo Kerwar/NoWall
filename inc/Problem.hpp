@@ -172,7 +172,7 @@ bool Problem<N, M, NPROCS>::readFromFile;
 
 template <int N, int M, int NPROCS>
 Problem<N, M, NPROCS>::Problem(const double &prevm)
-    : maxit(10E2), iShow(10E1), m(prevm) {
+    : maxit(10E1), iShow(10E0), m(prevm) {
   PROFILE_FUNCTION();
   readFromFile = false;
   tolerance = 10e-12;
@@ -200,7 +200,7 @@ Problem<N, M, NPROCS>::Problem(const double &prevm)
   itersol = 4;
   LeF = 1.0;
   LeZ = 0.3;
-  a = 0.1;
+  a = 0.09;
   a2 = 1 / (a * a);
   bK = 0.15;
   viscX = 1;
@@ -299,37 +299,47 @@ void Problem<N, M, NPROCS>::writeSolution(string &prefix, int i) {
 
   FileWriter fileWriter;
 
-  if (i == 0) {
+  if (i != -1) {
     sufix = "";
     writefilename(sufix);
-  } else if (i == -1) {
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (myProc == 0 && paralel.isRightToLeft())
+      fileWriter.WriteTec(prefix, sufix, i, mainGrid, myGrid, variables.solU,
+                          variables.solV, variables.solT, variables.solF,
+                          variables.solZ, paralel.locIStr, paralel.locIEnd,
+                          paralel.locJStr, paralel.loc);
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    if (myProc == 0 && paralel.isLeftToRight())
+      fileWriter.WriteTec(prefix, sufix, i, mainGrid, myGrid, variables.solU,
+                          variables.solV, variables.solT, variables.solF,
+                          variables.solZ, paralel.locIStr, paralel.locIEnd,
+                          paralel.locJStr, paralel.loc);
+  } else {
     sufix = "";
     writefilename(sufix);
     variables.writeTInWall(paralel, mainGrid, myGrid, 0);
+    variables.sendInfoToCommMainProc(paralel);
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    if (myProc == 0 && paralel.isRightToLeft())
+      fileWriter.WriteInter(prefix, sufix, 0, mainGrid, myGrid, variables.solU,
+                          variables.solV, variables.solT, variables.solF,
+                          variables.solZ, paralel.locIStr, paralel.locIEnd,
+                          paralel.locJStr, paralel.loc);
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    if (myProc == 0 && paralel.isLeftToRight())
+      fileWriter.WriteInter(prefix, sufix, 0, mainGrid, myGrid, variables.solU,
+                          variables.solV, variables.solT, variables.solF,
+                          variables.solZ, paralel.locIStr, paralel.locIEnd,
+                          paralel.locJStr, paralel.loc);
   }
 
-  variables.sendInfoToCommMainProc(paralel);
-
-  MPI_Barrier(MPI_COMM_WORLD);
-  if (myProc == 0 && paralel.isRightToLeft())
-    fileWriter.WriteTec(prefix, sufix, i, mainGrid, myGrid, variables.solU,
-                          variables.solV, variables.solT, variables.solF,
-                          variables.solZ, paralel.locIStr, paralel.locIEnd,
-                          paralel.locJStr, paralel.loc);
-  // fileWriter.WriteBin(prefix, sufix, i, mainGrid, variables.solU,
-  // variables.solV, variables.solT, variables.solF, variables.solZ,
-  // paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd,
-  // paralel.loc);
-  MPI_Barrier(MPI_COMM_WORLD);
-  if (myProc == 0 && paralel.isLeftToRight())
-    fileWriter.WriteTec(prefix, sufix, i, mainGrid, myGrid, variables.solU,
-                          variables.solV, variables.solT, variables.solF,
-                          variables.solZ, paralel.locIStr, paralel.locIEnd,
-                          paralel.locJStr, paralel.loc);
-  // fileWriter.WriteBin(prefix, sufix, i, mainGrid, variables.solU,
-  // variables.solV, variables.solT, variables.solF, variables.solZ,
-  // paralel.locIStr, paralel.locIEnd, paralel.locJStr, paralel.locJEnd,
-  // paralel.loc);
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
@@ -384,8 +394,7 @@ double Problem<N, M, NPROCS>::mainIter(int i) {
 
   double error_result = 0;
 
-  if (fixPointInThisProc())
-    m = variables.calculateNewM(0.75 * alpha, m, q);
+  // if (fixPointInThisProc()) m = variables.calculateNewM(0.75 * alpha, m, q);
 
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Bcast(&m, 1, MPI_DOUBLE, paralel.fixPointProc, MPI_COMM_WORLD);

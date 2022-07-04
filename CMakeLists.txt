@@ -1,7 +1,8 @@
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.10.0)
 project(FVM VERSION 1.0.0)
 
 enable_language(Fortran)
+enable_language(CXX)
 
 find_package(MPI REQUIRED)
 include_directories(/opt/OpenMpi/include)

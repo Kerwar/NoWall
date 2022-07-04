@@ -49,9 +49,9 @@ int main(int argc, char **argv) {
 
   auto startTime = std::chrono::high_resolution_clock::now();
 
-  constexpr int n = 1200;
-  constexpr int M = 10;
-  constexpr int NPROCS = 2;
+  constexpr int n = 4831;
+  constexpr int M = 40;
+  constexpr int NPROCS = 64;
   constexpr int N = n + (NPROCS / 2 - n % (NPROCS / 2));
 
   if (worldSize == NPROCS) {
@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
     }
 
     string previous = "";
-    problem.writeSolution(previous, -1);
+    problem.writeSolution(filename, -1);
 
     if (worldRank == 0) cout << "We have Computed Everything!" << endl;
     Instrumentor::Get().EndSession();
