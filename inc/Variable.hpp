@@ -109,6 +109,7 @@ class Variable {
   double solveEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
                         double alpha, int &niter, int &itersol, int changeIter);
   double calculateNewM(const double &alpha, const double &m, const double &q);
+  double calculateNewQ(const double &alpha, const double &m, const double &q);
   void setFixIndex(double xfix, double yfix);
   inline void updateBoundFactors() {
     PROFILE_FUNCTION();
@@ -367,6 +368,50 @@ double Variable<N, M, NI, NJ, NPROCS>::calculateNewM(const double &alpha,
   newM = std::max(m * lowerBoundFactorm, newM);
   newM = std::max(newM, 0.4);
   return newM;
+}
+
+template <int N, int M, int NI, int NJ, int NPROCS>
+double Variable<N, M, NI, NJ, NPROCS>::calculateNewQ(const double &alpha,
+                                                     const double &m,
+                                                     const double &q) {
+  PROFILE_FUNCTION();
+  int index = ifix + jfix * NI;
+  T.value[index] = 0.7;
+  double diffusiveTermX =
+      T.viscX[index] * T.Se[jfix] * (T.value[index + 1] - T.value[index]) /
+          T.DXPtoE[ifix] -
+      T.viscX[index - 1] * T.Se[jfix - 1] *
+          (T.value[index] - T.value[index - 1]) / T.DXPtoE[ifix - 1];
+
+  double diffusiveTermY =
+      T.viscY[index] * T.Sn[ifix] * (T.value[index + NI] - T.value[index]) /
+          T.DYPtoN[jfix] -
+      T.viscY[index - NI] * T.Sn[ifix - 1] *
+          (T.value[index] - T.value[index - NI]) / T.DYPtoN[jfix - 1];
+
+  double convectiveTermX =
+      massFluxE.value[index] *
+          (T.value[index + 1] * T.FXE[ifix] + T.value[index] * T.FXP[ifix]) -
+      massFluxE.value[index - 1] * (T.value[index] * T.FXE[ifix - 1] +
+                                    T.value[index - 1] * T.FXP[ifix - 1]);
+
+  double convectiveTermY =
+      massFluxN.value[index] *
+          (T.value[index + NI] * T.FYN[jfix] + T.value[index] * T.FYP[jfix]) -
+      massFluxN.value[index - NI] * (T.value[index] * T.FYN[jfix - 1] +
+                                     T.value[index - NI] * T.FYP[jfix - 1]);
+
+  double reactionTerm = Z.value[index] * T.volume[index];
+  if(Z.value[index] < 10e-12) reactionTerm = 10e-12 * T.volume[index];
+
+  double newQ = alpha * (m*(convectiveTermX + convectiveTermY) - diffusiveTermX - diffusiveTermY) /
+                    (reactionTerm) +
+                (1 - alpha) * q;
+
+  newQ = std::min(q * upperBoundFactorm, newQ);
+  newQ = std::max(q * lowerBoundFactorm, newQ);
+  std::cout << newQ << "\n";
+  return newQ;
 }
 
 template <int N, int M, int NI, int NJ, int NPROCS>

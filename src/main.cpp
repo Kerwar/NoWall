@@ -49,14 +49,16 @@ int main(int argc, char **argv) {
 
   auto startTime = std::chrono::high_resolution_clock::now();
 
-  constexpr int n = 4831;
-  constexpr int M = 40;
-  constexpr int NPROCS = 64;
+  constexpr int n = 2400;
+  constexpr int M = 20;
+  constexpr int NPROCS = 8;
   constexpr int N = n + (NPROCS / 2 - n % (NPROCS / 2));
 
   if (worldSize == NPROCS) {
     double mprevious = 2;
     Problem<N, M, NPROCS> problem(mprevious);
+    if(argc > 1)
+      problem.xfix = std::atof(argv[1]);
 
     problem.setUpProblem();
 
@@ -73,9 +75,10 @@ int main(int argc, char **argv) {
     if (worldRank == 0) {
       cout << "The size of the Mesh is " << N << "x" << M << endl;
       cout << " " << std::setfill('_') << std::setw(120) << "\n" << std::setfill(' ');
-      PrintCurrentStep(durationFromStart, durationFromPrev, 0, 0, problem.m);
+      PrintCurrentStep(durationFromStart, durationFromPrev, 0, 0, problem.q);
       ;
     }
+
     for (int i = 1; i < problem.maxit; i++) {
       double error = 1;
       error = problem.mainIter(i);
@@ -88,7 +91,8 @@ int main(int argc, char **argv) {
         durationFromStart = fromStart - startTime;
         if (worldRank == 0)
           PrintCurrentStep(durationFromStart, durationFromPrev, i, error,
-                           problem.m);
+                           problem.q);
+	if(!problem.isErrorSmallEnough(error))
         problem.writeSolution(filename, i);
         if (problem.isErrorSmallEnough(error)) break;
       }

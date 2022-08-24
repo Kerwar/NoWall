@@ -10,7 +10,14 @@ void FileReader::readField(string &name, int blockWanted, int variableWanted,
   strcpy(cstr, name.c_str());
 
   std::ifstream infile(cstr, std::ios::binary);
+  // std::ifstream readGrid("Grid.xyz", std::ios::binary);
 
+  // if (!infile.is_open())
+  // {
+  //   cout << "The file " << cstr << " could not be open." << endl;
+  // }
+
+  // readGrid.close();
   int nBlocs;
   infile.read((char *)&nBlocs, sizeof(nBlocs));
 
