@@ -21,4 +21,4 @@ TEST_CASE("Initializing Grid", "Grid")
 
   CHECK(mainGrid.NI == 11);
   CHECK(mainGrid.NJ == 4);
-};
+}

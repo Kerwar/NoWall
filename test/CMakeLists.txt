@@ -1,13 +1,23 @@
 
-find_package(Catch2 REQUIRED)
 find_package(MPI REQUIRED)
 
-include_directories(${CATCH2_INCLUDE_PATH})
-include_directories(${MPI_INCLUDE_PATH})
-include_directories("../src")
-include_directories("../inc")
+enable_testing()
+include(CTest)
+include(GoogleTest)
 
-SET(SOURCES ../src/Grid.cpp ../src/Paralel.cpp ../src/Field.cpp test-main.cpp mpiHelpers.hpp testGrid.cpp )#test.cpp testField.cpp testGrid.cpp)
-add_executable(tests ${SOURCES} ) 
+include_directories(../inc)
 
-target_link_libraries(tests Catch2::Catch2WithMain Catch2::Catch2 ${MPI_LIBRARIES})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wunused-parameter -Wshadow -pedantic -Wsign-compare -Wtype-limits -Wignored-qualifiers -Wempty-body -Wclobbered -Wuninitialized -std=c++17 -larmadillo -Werror")
+
+macro(package_add_test_with_libraries TESTEXECUTABLE FILES LIBRARIES TEST_WORKING_DIRECTORY)
+    add_executable(${TESTEXECUTABLE} ${FILES})
+    target_link_libraries(${TESTEXECUTABLE} gtest gmock gtest_main ${LIBRARIES})
+    gtest_discover_tests(${TESTEXECUTABLE}
+        WORKING_DIRECTORY ${TEST_WORKING_DIRECTORY}
+        PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${TEST_WORKING_DIRECTORY}"
+    )
+    set_target_properties(${TESTEXECUTABLE} PROPERTIES FOLDER tests)
+endmacro()
+
+package_add_test_with_libraries(testField testField.cpp ${PROJECT_NAME}_lib "${PROJECT_DIR}")
+package_add_test_with_libraries(testGrid testGrid.cpp ${PROJECT_NAME}_lib "${PROJECT_DIR}")

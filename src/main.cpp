@@ -2,16 +2,23 @@
 
 #include <chrono>
 #include <cmath>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <thread>
 
 #include "Instrumentor.hpp"
-#include "Problem.hpp"
+#include "communicator.hpp"
+#include "environment.hpp"
 #include "mpi.h"
+#include "parameters.hpp"
+#include "problem.hpp"
 
 using std::cout;
 using std::endl;
+
+using parameters::M;
+using parameters::N;
+using parameters::NPROCS;
 
 string showTime(std::chrono::duration<double> time) {
   string result =
@@ -32,33 +39,23 @@ void PrintCurrentStep(const std::chrono::duration<double> &tStart,
                       const int &iter, const double &error, const double &m) {
   cout << " |Time from start: " << std::setw(7) << showTime(tStart)
        << " |Time of last step: " << std::setw(7) << showTime(tIter)
-       << " |Iteration number: " << std::setw(10) << iter 
-       << " |Error: " << std::setw(12) << std::setprecision(7) << error 
+       << " |Iteration number: " << std::setw(10) << iter
+       << " |Error: " << std::setw(12) << std::setprecision(7) << error
        << " |M : " << std::setw(8) << std::setprecision(6) << m << "|\n";
-       
 }
 
 int main(int argc, char **argv) {
-  PMPI_Init(&argc, &argv);
+  Environment env(argc, argv);
+  Communicator world(MPI_COMM_WORLD);
 
-  int worldRank, worldSize;
-  MPI_Comm_size(MPI_COMM_WORLD, &worldSize);
-  MPI_Comm_rank(MPI_COMM_WORLD, &worldRank);
   Instrumentor::Get().BeginSession("../Profiling/Profile-" +
-                                   std::to_string(worldRank) + ".json");
+                                   std::to_string(world.rank()) + ".json");
 
   auto startTime = std::chrono::high_resolution_clock::now();
-
-  constexpr int n = 2400;
-  constexpr int M = 20;
-  constexpr int NPROCS = 8;
-  constexpr int N = n + (NPROCS / 2 - n % (NPROCS / 2));
-
-  if (worldSize == NPROCS) {
+  if (world.size() == NPROCS) {
     double mprevious = 2;
-    Problem<N, M, NPROCS> problem(mprevious);
-    if(argc > 1)
-      problem.xfix = std::atof(argv[1]);
+    Problem problem(mprevious);
+    if (argc > 1) problem.xfix = std::atof(argv[1]);
 
     problem.setUpProblem();
 
@@ -69,12 +66,14 @@ int main(int argc, char **argv) {
 
     auto fromStart = std::chrono::high_resolution_clock::now();
     auto fromPrev = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> durationFromStart = fromStart - startTime;
-    std::chrono::duration<double> durationFromPrev = fromPrev - startTime;
 
-    if (worldRank == 0) {
-      cout << "The size of the Mesh is " << N << "x" << M << endl;
-      cout << " " << std::setfill('_') << std::setw(120) << "\n" << std::setfill(' ');
+    auto durationFromStart = fromStart - startTime;
+    auto durationFromPrev = fromPrev - startTime;
+
+    if (world.rank() == 0) {
+      cout << "The size of the Mesh is " << NTOTAL << "x" << MINPUT << endl;
+      cout << " " << std::setfill('_') << std::setw(120) << "\n"
+           << std::setfill(' ');
       PrintCurrentStep(durationFromStart, durationFromPrev, 0, 0, problem.q);
       ;
     }
@@ -89,11 +88,10 @@ int main(int argc, char **argv) {
         durationFromPrev = fromPrev - fromStart;
         fromStart = std::chrono::high_resolution_clock::now();
         durationFromStart = fromStart - startTime;
-        if (worldRank == 0)
-          PrintCurrentStep(durationFromStart, durationFromPrev, i, error,
-                           problem.q);
-	if(!problem.isErrorSmallEnough(error))
-        problem.writeSolution(filename, i);
+        if (world.rank() == 0)
+          PrintCurrentStep(durationFromStart, durationFromPrev, i, error, problem.q);
+        if (!problem.isErrorSmallEnough(error))
+          problem.writeSolution(filename, i);
         if (problem.isErrorSmallEnough(error)) break;
       }
     }
@@ -101,9 +99,9 @@ int main(int argc, char **argv) {
     string previous = "";
     problem.writeSolution(filename, -1);
 
-    if (worldRank == 0) cout << "We have Computed Everything!" << endl;
+    if (world.rank() == 0) cout << "We have Computed Everything!" << endl;
     Instrumentor::Get().EndSession();
   }
-  PMPI_Finalize();
+
   return 0;
 }

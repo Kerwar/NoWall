@@ -25,7 +25,7 @@ class Field {
 
   // Field();
 
-  // Overlad constructor
+  // Overload constructor
   Field(const int &_NI, const int &_NJ);
   virtual ~Field();
 

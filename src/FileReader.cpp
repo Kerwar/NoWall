@@ -6,10 +6,8 @@ FileReader::~FileReader() {}
 
 void FileReader::readField(string &name, int blockWanted, int variableWanted,
                            Field &vec, int locIStr, int locIEnd) {
-  char cstr[name.size() + 2];
-  strcpy(cstr, name.c_str());
 
-  std::ifstream infile(cstr, std::ios::binary);
+  std::ifstream infile(name, std::ios::binary);
   // std::ifstream readGrid("Grid.xyz", std::ios::binary);
 
   // if (!infile.is_open())
@@ -35,7 +33,7 @@ void FileReader::readField(string &name, int blockWanted, int variableWanted,
   }
   for (int k = 0; k < nBlocs; k++)
     for (int l = 0; l < nVar[k]; l++) {
-      double inputField[NX[k] * NY[k]];
+      std::vector<double> inputField(NX[k] * NY[k]);
 
       for (int j = 0; j < NY[k]; j++)
         for (int i = 0; i < NX[k]; i++) {

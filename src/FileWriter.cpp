@@ -36,19 +36,17 @@ void FileWriter::WriteTec(const string &prefix, string sufix, int time,
   string myType = ".dat";
 
   string name2 = newfilename.append(myType);
-  char qstr[name2.size() + 2];
-  strcpy(qstr, name2.c_str());
 
   int NXtemp = mainGrid.NI;
   int NYtemp = myGrid.NJ;
   if (loc == Loc::down) {
-    outfile.open(qstr);
+    outfile.open(name2);
 
     outfile << "VARIABLES=\"X\", \"Y\", \"U\", \"V\", \"T\", \"F\", \"Z\" \n";
     outfile << "ZONE T=\"Down\""
             << " ,I=" << NXtemp << ", J=" << NYtemp << ", DATAPACKING=POINT\n";
   } else {
-    outfile.open(qstr, std::ios::app);
+    outfile.open(name2, std::ios::app);
     outfile << "ZONE T=\"Up\"" << " ,I=" << NXtemp << ", J=" << NYtemp << ", DATAPACKING=POINT\n";
   }
 
@@ -101,12 +99,9 @@ void FileWriter::WriteInter(const string &prefix, string sufix, int time,
       name2.append(sufix);
       name2.append(myGridType);
 
-      char cstr[name2.size() + 2];
-      strcpy(cstr, name2.c_str());
-
       std::ofstream outfile;
 
-      outfile.open(cstr, std::ios::binary);
+      outfile.open(name2, std::ios::binary);
 
       int Blocks = 2;
       outfile.write((char *)&Blocks, sizeof(Blocks));
@@ -143,11 +138,8 @@ void FileWriter::WriteInter(const string &prefix, string sufix, int time,
       name2.append(sufix);
       name2.append(myGridType);
 
-      char cstr[name2.size() + 2];
-      strcpy(cstr, name2.c_str());
-
       std::ofstream outfile;
-      outfile.open(cstr, std::ios::app | std::ios::binary);
+      outfile.open(name2, std::ios::app | std::ios::binary);
 
       int jMax = myGrid.NJ + jStr;
 
@@ -182,14 +174,12 @@ void FileWriter::WriteInter(const string &prefix, string sufix, int time,
   string myType = ".q";
 
   string name2 = newfilename.append(myType);
-  char qstr[name2.size() + 2];
-  strcpy(qstr, name2.c_str());
 
   int Blocks = 2;
   int NXtemp = mainGrid.NI;
   int NYtemp = myGrid.NJ;
   if (loc == Loc::down) {
-    outfile.open(qstr, std::ios::binary);
+    outfile.open(name2, std::ios::binary);
 
     outfile.write((char *)&Blocks, sizeof(Blocks));
 
@@ -199,7 +189,7 @@ void FileWriter::WriteInter(const string &prefix, string sufix, int time,
     outfile.write((char *)&NXtemp, sizeof(NXtemp));
     outfile.write((char *)&NYtemp, sizeof(NYtemp));
   } else {
-    outfile.open(qstr, std::ios::app | std::ios::binary);
+    outfile.open(name2, std::ios::app | std::ios::binary);
   }
   // In q file there are 4 variables:
   outfile.write((char *)&mach, sizeof(mach));
@@ -245,10 +235,9 @@ void FileWriter::WriteInter(const string &prefix, string sufix, int time,
   string myFileType = ".f";
 
   string name3 = newfilename.append(myFileType);
-  char cstr[name3.size() + 2];
-  strcpy(cstr, newfilename.c_str());
+  
   if (loc == Loc::down) {
-    outfile.open(cstr, std::ios::out | std::ios::binary);
+    outfile.open(name3, std::ios::out | std::ios::binary);
 
     int NVar = 3;
 
@@ -268,7 +257,7 @@ void FileWriter::WriteInter(const string &prefix, string sufix, int time,
     outfile.write((char *)&NYtemp, sizeof(NYtemp));
     outfile.write((char *)&NVar, sizeof(NVar));
   } else
-    outfile.open(cstr, std::ios::app | std::ios::binary);
+    outfile.open(name3, std::ios::app | std::ios::binary);
 
   for (int j = jStr; j < jMax; j++)
     for (int i = iStr - 1; i < iEnd + 1; i++) {

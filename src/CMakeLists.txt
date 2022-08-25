@@ -1,18 +1,22 @@
-cmake_minimum_required(VERSION 3.10.0)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wunused-parameter -Wshadow -pedantic -Wsign-compare -Wtype-limits -Wignored-qualifiers -Wempty-body -Wclobbered -Wuninitialized -std=c++17 -larmadillo")
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wunused-parameter -Wshadow -pedantic -Wsign-compare -Wtype-limits -Wignored-qualifiers -Wempty-body -Wclobbered -Wuninitialized -std=c++17 ")
-# -fsanitize=undefined,address
+# include_directories(${CATCH2_INCLUDE_PATH})
 include_directories(${MPI_INCLUDE_PATH})
-include_directories(/home/javier/Documentos/Programs/CFEM/NoWall/inc)
+include_directories("../src")
+include_directories("../inc")
 
-SET(SOURCES main.cpp Grid.cpp Field.cpp FileWriter.cpp FiniteMatrix.cpp Equation.cpp FileReader.cpp)
+SET(SOURCES main.cpp
+  Grid.cpp
+  Field.cpp
+  FileWriter.cpp
+  FiniteMatrix.cpp
+  Equation.cpp
+  FileReader.cpp
+  problem.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
+add_library(${PROJECT_NAME}_lib STATIC ${SOURCES})
 target_link_libraries(${PROJECT_NAME} ${MPI_LIBRARIES})
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
-enable_testing()

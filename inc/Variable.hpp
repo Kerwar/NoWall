@@ -8,16 +8,21 @@
 #include "Grid.hpp"
 #include "Paralel.hpp"
 
-template <int N, int M, int NI, int NJ, int NPROCS>
+using parameters::beta;
+using parameters::gamma_reaction;
+using parameters::LeF;
+using parameters::LeZ;
+
+template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
 class Variable {
  public:
   Variable();
   virtual ~Variable();
 
   void passInfoGridToAll(const Grid &solGrid, const Grid &myGrid, double &viscX,
-                         double &viscY, double &LeF, double &LeZ);
+                         double &viscY);
   void initializeWall();
-  void readFile(Paralel<N, M, NPROCS> &paralel, int block, double &m,
+  void readFile(Paralel<NTOTAL, M, NPROCS> &paralel, int block, double &m,
                 double yMin, double yMax);
 
   inline void setMassFluxes(const Grid &myGrid) {
@@ -43,7 +48,7 @@ class Variable {
     Z.inletBoundaryCondition(east, 0.0);
   }
 
-  inline void sendInfoToCommMainProc(Paralel<N, M, NPROCS> &paralel) {
+  inline void sendInfoToCommMainProc(Paralel<NTOTAL, M, NPROCS> &paralel) {
     PROFILE_FUNCTION();
     paralel.SendInfoToCommMainProc(T, solT);
     paralel.SendInfoToCommMainProc(F, solF);
@@ -51,36 +56,37 @@ class Variable {
     paralel.SendInfoToCommMainProc(U, solU);
     paralel.SendInfoToCommMainProc(V, solV);
   }
-  inline void sendInfoToNeighbours(Paralel<N, M, NPROCS> &paralel) {
+  inline void sendInfoToNeighbours(Paralel<NTOTAL, M, NPROCS> &paralel) {
     PROFILE_FUNCTION();
     paralel.SendInfoToNeighbours(T);
     paralel.SendInfoToNeighbours(F);
     paralel.SendInfoToNeighbours(Z);
   }
 
-  inline void exchangeTemperature(const Paralel<N, M, NPROCS> &paralel,
+  inline void exchangeTemperature(const Paralel<NTOTAL, M, NPROCS> &paralel,
                                   const Grid &mainGrid) {
     PROFILE_FUNCTION();
 
     paralel.GatherWallTemperature(TWall, T);
 
     for (int i = 0; i < mainGrid.exI1; i++) TWall.value[i] = 0;
-    for (int i = mainGrid.exI2; i < N + 2; i++) TWall.value[i] = 0;
+    for (int i = mainGrid.exI2; i < NTOTAL + 2; i++) TWall.value[i] = 0;
 
-    if (paralel.myProc == 0) TWall.value = paralel.ExchangeWallTemperature(TWall);
+    if (paralel.myProc == 0)
+      TWall.value = paralel.ExchangeWallTemperature(TWall);
     MPI_Barrier(MPI_COMM_WORLD);
 
     paralel.ShareWallTemperatureInfo(TWall, T);
 
+    // paralel.scatter(TWall.value[1], NI - 2, DTinWall[1], 0);
     MPI_Scatter(&TWall.value[1], NI - 2, MPI_DOUBLE, &DTinWall[1], NI - 2,
-                MPI_DOUBLE, 0, paralel.myComm);
+                MPI_DOUBLE, 0, paralel.myComm.comm());
   }
 
   void setChannelEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
-                           const Paralel<N, M, NPROCS> &paralel,
-                           const double &m, const double &q, const double &beta,
-                           const double &gamma, double &DT, const double &exCte,
-                           const int &iter);
+                           const Paralel<NTOTAL, M, NPROCS> &paralel,
+                           const double &m, const double &q, double &DT,
+                           const double &exCte, const int &iter);
   void setWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
                     Direction side);
   void setExchangeWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
@@ -117,8 +123,8 @@ class Variable {
     lowerBoundFactorm *= 0.9;
     upperBoundFactorm *= 1.1;
   }
-  bool isTOutEqualToQ(double q, Paralel<N, M, NPROCS> &paralel);
-  void writeTInWall(Paralel<N, M, NPROCS> &paralel, const Grid &mainGrid,
+  bool isTOutEqualToQ(double q, Paralel<NTOTAL, M, NPROCS> &paralel);
+  void writeTInWall(Paralel<NTOTAL, M, NPROCS> &paralel, const Grid &mainGrid,
                     const Grid &myGrid, int iter);
 
   Field solT;
@@ -169,31 +175,32 @@ class Variable {
   }
 };
 
-template <int N, int M, int NI, int NJ, int NPROCS>
-Variable<N, M, NI, NJ, NPROCS>::Variable()
-    : solT(N, M),
-      solF(N, M),
-      solZ(N, M),
-      solU(N, M),
-      solV(N, M),
+template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
+Variable<NTOTAL, M, NI, NJ, NPROCS>::Variable()
+    : solT(NTOTAL, M),
+      solF(NTOTAL, M),
+      solZ(NTOTAL, M),
+      solU(NTOTAL, M),
+      solV(NTOTAL, M),
       U(NI, NJ),
       V(NI, NJ),
       T(NI, NJ),
       F(NI, NJ),
       Z(NI, NJ),
-      TWall(N + 2, 1),
-      TNextToWall(N + 2, 1),
+      TWall(NTOTAL + 2, 1),
+      TNextToWall(NTOTAL + 2, 1),
       DTinWall(NI, 0),
       massFluxE(NI, NJ),
       massFluxN(NI, NJ) {}
 
-template <int N, int M, int NI, int NJ, int NPROCS>
-Variable<N, M, NI, NJ, NPROCS>::~Variable() {}
+template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
+Variable<NTOTAL, M, NI, NJ, NPROCS>::~Variable() {}
 
-template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>::passInfoGridToAll(
-    const Grid &solGrid, const Grid &myGrid, double &viscX, double &viscY,
-    double &LeF, double &LeZ) {
+template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
+void Variable<NTOTAL, M, NI, NJ, NPROCS>::passInfoGridToAll(const Grid &solGrid,
+                                                            const Grid &myGrid,
+                                                            double &viscX,
+                                                            double &viscY) {
   PROFILE_FUNCTION();
 
   double viscTx = viscX;
@@ -222,12 +229,11 @@ void Variable<N, M, NI, NJ, NPROCS>::passInfoGridToAll(
   Z.getGridInfoPassed(myGrid, viscZx, viscZy);
 }
 
-template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>::setChannelEquations(
+template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
+void Variable<NTOTAL, M, NI, NJ, NPROCS>::setChannelEquations(
     Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
-    const Paralel<N, M, NPROCS> &paralel, const double &m, const double &q,
-    const double &beta, const double &gamma, double &DT, const double &exCte,
-    const int &iter) {
+    const Paralel<NTOTAL, M, NPROCS> &paralel, const double &m, const double &q,
+    double &DT, const double &exCte, const int &iter) {
   PROFILE_FUNCTION();
   if (iter == 1) {
     if (paralel.isLeftToRight())
@@ -239,14 +245,16 @@ void Variable<N, M, NI, NJ, NPROCS>::setChannelEquations(
                           fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
                           fvm::heatProduction(T, Z, q));
 
-    Feqn = new Equation(fvm::diffusiveTerm(F) +
-                        fvm::convectiveTerm(F, massFluxE, massFluxN, m) -
-                        fvm::intermidiateReaction(F, Z, T, beta, gamma));
+    Feqn =
+        new Equation(fvm::diffusiveTerm(F) +
+                     fvm::convectiveTerm(F, massFluxE, massFluxN, m) -
+                     fvm::intermidiateReaction(F, Z, T, beta, gamma_reaction));
 
-    Zeqn = new Equation(fvm::diffusiveTerm(Z) +
-                        fvm::convectiveTerm(Z, massFluxE, massFluxN, m) +
-                        fvm::intermidiateReaction(F, Z, T, beta, gamma) -
-                        fvm::zComsumptium(Z));
+    Zeqn =
+        new Equation(fvm::diffusiveTerm(Z) +
+                     fvm::convectiveTerm(Z, massFluxE, massFluxN, m) +
+                     fvm::intermidiateReaction(F, Z, T, beta, gamma_reaction) -
+                     fvm::zComsumptium(Z));
 
     Teqn->DT = DT;
     Feqn->DT = DT;
@@ -261,22 +269,24 @@ void Variable<N, M, NI, NJ, NPROCS>::setChannelEquations(
                            fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
                            fvm::heatProduction(T, Z, q));
 
-    Feqn->updateEquation(fvm::diffusiveTerm(F) +
-                         fvm::convectiveTerm(F, massFluxE, massFluxN, m) -
-                         fvm::intermidiateReaction(F, Z, T, beta, gamma));
+    Feqn->updateEquation(
+        fvm::diffusiveTerm(F) +
+        fvm::convectiveTerm(F, massFluxE, massFluxN, m) -
+        fvm::intermidiateReaction(F, Z, T, beta, gamma_reaction));
 
-    Zeqn->updateEquation(fvm::diffusiveTerm(Z) +
-                         fvm::convectiveTerm(Z, massFluxE, massFluxN, m) +
-                         fvm::intermidiateReaction(F, Z, T, beta, gamma) -
-                         fvm::zComsumptium(Z));
+    Zeqn->updateEquation(
+        fvm::diffusiveTerm(Z) +
+        fvm::convectiveTerm(Z, massFluxE, massFluxN, m) +
+        fvm::intermidiateReaction(F, Z, T, beta, gamma_reaction) -
+        fvm::zComsumptium(Z));
   }
 }
 
-template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>::setWallShear(Equation *&Teqn,
-                                                  Equation *&Feqn,
-                                                  Equation *&Zeqn,
-                                                  Direction side) {
+template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
+void Variable<NTOTAL, M, NI, NJ, NPROCS>::setWallShear(Equation *&Teqn,
+                                                       Equation *&Feqn,
+                                                       Equation *&Zeqn,
+                                                       Direction side) {
   PROFILE_FUNCTION();
   if (side == west || side == east) {
     Teqn->SetWallShearY(T, side);
@@ -289,8 +299,8 @@ void Variable<N, M, NI, NJ, NPROCS>::setWallShear(Equation *&Teqn,
   }
 }
 
-template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>::setExchangeWallShear(
+template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
+void Variable<NTOTAL, M, NI, NJ, NPROCS>::setExchangeWallShear(
     Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Direction side, int iStr,
     int iEnd, int mainexI1, int mainexI2, int exI1, int exI2) {
   PROFILE_FUNCTION();
@@ -300,8 +310,8 @@ void Variable<N, M, NI, NJ, NPROCS>::setExchangeWallShear(
   Zeqn->SetWallShearX(Z, side);
 }
 
-template <int N, int M, int NI, int NJ, int NPROCS>
-double Variable<N, M, NI, NJ, NPROCS>::solveEquations(
+template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
+double Variable<NTOTAL, M, NI, NJ, NPROCS>::solveEquations(
     Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, double alpha, int &niter,
     int &itersol, int changeIter) {
   PROFILE_FUNCTION();
@@ -323,10 +333,10 @@ double Variable<N, M, NI, NJ, NPROCS>::solveEquations(
   return error;
 }
 
-template <int N, int M, int NI, int NJ, int NPROCS>
-double Variable<N, M, NI, NJ, NPROCS>::calculateNewM(const double &alpha,
-                                                     const double &m,
-                                                     const double &q) {
+template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
+double Variable<NTOTAL, M, NI, NJ, NPROCS>::calculateNewM(const double &alpha,
+                                                          const double &m,
+                                                          const double &q) {
   PROFILE_FUNCTION();
   int index = ifix + jfix * NI;
   T.value[index] = 0.7;
@@ -370,10 +380,10 @@ double Variable<N, M, NI, NJ, NPROCS>::calculateNewM(const double &alpha,
   return newM;
 }
 
-template <int N, int M, int NI, int NJ, int NPROCS>
-double Variable<N, M, NI, NJ, NPROCS>::calculateNewQ(const double &alpha,
-                                                     const double &m,
-                                                     const double &q) {
+template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
+double Variable<NTOTAL, M, NI, NJ, NPROCS>::calculateNewQ(const double &alpha,
+                                                          const double &m,
+                                                          const double &q) {
   PROFILE_FUNCTION();
   int index = ifix + jfix * NI;
   T.value[index] = 0.7;
@@ -402,20 +412,23 @@ double Variable<N, M, NI, NJ, NPROCS>::calculateNewQ(const double &alpha,
                                      T.value[index - NI] * T.FYP[jfix - 1]);
 
   double reactionTerm = Z.value[index] * T.volume[index];
-  if(Z.value[index] < 10e-12) reactionTerm = 10e-12 * T.volume[index];
+  if (Z.value[index] < 10e-12) reactionTerm = 10e-12 * T.volume[index];
 
-  double newQ = alpha * (m*(convectiveTermX + convectiveTermY) - diffusiveTermX - diffusiveTermY) /
+  double newQ = alpha *
+                    (m * (convectiveTermX + convectiveTermY) - diffusiveTermX -
+                     diffusiveTermY) /
                     (reactionTerm) +
                 (1 - alpha) * q;
 
   newQ = std::min(q * upperBoundFactorm, newQ);
   newQ = std::max(q * lowerBoundFactorm, newQ);
-  std::cout << newQ << "\n";
+  // std::cout << "->" << T.NI << "\n";
   return newQ;
 }
 
-template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>::setFixIndex(double xfix, double yfix) {
+template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
+void Variable<NTOTAL, M, NI, NJ, NPROCS>::setFixIndex(double xfix,
+                                                      double yfix) {
   PROFILE_FUNCTION();
 
   ifix = 0;
@@ -442,10 +455,10 @@ void Variable<N, M, NI, NJ, NPROCS>::setFixIndex(double xfix, double yfix) {
   jfix--;
 }
 
-template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>::readFile(Paralel<N, M, NPROCS> &paralel,
-                                              int block, double &m, double yMin,
-                                              double yMax) {
+template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
+void Variable<NTOTAL, M, NI, NJ, NPROCS>::readFile(
+    Paralel<NTOTAL, M, NPROCS> &paralel, int block, double &m, double yMin,
+    double yMax) {
   PROFILE_FUNCTION();
 
   FileReader fileread;
@@ -465,28 +478,28 @@ void Variable<N, M, NI, NJ, NPROCS>::readFile(Paralel<N, M, NPROCS> &paralel,
                        paralel.locIEnd);
   }
 
-  MPI_Barrier(paralel.myComm);
+  paralel.myComm.wait();
 
   paralel.distributeToProcs(solT, T);
   paralel.distributeToProcs(solF, F);
   paralel.distributeToProcs(solZ, Z);
 }
 
-template <int N, int M, int NI, int NJ, int NPROCS>
-bool Variable<N, M, NI, NJ, NPROCS>::isTOutEqualToQ(
-    double q, Paralel<N, M, NPROCS> &paralel) {
+template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
+bool Variable<NTOTAL, M, NI, NJ, NPROCS>::isTOutEqualToQ(
+    double q, Paralel<NTOTAL, M, NPROCS> &paralel) {
   PROFILE_FUNCTION();
 
   bool result = false;
   double expectedTOut = q * M / 2.0;
   if (paralel.myProc == 0 && paralel.isRightToLeft()) {
     double TOut = 0;
-    for (int j = 0; j < M; j++) TOut += solT.value[1 + j * N];
+    for (int j = 0; j < M; j++) TOut += solT.value[1 + j * NTOTAL];
 
     if (abs(TOut - expectedTOut) < 10e-3) result = true;
   } else if (paralel.myProc == 0 && paralel.isLeftToRight()) {
     double TOut = 0;
-    for (int j = 0; j < M; j++) TOut += solT.value[N - 2 + j * N];
+    for (int j = 0; j < M; j++) TOut += solT.value[NTOTAL - 2 + j * NTOTAL];
 
     if (abs(TOut - expectedTOut) < 10e-3) result = true;
   }
@@ -504,20 +517,19 @@ bool Variable<N, M, NI, NJ, NPROCS>::isTOutEqualToQ(
   return result;
 }
 
-template <int N, int M, int NI, int NJ, int NPROCS>
-void Variable<N, M, NI, NJ, NPROCS>::writeTInWall(
-    Paralel<N, M, NPROCS> &paralel, const Grid &mainGrid, const Grid &myGrid,
-    int iter) {
+template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
+void Variable<NTOTAL, M, NI, NJ, NPROCS>::writeTInWall(
+    Paralel<NTOTAL, M, NPROCS> &paralel, const Grid &mainGrid,
+    const Grid &myGrid, int iter) {
   PROFILE_FUNCTION();
 
   string file = "TW";
   std::ostringstream filename;
   filename << file << "--" << paralel.worldMyProc << "--" << iter << ".txt";
-  char cstr[filename.str().size() + 2];
-  strcpy(cstr, filename.str().c_str());
 
+  std::string trystr = filename.str();
   std::ofstream outfile;
-  outfile.open(cstr, std::ios::out);
+  outfile.open(trystr, std::ios::out);
   outfile << myGrid.exI1 << " " << myGrid.exI2 << std::endl;
   for (int i = paralel.iStr; i < paralel.iEnd; i++) {
     if (paralel.isLeftToRight())
