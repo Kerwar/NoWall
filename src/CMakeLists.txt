@@ -6,12 +6,13 @@ include_directories("../src")
 include_directories("../inc")
 
 SET(SOURCES main.cpp
-  Grid.cpp
-  Field.cpp
-  FileWriter.cpp
-  FiniteMatrix.cpp
-  Equation.cpp
-  FileReader.cpp
+  grid.cpp
+  field.cpp
+  filewriter.cpp
+  finitematrix.cpp
+  equation.cpp
+  filereader.cpp
+  variable.cpp
   problem.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES})

@@ -7,8 +7,8 @@
 #include <iostream>
 #include <sstream>
 
-#include "Field.hpp"
-#include "Grid.hpp"
+#include "field.hpp"
+#include "grid.hpp"
 
 using std::cout, std::endl;
 using std::string;

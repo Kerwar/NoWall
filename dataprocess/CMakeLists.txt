@@ -6,5 +6,5 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wunused-parameter -Wshadow -pe
 include_directories("../src")
 include_directories("../inc")
 
-SET(SOURCES datamain.cpp ../src/FileReader.cpp ../src/Field.cpp)
+SET(SOURCES datamain.cpp ../src/filereader.cpp ../src/field.cpp)
 add_executable(datas ${SOURCES} ) 

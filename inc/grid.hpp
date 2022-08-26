@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "ForAllOperators.hpp"
+#include "foralloperators.hpp"
 
 using std::vector;
 
@@ -20,10 +20,8 @@ class Grid {
   void setXC(vector<double> &X, vector<double> &XC);
   void setYC(vector<double> &Y, vector<double> &YC);
 
-  void setXF(vector<double> &X, vector<double> &XC,
-             vector<double> &XF);
-  void setYF(vector<double> &Y, vector<double> &YC,
-             vector<double> &YF);
+  void setXF(vector<double> &X, vector<double> &XC, vector<double> &XF);
+  void setYF(vector<double> &Y, vector<double> &YC, vector<double> &YF);
 
   // Number of points introduced by the User
   int N, M;

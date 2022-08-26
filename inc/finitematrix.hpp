@@ -5,8 +5,8 @@
 #include <iostream>
 #include <vector>
 
-#include "Field.hpp"
-#include "ForAllOperators.hpp"
+#include "field.hpp"
+#include "foralloperators.hpp"
 
 using std::vector;
 

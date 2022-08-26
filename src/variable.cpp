@@ -1,187 +1,11 @@
-#ifndef VARIABLE_H
-#define VARIABLE_H
+#include "variable.hpp"
 
-#include "Equation.hpp"
-#include "Field.hpp"
-#include "FileReader.hpp"
-#include "FiniteVolumeOperations.hpp"
-#include "Grid.hpp"
-#include "Paralel.hpp"
-
-using parameters::beta;
-using parameters::gamma_reaction;
-using parameters::LeF;
-using parameters::LeZ;
-
-template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
-class Variable {
- public:
-  Variable();
-  virtual ~Variable();
-
-  void passInfoGridToAll(const Grid &solGrid, const Grid &myGrid, double &viscX,
-                         double &viscY);
-  void initializeWall();
-  void readFile(Paralel<NTOTAL, M, NPROCS> &paralel, int block, double &m,
-                double yMin, double yMax);
-
-  inline void setMassFluxes(const Grid &myGrid) {
-    PROFILE_FUNCTION();
-
-    massFluxE.getGridInfoPassed(myGrid, U.viscX[0], U.viscY[0]);
-    massFluxN.getGridInfoPassed(myGrid, V.viscX[0], V.viscY[0]);
-
-    massFluxE.computeEastMassFluxes(U);
-    massFluxN.computeNorthMassFluxes(V);
-  }
-
-  inline void setInletBoundaryConditionLeftToRight() {
-    PROFILE_FUNCTION();
-    T.inletBoundaryCondition(west, 0.0);
-    F.inletBoundaryCondition(west, 1.0);
-    Z.inletBoundaryCondition(west, 0.0);
-  }
-  inline void setInletBoundaryConditionRightToLeft() {
-    PROFILE_FUNCTION();
-    T.inletBoundaryCondition(east, 0.0);
-    F.inletBoundaryCondition(east, 1.0);
-    Z.inletBoundaryCondition(east, 0.0);
-  }
-
-  inline void sendInfoToCommMainProc(Paralel<NTOTAL, M, NPROCS> &paralel) {
-    PROFILE_FUNCTION();
-    paralel.SendInfoToCommMainProc(T, solT);
-    paralel.SendInfoToCommMainProc(F, solF);
-    paralel.SendInfoToCommMainProc(Z, solZ);
-    paralel.SendInfoToCommMainProc(U, solU);
-    paralel.SendInfoToCommMainProc(V, solV);
-  }
-  inline void sendInfoToNeighbours(Paralel<NTOTAL, M, NPROCS> &paralel) {
-    PROFILE_FUNCTION();
-    paralel.SendInfoToNeighbours(T);
-    paralel.SendInfoToNeighbours(F);
-    paralel.SendInfoToNeighbours(Z);
-  }
-
-  inline void exchangeTemperature(const Paralel<NTOTAL, M, NPROCS> &paralel,
-                                  const Grid &mainGrid) {
-    PROFILE_FUNCTION();
-
-    paralel.GatherWallTemperature(TWall, T);
-
-    for (int i = 0; i < mainGrid.exI1; i++) TWall.value[i] = 0;
-    for (int i = mainGrid.exI2; i < NTOTAL + 2; i++) TWall.value[i] = 0;
-
-    if (paralel.myProc == 0)
-      TWall.value = paralel.ExchangeWallTemperature(TWall);
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    paralel.ShareWallTemperatureInfo(TWall, T);
-
-    // paralel.scatter(TWall.value[1], NI - 2, DTinWall[1], 0);
-    MPI_Scatter(&TWall.value[1], NI - 2, MPI_DOUBLE, &DTinWall[1], NI - 2,
-                MPI_DOUBLE, 0, paralel.myComm.comm());
-  }
-
-  void setChannelEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
-                           const Paralel<NTOTAL, M, NPROCS> &paralel,
-                           const double &m, const double &q, double &DT,
-                           const double &exCte, const int &iter);
-  void setWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
-                    Direction side);
-  void setExchangeWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
-                            Direction side, int iStr, int iEnd, int mainexI1,
-                            int mainexI2, int exI1, int exI2);
-  inline void setDirichlet(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
-                           Direction side) {
-    PROFILE_FUNCTION();
-    Teqn->SetDirichlet(T, side);
-    Feqn->SetDirichlet(F, side);
-    Zeqn->SetDirichlet(Z, side);
-  }
-
-  inline void assembleEquations(Equation *&Teqn, Equation *&Feqn,
-                                Equation *&Zeqn) {
-    PROFILE_FUNCTION();
-
-    Teqn->assembleEquation();
-    Feqn->assembleEquation();
-    Zeqn->assembleEquation();
-
-    Teqn->relax(T);
-    Feqn->relax(F);
-    Zeqn->relax(Z);
-  }
-  double solveEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
-                        double alpha, int &niter, int &itersol, int changeIter);
-  double calculateNewM(const double &alpha, const double &m, const double &q);
-  double calculateNewQ(const double &alpha, const double &m, const double &q);
-  void setFixIndex(double xfix, double yfix);
-  inline void updateBoundFactors() {
-    PROFILE_FUNCTION();
-
-    lowerBoundFactorm *= 0.9;
-    upperBoundFactorm *= 1.1;
-  }
-  bool isTOutEqualToQ(double q, Paralel<NTOTAL, M, NPROCS> &paralel);
-  void writeTInWall(Paralel<NTOTAL, M, NPROCS> &paralel, const Grid &mainGrid,
-                    const Grid &myGrid, int iter);
-
-  Field solT;
-  Field solF, solZ;
-  Field solU, solV;
-  bool manyIter = false;
-
- private:
-  int ifix, jfix;
-  Field U, V;
-
-  Field T;
-  Field F, Z;
-
-  Field TWall, TNextToWall;
-
-  vector<double> DTinWall;
-  Field massFluxE, massFluxN;
-  double lowerBoundFactorm = 0.9, upperBoundFactorm = 1.1;
-  double DY;
-
-  string initialsol = "Sol-1.f";
-
- public:
-  inline void initializeLeftToRight(const double &m, const double &yMin,
-                                    const double &yMax, const double &q,
-                                    const double &xHS, const double &r0hs,
-                                    const double &z0hs, const double &xMin,
-                                    const double &xMax) {
-    PROFILE_FUNCTION();
-    U.laminarFlow(m, yMin, yMax);
-    V.initializeInternalField(0);
-    T.InitializeT(q, xHS, xMin, xMax);
-    F.InitializeF(xHS, xMin, xMax);
-    Z.InitializeZ(z0hs, r0hs, xHS, (yMin + yMax) / 2.0);
-  }
-  inline void initializeRightToLeft(const double &m, const double &yMin,
-                                    const double &yMax, const double &q,
-                                    const double &xHS, const double &r0hs,
-                                    const double &z0hs, const double &xMin,
-                                    const double &xMax) {
-    PROFILE_FUNCTION();
-    U.laminarFlow(-m, yMin, yMax);
-    V.initializeInternalField(0);
-    T.InitializeT(q, xHS, xMax, xMin);
-    F.InitializeF(xHS, xMax, xMin);
-    Z.InitializeZ(z0hs, r0hs, xHS, (yMin + yMax) / 2.0);
-  }
-};
-
-template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
-Variable<NTOTAL, M, NI, NJ, NPROCS>::Variable()
-    : solT(NTOTAL, M),
-      solF(NTOTAL, M),
-      solZ(NTOTAL, M),
-      solU(NTOTAL, M),
-      solV(NTOTAL, M),
+Variable::Variable()
+    : solT(NTOTAL, MINPUT),
+      solF(NTOTAL, MINPUT),
+      solZ(NTOTAL, MINPUT),
+      solU(NTOTAL, MINPUT),
+      solV(NTOTAL, MINPUT),
       U(NI, NJ),
       V(NI, NJ),
       T(NI, NJ),
@@ -193,16 +17,9 @@ Variable<NTOTAL, M, NI, NJ, NPROCS>::Variable()
       massFluxE(NI, NJ),
       massFluxN(NI, NJ) {}
 
-template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
-Variable<NTOTAL, M, NI, NJ, NPROCS>::~Variable() {}
+Variable::~Variable() {}
 
-template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
-void Variable<NTOTAL, M, NI, NJ, NPROCS>::passInfoGridToAll(const Grid &solGrid,
-                                                            const Grid &myGrid,
-                                                            double &viscX,
-                                                            double &viscY) {
-  PROFILE_FUNCTION();
-
+void Variable::passInfoSolutionGrid(const Grid &solGrid, double viscX, double viscY){
   double viscTx = viscX;
   double viscTy = viscY;
 
@@ -218,8 +35,21 @@ void Variable<NTOTAL, M, NI, NJ, NPROCS>::passInfoGridToAll(const Grid &solGrid,
   solV.getGridInfoPassed(solGrid, viscTx, viscTy);
   solT.getGridInfoPassed(solGrid, viscTx, viscTy);
   solF.getGridInfoPassed(solGrid, viscFx, viscFy);
-  solZ.getGridInfoPassed(solGrid, viscZy, viscZy);
+  solZ.getGridInfoPassed(solGrid, viscZx, viscZy);
   TNextToWall.XC = solU.XC;
+}
+void Variable::passInfoMyGrid(const Grid &myGrid, double viscX,
+                              double viscY) {
+  PROFILE_FUNCTION();
+
+  double viscTx = viscX;
+  double viscTy = viscY;
+
+  double viscFx = viscX / LeF;
+  double viscFy = viscY / LeF;
+
+  double viscZx = viscX / LeZ;
+  double viscZy = viscY / LeZ;
 
   U.getGridInfoPassed(myGrid, viscX, viscY);
   V.getGridInfoPassed(myGrid, viscX, viscY);
@@ -229,11 +59,11 @@ void Variable<NTOTAL, M, NI, NJ, NPROCS>::passInfoGridToAll(const Grid &solGrid,
   Z.getGridInfoPassed(myGrid, viscZx, viscZy);
 }
 
-template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
-void Variable<NTOTAL, M, NI, NJ, NPROCS>::setChannelEquations(
-    Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
-    const Paralel<NTOTAL, M, NPROCS> &paralel, const double &m, const double &q,
-    double &DT, const double &exCte, const int &iter) {
+void Variable::setChannelEquations(Equation *&Teqn, Equation *&Feqn,
+                                   Equation *&Zeqn,
+                                   const Paralel<NTOTAL, MINPUT, NPROCS> &paralel,
+                                   const double &m, const double &q, double &DT,
+                                   const double &exCte, const int &iter) {
   PROFILE_FUNCTION();
   if (iter == 1) {
     if (paralel.isLeftToRight())
@@ -282,11 +112,8 @@ void Variable<NTOTAL, M, NI, NJ, NPROCS>::setChannelEquations(
   }
 }
 
-template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
-void Variable<NTOTAL, M, NI, NJ, NPROCS>::setWallShear(Equation *&Teqn,
-                                                       Equation *&Feqn,
-                                                       Equation *&Zeqn,
-                                                       Direction side) {
+void Variable::setWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
+                            Direction side) {
   PROFILE_FUNCTION();
   if (side == west || side == east) {
     Teqn->SetWallShearY(T, side);
@@ -299,10 +126,10 @@ void Variable<NTOTAL, M, NI, NJ, NPROCS>::setWallShear(Equation *&Teqn,
   }
 }
 
-template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
-void Variable<NTOTAL, M, NI, NJ, NPROCS>::setExchangeWallShear(
-    Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, Direction side, int iStr,
-    int iEnd, int mainexI1, int mainexI2, int exI1, int exI2) {
+void Variable::setExchangeWallShear(Equation *&Teqn, Equation *&Feqn,
+                                    Equation *&Zeqn, Direction side, int iStr,
+                                    int iEnd, int mainexI1, int mainexI2,
+                                    int exI1, int exI2) {
   PROFILE_FUNCTION();
 
   Teqn->SetWallShearTX(T, iStr, iEnd, mainexI1, mainexI2, exI1, exI2, side);
@@ -310,10 +137,9 @@ void Variable<NTOTAL, M, NI, NJ, NPROCS>::setExchangeWallShear(
   Zeqn->SetWallShearX(Z, side);
 }
 
-template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
-double Variable<NTOTAL, M, NI, NJ, NPROCS>::solveEquations(
-    Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn, double alpha, int &niter,
-    int &itersol, int changeIter) {
+double Variable::solveEquations(Equation *&Teqn, Equation *&Feqn,
+                                Equation *&Zeqn, double alpha, int &niter,
+                                int &itersol, int changeIter) {
   PROFILE_FUNCTION();
   double error = 10;
   double newerror = 10;
@@ -333,10 +159,8 @@ double Variable<NTOTAL, M, NI, NJ, NPROCS>::solveEquations(
   return error;
 }
 
-template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
-double Variable<NTOTAL, M, NI, NJ, NPROCS>::calculateNewM(const double &alpha,
-                                                          const double &m,
-                                                          const double &q) {
+double Variable::calculateNewM(const double &alpha, const double &m,
+                               const double &q) {
   PROFILE_FUNCTION();
   int index = ifix + jfix * NI;
   T.value[index] = 0.7;
@@ -370,20 +194,14 @@ double Variable<NTOTAL, M, NI, NJ, NPROCS>::calculateNewM(const double &alpha,
                     (convectiveTermX + convectiveTermY) +
                 (1 - alpha) * m;
 
-  // std::cout << reactionTerm << " " << diffusiveTermX << " " << diffusiveTermY
-  // << " " << convectiveTermX << " " << convectiveTermY<< endl; std::cout <<
-  // diffusiveTermY << " " << T.viscY[index] * T.Sn[ifix] << " " <<
-  // T.viscY[index] << " " << T.Sn[ifix] << endl;
   newM = std::min(m * upperBoundFactorm, newM);
   newM = std::max(m * lowerBoundFactorm, newM);
   newM = std::max(newM, 0.4);
   return newM;
 }
 
-template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
-double Variable<NTOTAL, M, NI, NJ, NPROCS>::calculateNewQ(const double &alpha,
-                                                          const double &m,
-                                                          const double &q) {
+double Variable::calculateNewQ(const double &alpha, const double &m,
+                               const double &q) {
   PROFILE_FUNCTION();
   int index = ifix + jfix * NI;
   T.value[index] = 0.7;
@@ -426,9 +244,7 @@ double Variable<NTOTAL, M, NI, NJ, NPROCS>::calculateNewQ(const double &alpha,
   return newQ;
 }
 
-template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
-void Variable<NTOTAL, M, NI, NJ, NPROCS>::setFixIndex(double xfix,
-                                                      double yfix) {
+void Variable::setFixIndex(double xfix, double yfix) {
   PROFILE_FUNCTION();
 
   ifix = 0;
@@ -455,10 +271,8 @@ void Variable<NTOTAL, M, NI, NJ, NPROCS>::setFixIndex(double xfix,
   jfix--;
 }
 
-template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
-void Variable<NTOTAL, M, NI, NJ, NPROCS>::readFile(
-    Paralel<NTOTAL, M, NPROCS> &paralel, int block, double &m, double yMin,
-    double yMax) {
+void Variable::readFile(Paralel<NTOTAL, MINPUT, NPROCS> &paralel, int block,
+                        double &m, double yMin, double yMax) {
   PROFILE_FUNCTION();
 
   FileReader fileread;
@@ -485,9 +299,7 @@ void Variable<NTOTAL, M, NI, NJ, NPROCS>::readFile(
   paralel.distributeToProcs(solZ, Z);
 }
 
-template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
-bool Variable<NTOTAL, M, NI, NJ, NPROCS>::isTOutEqualToQ(
-    double q, Paralel<NTOTAL, M, NPROCS> &paralel) {
+bool Variable::isTOutEqualToQ(double q, const Paralel<NTOTAL, MINPUT, NPROCS> &paralel) {
   PROFILE_FUNCTION();
 
   bool result = false;
@@ -517,10 +329,9 @@ bool Variable<NTOTAL, M, NI, NJ, NPROCS>::isTOutEqualToQ(
   return result;
 }
 
-template <int NTOTAL, int M, int NI, int NJ, int NPROCS>
-void Variable<NTOTAL, M, NI, NJ, NPROCS>::writeTInWall(
-    Paralel<NTOTAL, M, NPROCS> &paralel, const Grid &mainGrid,
-    const Grid &myGrid, int iter) {
+void Variable::writeTInWall(Paralel<NTOTAL, MINPUT, NPROCS> &paralel,
+                            const Grid &mainGrid, const Grid &myGrid,
+                            int iter) {
   PROFILE_FUNCTION();
 
   string file = "TW";
@@ -547,5 +358,3 @@ void Variable<NTOTAL, M, NI, NJ, NPROCS>::writeTInWall(
 
   outfile.close();
 }
-
-#endif

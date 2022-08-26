@@ -1,4 +1,4 @@
-#include "Grid.hpp"
+#include "grid.hpp"
 
 #include <iostream>
 
@@ -16,12 +16,12 @@ Grid::Grid(const int &n, const int &m, const double &xmin, const double &xmax,
       yMax(ymax),
       Xlength(xMax - xMin),
       Ylength(yMax - yMin),
-      X(vector<double>(NI,0)),
-      Y(vector<double>(NJ,0)),
-      XC(vector<double>(NI,0)),
-      YC(vector<double>(NJ,0)),
-      XF(vector<double>(NI,0)),
-      YF(vector<double>(NJ,0)) {
+      X(vector<double>(NI, 0)),
+      Y(vector<double>(NJ, 0)),
+      XC(vector<double>(NI, 0)),
+      YC(vector<double>(NJ, 0)),
+      XF(vector<double>(NI, 0)),
+      YF(vector<double>(NJ, 0)) {
   DX = Xlength / N;
   DY = Ylength / M;
 
@@ -49,22 +49,19 @@ void Grid::setY(vector<double> &vecY) {
   vecY[NJ - 1] = vecY[NJ - 2];
 }
 
-void Grid::setXC(vector<double> &vecX,
-                 vector<double> &vecXC) {
+void Grid::setXC(vector<double> &vecX, vector<double> &vecXC) {
   vecXC[0] = xMin;
 
   for (int i = 1; i < NI; i++) vecXC[i] = (vecX[i] + vecX[i - 1]) * 0.5;
 }
 
-void Grid::setYC(vector<double> &vecY,
-                 vector<double> &vecYC) {
+void Grid::setYC(vector<double> &vecY, vector<double> &vecYC) {
   vecYC[0] = yMin;
 
   for (int j = 1; j < NJ; j++) vecYC[j] = (vecY[j] + vecY[j - 1]) * 0.5;
 }
 
-void Grid::setXF(vector<double> &vecX,
-                 vector<double> &vecXC,
+void Grid::setXF(vector<double> &vecX, vector<double> &vecXC,
                  vector<double> &vecXF) {
   for (int i = 0; i < NI - 1; i++)
     vecXF[i] = (vecX[i] - vecXC[i]) / (vecXC[i + 1] - vecXC[i]);
@@ -73,8 +70,7 @@ void Grid::setXF(vector<double> &vecX,
   vecXF[NI - 1] = 0.0;
 }
 
-void Grid::setYF(vector<double> &vecY,
-                 vector<double> &vecYC,
+void Grid::setYF(vector<double> &vecY, vector<double> &vecYC,
                  vector<double> &vecYF) {
   for (int j = 0; j < NJ - 1; j++)
     vecYF[j] = (vecY[j] - vecYC[j]) / (vecYC[j + 1] - vecYC[j]);

@@ -3,17 +3,16 @@
 
 #include <memory>
 
+#include "equation.hpp"
+#include "filewriter.hpp"
+#include "grid.hpp"
+#include "paralel.hpp"
 #include "parameters.hpp"
-#include "Equation.hpp"
-#include "FileWriter.hpp"
-#include "Grid.hpp"
-#include "Paralel.hpp"
-#include "Variable.hpp"
+#include "variable.hpp"
 
 using namespace parameters;
 
 class Problem {
-
  public:
   Problem(const double &prevm);
   virtual ~Problem();
@@ -21,7 +20,6 @@ class Problem {
   void setUpProblem();
   void initializeVariables();
   void writeSolution(string &filename, int i);
-  void freeComm();
   double mainIter(int i);
   void writefilename(string &filename);
   void retrieveNandM(int &nxOut, int &nyOut, double &mOut);
@@ -30,13 +28,14 @@ class Problem {
   };
 
   int maxit, iShow;
-  double m,q;
+  double m, q;
   double xfix;
   Paralel<NTOTAL, MINPUT, NPROCS> paralel;
 
   inline bool isErrorSmallEnough(double &error) {
     return error < TOL ? true : false;
   };
+
  private:
   double alpha;
 
@@ -54,7 +53,7 @@ class Problem {
 
   bool readFromFile;
   Grid mainGrid, myGrid;
-  Variable<NTOTAL, MINPUT, NTOTAL+2, M+2, NPROCS> variables;
+  Variable variables;
 
   int myProc, nProcs;
   double myXMin, myXMax;
@@ -65,7 +64,7 @@ class Problem {
   Equation *Zeqn;
 
   string sufix;
-  
+
   bool fixPointInThisProc();
   void setExchangeConstant();
   bool isFixPointXCoordinateInThisProc();

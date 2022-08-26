@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "Field.hpp"
 #include "communicator.hpp"
+#include "field.hpp"
 #include "mpi.h"
 #include "parameters.hpp"
 
@@ -22,7 +22,7 @@ enum Loc {
   down,
 };
 
-template <int NTOTAL, int M, int NPROCS>
+template <int NTOTAL, int MINPUT, int NPROCS>
 struct Paralel {
  public:
   Paralel();
@@ -31,7 +31,7 @@ struct Paralel {
   static constexpr int nProcsInRow = NPROCS / 2;
   static constexpr int nProcsInCol = 1;
   static constexpr int NI = NTOTAL / nProcsInRow + 2;
-  static constexpr int NJ = M / 2 + 2;
+  static constexpr int NJ = MINPUT / 2 + 2;
 
   int worldNProcs, worldMyProc;
 
@@ -48,7 +48,7 @@ struct Paralel {
   vector<int> iStrAllProc, iEndAllProc;
   vector<int> jStrAllProc, jEndAllProc;
 
-  int fixPointProc;
+  int fixPointProc{0};
   Communicator myComm;
   MPI_Datatype column_type;
 
@@ -61,10 +61,10 @@ struct Paralel {
   void ShareWallTemperatureInfo(Field &TWall, Field &T) const;
   void SendWallTInTheChannel(Field &TWall) const;
   void MainsProcs(Loc location, int &proc);
-  void freeComm();
   void PrintProgress(const string &message, bool showProgress);
   void distributeToProcs(Field &sol, Field &vec);
 
+  void setProcWithFixPoint(const bool &fixPointIntThisProc);
   void scatter(double &from, int size, double &to, int originProc);
 
   inline bool isLeftToRight() const { return loc == up ? true : false; };
@@ -90,8 +90,8 @@ struct Paralel {
   // double exCte, double ex2);
 };
 
-template <int NTOTAL, int M, int NPROCS>
-Paralel<NTOTAL, M, NPROCS>::Paralel() {
+template <int NTOTAL, int MINPUT, int NPROCS>
+Paralel<NTOTAL, MINPUT, NPROCS>::Paralel() {
   PROFILE_FUNCTION();
   MPI_Comm_rank(MPI_COMM_WORLD, &worldMyProc);
   MPI_Comm_size(MPI_COMM_WORLD, &worldNProcs);
@@ -133,7 +133,7 @@ Paralel<NTOTAL, M, NPROCS>::Paralel() {
       locIStr = 0;
       locIEnd = NTOTAL;
       locJStr = NJ - 2;
-      locJEnd = M - 1;
+      locJEnd = MINPUT - 1;
 
       for (int i = 0; i < NPROCS / 2; i++) {
         jStrAllProc[i] += locJStr;
@@ -160,18 +160,13 @@ Paralel<NTOTAL, M, NPROCS>::Paralel() {
   MPI_Type_commit(&column_type);
 }
 
-template <int NTOTAL, int M, int NPROCS>
-Paralel<NTOTAL, M, NPROCS>::~Paralel() {
-  MPI_Type_free(&column_type);
+template <int NTOTAL, int MINPUT, int NPROCS>
+Paralel<NTOTAL, MINPUT, NPROCS>::~Paralel() {
+  // MPI_Type_free(&column_type);
 }
 
-template <int NTOTAL, int M, int NPROCS>
-void Paralel<NTOTAL, M, NPROCS>::freeComm() {
-  myComm.free();
-}
-
-template <int NTOTAL, int M, int NPROCS>
-int Paralel<NTOTAL, M, NPROCS>::id(int x, int y) {
+template <int NTOTAL, int MINPUT, int NPROCS>
+int Paralel<NTOTAL, MINPUT, NPROCS>::id(int x, int y) {
   int myCoords[2] = {x, y};
   int result;
 
@@ -180,8 +175,8 @@ int Paralel<NTOTAL, M, NPROCS>::id(int x, int y) {
   return result;
 }
 
-template <int NTOTAL, int M, int NPROCS>
-void Paralel<NTOTAL, M, NPROCS>::SendInfoToNeighbours(Field &vec) {
+template <int NTOTAL, int MINPUT, int NPROCS>
+void Paralel<NTOTAL, MINPUT, NPROCS>::SendInfoToNeighbours(Field &vec) {
   int leftTag = 10, rightTag = 11, topTag = 12, botTag = 13;
 
   leftTag *= (1 + loc);
@@ -226,8 +221,8 @@ void Paralel<NTOTAL, M, NPROCS>::SendInfoToNeighbours(Field &vec) {
                myComm.comm(), MPI_STATUS_IGNORE);
 }
 
-template <int NTOTAL, int M, int NPROCS>
-void Paralel<NTOTAL, M, NPROCS>::MainsProcs(Loc location, int &proc) {
+template <int NTOTAL, int MINPUT, int NPROCS>
+void Paralel<NTOTAL, MINPUT, NPROCS>::MainsProcs(Loc location, int &proc) {
   PROFILE_FUNCTION();
   int buffer;
 
@@ -251,8 +246,8 @@ void Paralel<NTOTAL, M, NPROCS>::MainsProcs(Loc location, int &proc) {
   proc = buffer;
 }
 
-template <int NTOTAL, int M, int NPROCS>
-vector<double> Paralel<NTOTAL, M, NPROCS>::ExchangeWallTemperature(
+template <int NTOTAL, int MINPUT, int NPROCS>
+vector<double> Paralel<NTOTAL, MINPUT, NPROCS>::ExchangeWallTemperature(
     const Field &TWall) const {
   PROFILE_FUNCTION();
 
@@ -273,9 +268,9 @@ vector<double> Paralel<NTOTAL, M, NPROCS>::ExchangeWallTemperature(
   return recv;
 }
 
-template <int NTOTAL, int M, int NPROCS>
-void Paralel<NTOTAL, M, NPROCS>::ShareWallTemperatureInfo(Field &TWall,
-                                                          Field &T) const {
+template <int NTOTAL, int MINPUT, int NPROCS>
+void Paralel<NTOTAL, MINPUT, NPROCS>::ShareWallTemperatureInfo(Field &TWall,
+                                                               Field &T) const {
   PROFILE_FUNCTION();
 
   int n = NI - 1;
@@ -294,15 +289,16 @@ void Paralel<NTOTAL, M, NPROCS>::ShareWallTemperatureInfo(Field &TWall,
   }
 }
 
-template <int NTOTAL, int M, int NPROCS>
-void Paralel<NTOTAL, M, NPROCS>::SendWallTInTheChannel(Field &TWall) const {
+template <int NTOTAL, int MINPUT, int NPROCS>
+void Paralel<NTOTAL, MINPUT, NPROCS>::SendWallTInTheChannel(
+    Field &TWall) const {
   PROFILE_FUNCTION();
 
   PMPI_Bcast(&TWall.value[0], NTOTAL + 2, MPI_DOUBLE, 0, myComm.comm());
 }
 
-template <int NTOTAL, int M, int NPROCS>
-void Paralel<NTOTAL, M, NPROCS>::setProcMesh() {
+template <int NTOTAL, int MINPUT, int NPROCS>
+void Paralel<NTOTAL, MINPUT, NPROCS>::setProcMesh() {
   PROFILE_FUNCTION();
 
   iStrAllProc = vector<int>(nProcs, 0);
@@ -321,9 +317,9 @@ void Paralel<NTOTAL, M, NPROCS>::setProcMesh() {
     }
 }
 
-template <int NTOTAL, int M, int NPROCS>
-void Paralel<NTOTAL, M, NPROCS>::SendInfoToCommMainProc(Field &vec,
-                                                        Field &sol) {
+template <int NTOTAL, int MINPUT, int NPROCS>
+void Paralel<NTOTAL, MINPUT, NPROCS>::SendInfoToCommMainProc(Field &vec,
+                                                             Field &sol) {
   PROFILE_FUNCTION();
   const int iIS = NI - 2;
   const int jIS = NJ - 2;
@@ -369,8 +365,8 @@ void Paralel<NTOTAL, M, NPROCS>::SendInfoToCommMainProc(Field &vec,
   myComm.wait();
 }
 
-template <int NTOTAL, int M, int NPROCS>
-string Paralel<NTOTAL, M, NPROCS>::PrintMyRank() {
+template <int NTOTAL, int MINPUT, int NPROCS>
+string Paralel<NTOTAL, MINPUT, NPROCS>::PrintMyRank() {
   // string result = to_string();
   return to_string(myProc) + "/" + to_string(nProcs - 1) + "-(" +
          to_string(myRowId) + "/" + to_string(nProcsInRow - 1) + "," +
@@ -378,9 +374,9 @@ string Paralel<NTOTAL, M, NPROCS>::PrintMyRank() {
          to_string(worldMyProc) + "/" + to_string(worldNProcs - 1);
 }
 
-template <int NTOTAL, int M, int NPROCS>
-void Paralel<NTOTAL, M, NPROCS>::PrintProgress(const string &message,
-                                               bool showProgress) {
+template <int NTOTAL, int MINPUT, int NPROCS>
+void Paralel<NTOTAL, MINPUT, NPROCS>::PrintProgress(const string &message,
+                                                    bool showProgress) {
   if (showProgress == true) {
     MPI_Barrier(MPI_COMM_WORLD);
     cout << message << PrintMyRank() << ".\n";
@@ -390,15 +386,16 @@ void Paralel<NTOTAL, M, NPROCS>::PrintProgress(const string &message,
   }
 }
 
-template <int NTOTAL, int M, int NPROCS>
-void Paralel<NTOTAL, M, NPROCS>::distributeToProcs(Field &sol, Field &vec) {
+template <int NTOTAL, int MINPUT, int NPROCS>
+void Paralel<NTOTAL, MINPUT, NPROCS>::distributeToProcs(Field &sol,
+                                                        Field &vec) {
   PROFILE_FUNCTION();
 
-  int counts[NPROCS/2];
-  int displacements[NPROCS/2];
+  int counts[NPROCS / 2];
+  int displacements[NPROCS / 2];
   int sendCount = 0;
 
-  double buffer[NTOTAL * M];
+  double buffer[NTOTAL * MINPUT];
 
   for (int k = 0; k < nProcs; k++) {
     displacements[k] = sendCount;
@@ -434,9 +431,9 @@ void Paralel<NTOTAL, M, NPROCS>::distributeToProcs(Field &sol, Field &vec) {
   }
 }
 
-template <int NTOTAL, int M, int NPROCS>
-void Paralel<NTOTAL, M, NPROCS>::GatherWallTemperature(Field &TWall,
-                                                       Field &T) const {
+template <int NTOTAL, int MINPUT, int NPROCS>
+void Paralel<NTOTAL, MINPUT, NPROCS>::GatherWallTemperature(Field &TWall,
+                                                            Field &T) const {
   PROFILE_FUNCTION();
   if (isLeftToRight())
     GatherTemperature(T, TWall, 1);
@@ -444,19 +441,29 @@ void Paralel<NTOTAL, M, NPROCS>::GatherWallTemperature(Field &TWall,
     GatherTemperature(T, TWall, T.NJ - 2);
 }
 
-template <int NTOTAL, int M, int NPROCS>
-void Paralel<NTOTAL, M, NPROCS>::GatherTemperature(Field &T, Field &TWall,
-                                                   int J) const {
+template <int NTOTAL, int MINPUT, int NPROCS>
+void Paralel<NTOTAL, MINPUT, NPROCS>::GatherTemperature(Field &T, Field &TWall,
+                                                        int J) const {
   MPI_Gather(&T.value[1 + J * NI], NI - 2, MPI_DOUBLE, &TWall.value[1], NI - 2,
              MPI_DOUBLE, 0, myComm.comm());
   // for (int i = 0; i < exI1; i++) TWall.value[i] = 0;
 
   // for (int i = exI2; i < N + 2; i++) TWall.value[i] = 0;
 }
-template <int NTOTAL, int M, int NPROCS>
-void Paralel<NTOTAL, M, NPROCS>::scatter(double &from, int size, double &to,
-                                         int originProc) {
+
+template <int NTOTAL, int MINPUT, int NPROCS>
+void Paralel<NTOTAL, MINPUT, NPROCS>::scatter(double &from, int size,
+                                              double &to, int originProc) {
   MPI_Scatter(&from, size, MPI_DOUBLE, &to, size, MPI_DOUBLE, originProc,
               myComm.comm());
+}
+
+template <int NTOTAL, int MINPUT, int NPROCS>
+void Paralel<NTOTAL, MINPUT, NPROCS>::setProcWithFixPoint(
+    const bool &fixPointInThisProc) {
+  if (fixPointInThisProc) fixPointProc += worldMyProc;
+
+  MPI_Allreduce(&fixPointProc, &fixPointProc, 1, MPI_INT, MPI_SUM,
+                MPI_COMM_WORLD);
 }
 #endif

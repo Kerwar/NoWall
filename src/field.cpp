@@ -1,4 +1,4 @@
-#include "Field.hpp"
+#include "field.hpp"
 
 Field::Field(const int &_NI, const int &_NJ)
     : NI(_NI),
@@ -19,8 +19,8 @@ Field::Field(const int &_NI, const int &_NJ)
 
 Field::~Field() {}
 
-void Field::getGridInfoPassed(const Grid &myGrid,const  double &viscX_,
-                              const double &viscY_) {
+void Field::getGridInfoPassed(const Grid &myGrid, const double &_viscX,
+                              const double &_viscY) {
   X = myGrid.X;
   Y = myGrid.Y;
   XC = myGrid.XC;
@@ -32,8 +32,8 @@ void Field::getGridInfoPassed(const Grid &myGrid,const  double &viscX_,
     FXP[i] = 1.0 - myGrid.XF[i];
     FYP[j] = 1.0 - myGrid.YF[j];
     density[index] = 1.0;
-    viscX[index] = viscX_;
-    viscY[index] = viscY_;
+    viscX[index] = _viscX;
+    viscY[index] = _viscY;
   }
 
   forAllInterior(NI, NJ) {

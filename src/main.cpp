@@ -6,9 +6,9 @@
 #include <iostream>
 #include <thread>
 
-#include "Instrumentor.hpp"
 #include "communicator.hpp"
 #include "environment.hpp"
+#include "instrumentor.hpp"
 #include "mpi.h"
 #include "parameters.hpp"
 #include "problem.hpp"
@@ -89,7 +89,8 @@ int main(int argc, char **argv) {
         fromStart = std::chrono::high_resolution_clock::now();
         durationFromStart = fromStart - startTime;
         if (world.rank() == 0)
-          PrintCurrentStep(durationFromStart, durationFromPrev, i, error, problem.q);
+          PrintCurrentStep(durationFromStart, durationFromPrev, i, error,
+                           problem.q);
         if (!problem.isErrorSmallEnough(error))
           problem.writeSolution(filename, i);
         if (problem.isErrorSmallEnough(error)) break;
@@ -102,6 +103,5 @@ int main(int argc, char **argv) {
     if (world.rank() == 0) cout << "We have Computed Everything!" << endl;
     Instrumentor::Get().EndSession();
   }
-
   return 0;
 }

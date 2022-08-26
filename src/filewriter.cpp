@@ -1,4 +1,4 @@
-#include "FileWriter.hpp"
+#include "filewriter.hpp"
 
 FileWriter::FileWriter() {
   // ctor
@@ -47,7 +47,8 @@ void FileWriter::WriteTec(const string &prefix, string sufix, int time,
             << " ,I=" << NXtemp << ", J=" << NYtemp << ", DATAPACKING=POINT\n";
   } else {
     outfile.open(name2, std::ios::app);
-    outfile << "ZONE T=\"Up\"" << " ,I=" << NXtemp << ", J=" << NYtemp << ", DATAPACKING=POINT\n";
+    outfile << "ZONE T=\"Up\""
+            << " ,I=" << NXtemp << ", J=" << NYtemp << ", DATAPACKING=POINT\n";
   }
 
   int jMax = myGrid.NJ + jStr;
@@ -235,7 +236,7 @@ void FileWriter::WriteInter(const string &prefix, string sufix, int time,
   string myFileType = ".f";
 
   string name3 = newfilename.append(myFileType);
-  
+
   if (loc == Loc::down) {
     outfile.open(name3, std::ios::out | std::ios::binary);
 

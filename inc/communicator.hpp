@@ -9,7 +9,8 @@ using std::vector;
 
 class Communicator {
  public:
-  Communicator(MPI_Comm comm = MPI_COMM_WORLD)
+  Communicator() : Communicator(MPI_COMM_WORLD){};
+  Communicator(MPI_Comm comm)
       : comm_(comm),
         mpi_error_(MPI_Comm_size(MPI_COMM_WORLD, &size_)),
         mpi_error2_(MPI_Comm_rank(MPI_COMM_WORLD, &rank_)){};
@@ -19,10 +20,6 @@ class Communicator {
   inline int size() const { return size_; };
   inline MPI_Comm comm() const { return comm_; };
   MPI_Comm *comm_ref() { return &comm_; };
-
-  void free() {
-    if (comm_ != MPI_COMM_NULL) MPI_Comm_free(&comm_);
-  };
 
   void wait() { MPI_Barrier(comm_); };
   void send(const vector<double> &info, int destination);

@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 
-#include "Field.hpp"
+#include "field.hpp"
 #include "readdata.hpp"
 
 int main() {
@@ -69,7 +69,7 @@ int main() {
       int K = 0;
       int add_i = index_files_a_active[K];
 
-      for (int k = 1; k < (int) index_files_a_active.size(); k++)
+      for (int k = 1; k < (int)index_files_a_active.size(); k++)
         if (q[index_files_a_active[k]] > q[add_i]) {
           K = k;
           add_i = index_files_a_active[K];
@@ -96,7 +96,7 @@ int main() {
       T_after1.erase(T_after1.begin() + del_i);
       indexes.erase(indexes.begin() + del_i);
       for (int k = i; k < n_files; k++)
-        if(index_files_a_remove[i] < index_files_a_remove[k])
+        if (index_files_a_remove[i] < index_files_a_remove[k])
           index_files_a_remove[k]--;
     }
     outfile.close();

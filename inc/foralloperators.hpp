@@ -3,7 +3,7 @@
 #pragma once
 #include <vector>
 
-#include "Instrumentor.hpp"
+#include "instrumentor.hpp"
 
 using std::vector;
 

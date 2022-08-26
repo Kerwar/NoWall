@@ -1,4 +1,4 @@
-#include "FileReader.hpp"
+#include "filereader.hpp"
 
 FileReader::FileReader() {}
 
@@ -6,7 +6,6 @@ FileReader::~FileReader() {}
 
 void FileReader::readField(string &name, int blockWanted, int variableWanted,
                            Field &vec, int locIStr, int locIEnd) {
-
   std::ifstream infile(name, std::ios::binary);
   // std::ifstream readGrid("Grid.xyz", std::ios::binary);
 

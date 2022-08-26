@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "Grid.hpp"
+#include "grid.hpp"
 
 using std::string;
 using std::vector;

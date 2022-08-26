@@ -5,7 +5,7 @@
 #include <iostream>
 #include <string>
 
-#include "FileReader.hpp"
+#include "filereader.hpp"
 
 namespace fs = std::filesystem;
 
@@ -13,13 +13,15 @@ int indexofT1(const Field &vec, const int &NI, const int &NJ) {
   int result = 0;
 
   while (vec.value[result + (NJ - 1) * NI] < 1) result++;
-  
-  if (result >= NI){
+
+  if (result >= NI) {
     result = 0;
-    
+
     for (int i = 0; i < NI; i++)
-      if (vec[result + (NJ - 1) * NI] < vec[i + (NJ - 1) * NI]){ result = i;}
-      // std::cout << i << " " << vec[result + (NJ-1)*NI] << std::endl;}
+      if (vec[result + (NJ - 1) * NI] < vec[i + (NJ - 1) * NI]) {
+        result = i;
+      }
+    // std::cout << i << " " << vec[result + (NJ-1)*NI] << std::endl;}
   }
   return result;
 }

@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "FiniteMatrix.hpp"
+#include "finitematrix.hpp"
 
 class Equation {
  public:
@@ -25,11 +25,9 @@ class Equation {
   void relax(const Field &);
 
   void noWallShearXBoundaryConditions(const Field &vec, const int &start,
-                                      const int &end,
-                                      const Direction &side);
+                                      const int &end, const Direction &side);
   void noWallShearYBoundaryConditions(const Field &vec, const int &start,
-                                      const int &end,
-                                      const Direction &side);
+                                      const int &end, const Direction &side);
 
   void SetWallShearTX(const Field &vec, const int &iStr, const int &iEnd,
                       const int &Ex1, const int &Ex2, const int &myEx1,

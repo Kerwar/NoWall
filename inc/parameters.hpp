@@ -5,8 +5,8 @@ namespace parameters {
 // NUMERICAL
 constexpr int NPROCS = 2;
 
-constexpr int NINPUT = 1200;
-constexpr int MINPUT = 20;
+constexpr int NINPUT = 240;
+constexpr int MINPUT = 80;
 
 constexpr double TOL = 10E-10;
 
@@ -26,7 +26,7 @@ constexpr double y_wall_max = 1.;
 constexpr double y_top_min = 0.5;
 constexpr double y_top_max = 1.;
 
-constexpr double a = 1;
+constexpr double a = 5;
 constexpr double a2 = 1 / (a * a);
 
 // REACTION
@@ -44,6 +44,9 @@ constexpr double r0hs = 1;
 constexpr int NTOTAL = NINPUT + (NPROCS + (-NINPUT) % NPROCS) % NPROCS;
 constexpr int N = NTOTAL / (NPROCS / 2);
 constexpr int M = MINPUT / 2;
+
+constexpr int NI = N + 2;
+constexpr int NJ = M + 2;
 
 constexpr double DX = (channel_xmax - channel_xmin) / NTOTAL;
 

@@ -1,4 +1,4 @@
-#include "Equation.hpp"
+#include "equation.hpp"
 
 Equation::Equation(const FiniteMatrix::finiteMat &Fmatrix)
     : value(0.0),
@@ -283,7 +283,7 @@ double Equation::solveGaussSeidel(Field &phi, const double &alpha,
           newvalue * alpha + (1.0 - alpha) * phi.value[i + j * NI];
     }
   }
-  return Residual/rerror;
+  return Residual / rerror;
 }
 
 double Equation::solveExplicit(Field &phi) {

@@ -64,7 +64,15 @@
     "thread": "cpp",
     "typeinfo": "cpp",
     "variant": "cpp",
-    "codecvt": "cpp"
+    "codecvt": "cpp",
+    "any": "cpp",
+    "strstream": "cpp",
+    "bitset": "cpp",
+    "forward_list": "cpp",
+    "unordered_set": "cpp",
+    "cfenv": "cpp",
+    "typeindex": "cpp",
+    "*.ipp": "cpp"
   },
   "C_Cpp.enhancedColorization": "Enabled"
   }

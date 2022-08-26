@@ -3,9 +3,9 @@
 
 #include <math.h>
 
-#include "Field.hpp"
-#include "FiniteMatrix.hpp"
-#include "ForAllOperators.hpp"
+#include "field.hpp"
+#include "finitematrix.hpp"
+#include "foralloperators.hpp"
 
 namespace fvm {
 
@@ -195,8 +195,8 @@ inline FiniteMatrix::finiteMat intermidiateReaction(const Field &vec,
     int index = i + j * NI;
     double expPortion = exp(beta * (T.value[index] - 1.0) /
                             (1.0 + gamma * (T.value[index] - 1.0)));
-    APtemp[i][j].svalue = beta * beta * expPortion * vec[index] *
-                          vec2[index] * vec.volume[index];
+    APtemp[i][j].svalue =
+        beta * beta * expPortion * vec[index] * vec2[index] * vec.volume[index];
   }
   return APtemp;
 }

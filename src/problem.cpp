@@ -1,6 +1,6 @@
 #include "problem.hpp"
 
-Problem::Problem(const double &prevm) : maxit(10E4), iShow(10E3), m(prevm) {
+Problem::Problem(const double &prevm) : maxit(10E1), iShow(10E0), m(prevm) {
   PROFILE_FUNCTION();
   readFromFile = false;
   alpha = 0.95;
@@ -49,17 +49,14 @@ void Problem::setUpProblem() {
 
 void Problem::initializeVariables() {
   PROFILE_FUNCTION();
-  variables.passInfoGridToAll(mainGrid, myGrid, viscX, viscY);
+
+  variables.passInfoSolutionGrid(mainGrid, viscX, viscY);
+  variables.passInfoMyGrid(myGrid, viscX, viscY);
+
   setExchangeConstant();
-  int fixPointProcBuffer = 0;
 
-  if (fixPointInThisProc()) {
-    fixPointProcBuffer += paralel.worldMyProc;
-    variables.setFixIndex(xfix, yfix);
-  }
-
-  MPI_Allreduce(&fixPointProcBuffer, &paralel.fixPointProc, 1, MPI_INT, MPI_SUM,
-                MPI_COMM_WORLD);
+  paralel.setProcWithFixPoint(fixPointInThisProc());
+  if (paralel.myProc == paralel.fixPointProc) variables.setFixIndex(xfix, yfix);
 
   if (!readFromFile) {
     if (paralel.isLeftToRight())
@@ -143,7 +140,6 @@ void Problem::writeSolution(string &prefix, int i) {
   } else {
     sufix = "";
     writefilename(sufix);
-    variables.writeTInWall(paralel, mainGrid, myGrid, 0);
     variables.sendInfoToCommMainProc(paralel);
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -248,8 +244,6 @@ double Problem::mainIter(int i) {
   MPI_Barrier(MPI_COMM_WORLD);
   return error_result;
 }
-
-void Problem::freeComm() { paralel.freeComm(); }
 
 bool Problem::fixPointInThisProc() {
   return isFixPointXCoordinateInThisProc() && isFixPointYCoordinateInThisProc();
