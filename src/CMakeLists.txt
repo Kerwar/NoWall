@@ -13,6 +13,7 @@ SET(SOURCES main.cpp
   equation.cpp
   filereader.cpp
   variable.cpp
+  paralel.cpp
   problem.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES})

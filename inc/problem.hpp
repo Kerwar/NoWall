@@ -3,11 +3,7 @@
 
 #include <memory>
 
-#include "equation.hpp"
 #include "filewriter.hpp"
-#include "grid.hpp"
-#include "paralel.hpp"
-#include "parameters.hpp"
 #include "variable.hpp"
 
 using namespace parameters;
@@ -30,7 +26,7 @@ class Problem {
   int maxit, iShow;
   double m, q;
   double xfix;
-  Paralel<NTOTAL, MINPUT, NPROCS> paralel;
+  Paralel paralel;
 
   inline bool isErrorSmallEnough(double &error) {
     return error < TOL ? true : false;
@@ -59,9 +55,7 @@ class Problem {
   double myXMin, myXMax;
   double myYMin, myYMax;
 
-  Equation *Teqn;
-  Equation *Feqn;
-  Equation *Zeqn;
+  SystemOfEquations sys;
 
   string sufix;
 

@@ -19,7 +19,8 @@ Variable::Variable()
 
 Variable::~Variable() {}
 
-void Variable::passInfoSolutionGrid(const Grid &solGrid, double viscX, double viscY){
+void Variable::passInfoSolutionGrid(const Grid &solGrid, double viscX,
+                                    double viscY) {
   double viscTx = viscX;
   double viscTy = viscY;
 
@@ -38,8 +39,7 @@ void Variable::passInfoSolutionGrid(const Grid &solGrid, double viscX, double vi
   solZ.getGridInfoPassed(solGrid, viscZx, viscZy);
   TNextToWall.XC = solU.XC;
 }
-void Variable::passInfoMyGrid(const Grid &myGrid, double viscX,
-                              double viscY) {
+void Variable::passInfoMyGrid(const Grid &myGrid, double viscX, double viscY) {
   PROFILE_FUNCTION();
 
   double viscTx = viscX;
@@ -59,97 +59,93 @@ void Variable::passInfoMyGrid(const Grid &myGrid, double viscX,
   Z.getGridInfoPassed(myGrid, viscZx, viscZy);
 }
 
-void Variable::setChannelEquations(Equation *&Teqn, Equation *&Feqn,
-                                   Equation *&Zeqn,
-                                   const Paralel<NTOTAL, MINPUT, NPROCS> &paralel,
+void Variable::setChannelEquations(SystemOfEquations &sys, const Paralel &paralel,
                                    const double &m, const double &q, double &DT,
                                    const double &exCte, const int &iter) {
   PROFILE_FUNCTION();
   if (iter == 1) {
-    if (paralel.isLeftToRight())
-      Teqn = new Equation(fvm::diffusiveTermS(T, DTinWall, exCte) +
+    if (paralel.is_left2right())
+      sys.T = new Equation(fvm::diffusiveTermS(T, DTinWall, exCte) +
                           fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
                           fvm::heatProduction(T, Z, q));
     else
-      Teqn = new Equation(fvm::diffusiveTermN(T, DTinWall, exCte) +
+      sys.T = new Equation(fvm::diffusiveTermN(T, DTinWall, exCte) +
                           fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
                           fvm::heatProduction(T, Z, q));
 
-    Feqn =
+    sys.F =
         new Equation(fvm::diffusiveTerm(F) +
                      fvm::convectiveTerm(F, massFluxE, massFluxN, m) -
-                     fvm::intermidiateReaction(F, Z, T, beta, gamma_reaction));
+                     fvm::intermidiateReaction(F, Z, T, beta_reaction, gamma_reaction));
 
-    Zeqn =
+    sys.Z =
         new Equation(fvm::diffusiveTerm(Z) +
                      fvm::convectiveTerm(Z, massFluxE, massFluxN, m) +
-                     fvm::intermidiateReaction(F, Z, T, beta, gamma_reaction) -
+                     fvm::intermidiateReaction(F, Z, T, beta_reaction, gamma_reaction) -
                      fvm::zComsumptium(Z));
 
-    Teqn->DT = DT;
-    Feqn->DT = DT;
-    Zeqn->DT = DT;
+    sys.T->DT = DT;
+    sys.F->DT = DT;
+    sys.Z->DT = DT;
   } else {
-    if (paralel.isLeftToRight())
-      Teqn->updateEquation(fvm::diffusiveTermS(T, DTinWall, exCte) +
+    if (paralel.is_left2right())
+      sys.T->updateEquation(fvm::diffusiveTermS(T, DTinWall, exCte) +
                            fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
                            fvm::heatProduction(T, Z, q));
     else
-      Teqn->updateEquation(fvm::diffusiveTermN(T, DTinWall, exCte) +
+      sys.T->updateEquation(fvm::diffusiveTermN(T, DTinWall, exCte) +
                            fvm::convectiveTerm(T, massFluxE, massFluxN, m) +
                            fvm::heatProduction(T, Z, q));
 
-    Feqn->updateEquation(
+    sys.F->updateEquation(
         fvm::diffusiveTerm(F) +
         fvm::convectiveTerm(F, massFluxE, massFluxN, m) -
-        fvm::intermidiateReaction(F, Z, T, beta, gamma_reaction));
+        fvm::intermidiateReaction(F, Z, T, beta_reaction, gamma_reaction));
 
-    Zeqn->updateEquation(
+    sys.Z->updateEquation(
         fvm::diffusiveTerm(Z) +
         fvm::convectiveTerm(Z, massFluxE, massFluxN, m) +
-        fvm::intermidiateReaction(F, Z, T, beta, gamma_reaction) -
+        fvm::intermidiateReaction(F, Z, T, beta_reaction, gamma_reaction) -
         fvm::zComsumptium(Z));
   }
 }
 
-void Variable::setWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
+void Variable::setWallShear(SystemOfEquations &sys,
                             Direction side) {
   PROFILE_FUNCTION();
   if (side == west || side == east) {
-    Teqn->SetWallShearY(T, side);
-    Feqn->SetWallShearY(F, side);
-    Zeqn->SetWallShearY(Z, side);
+    sys.T->SetWallShearY(T, side);
+    sys.F->SetWallShearY(F, side);
+    sys.Z->SetWallShearY(Z, side);
   } else {
-    Teqn->SetWallShearX(T, side);
-    Feqn->SetWallShearX(F, side);
-    Zeqn->SetWallShearX(Z, side);
+    sys.T->SetWallShearX(T, side);
+    sys.F->SetWallShearX(F, side);
+    sys.Z->SetWallShearX(Z, side);
   }
 }
 
-void Variable::setExchangeWallShear(Equation *&Teqn, Equation *&Feqn,
-                                    Equation *&Zeqn, Direction side, int iStr,
+void Variable::setExchangeWallShear(SystemOfEquations &sys, Direction side, int iStr,
                                     int iEnd, int mainexI1, int mainexI2,
                                     int exI1, int exI2) {
   PROFILE_FUNCTION();
 
-  Teqn->SetWallShearTX(T, iStr, iEnd, mainexI1, mainexI2, exI1, exI2, side);
-  Feqn->SetWallShearX(F, side);
-  Zeqn->SetWallShearX(Z, side);
+  sys.T->SetWallShearTX(T, iStr, iEnd, mainexI1, mainexI2, exI1, exI2, side);
+  sys.F->SetWallShearX(F, side);
+  sys.Z->SetWallShearX(Z, side);
 }
 
-double Variable::solveEquations(Equation *&Teqn, Equation *&Feqn,
-                                Equation *&Zeqn, double alpha, int &niter,
+double Variable::solveEquations(SystemOfEquations &sys, double alpha, int &niter,
                                 int &itersol, int changeIter) {
   PROFILE_FUNCTION();
   double error = 10;
   double newerror = 10;
 
-  error = Teqn->solve(T, alpha, niter, itersol, changeIter);
+  error = sys.T->solve(T, alpha, niter, itersol, changeIter);
 
-  newerror = Feqn->solve(F, alpha, niter, itersol, changeIter);
+  newerror = sys.F->solve(F, alpha, niter, itersol, changeIter);
   error = std::max(error, newerror);
 
-  newerror = Zeqn->solve(Z, alpha, niter, itersol, changeIter);
+  newerror = sys.Z->solve(Z, alpha, niter, itersol, changeIter);
   error = std::max(error, newerror);
 
   forAllInterior(NI, NJ) {
@@ -271,45 +267,46 @@ void Variable::setFixIndex(double xfix, double yfix) {
   jfix--;
 }
 
-void Variable::readFile(Paralel<NTOTAL, MINPUT, NPROCS> &paralel, int block,
-                        double &m, double yMin, double yMax) {
+void Variable::readFile(Paralel &paralel, int block, double &m, double yMin,
+                        double yMax) {
   PROFILE_FUNCTION();
 
   FileReader fileread;
 
   double laminarm = m;
-  if (paralel.isRightToLeft()) laminarm = -m;
+  if (paralel.is_right2left()) laminarm = -m;
 
   U.laminarFlow(laminarm, yMin, yMax);
   V.initializeInternalField(0);
 
-  if (paralel.myProc == 0) {
-    fileread.readField(initialsol, block, 1, solT, paralel.locIStr,
+  if (paralel.channel.is_main_proc()) {
+    fileread.read_field(initialsol, block, 1, solT, paralel.locIStr,
                        paralel.locIEnd);
-    fileread.readField(initialsol, block, 2, solF, paralel.locIStr,
+    fileread.read_field(initialsol, block, 2, solF, paralel.locIStr,
                        paralel.locIEnd);
-    fileread.readField(initialsol, block, 3, solZ, paralel.locIStr,
+    fileread.read_field(initialsol, block, 3, solZ, paralel.locIStr,
                        paralel.locIEnd);
   }
 
-  paralel.myComm.wait();
+  paralel.channel.wait();
 
   paralel.distributeToProcs(solT, T);
   paralel.distributeToProcs(solF, F);
   paralel.distributeToProcs(solZ, Z);
 }
 
-bool Variable::isTOutEqualToQ(double q, const Paralel<NTOTAL, MINPUT, NPROCS> &paralel) {
+bool Variable::isTOutEqualToQ(double q, const Paralel &paralel) {
   PROFILE_FUNCTION();
 
   bool result = false;
   double expectedTOut = q * M / 2.0;
-  if (paralel.myProc == 0 && paralel.isRightToLeft()) {
+
+  if (paralel.is_main_proc_down()) {
     double TOut = 0;
     for (int j = 0; j < M; j++) TOut += solT.value[1 + j * NTOTAL];
 
     if (abs(TOut - expectedTOut) < 10e-3) result = true;
-  } else if (paralel.myProc == 0 && paralel.isLeftToRight()) {
+  } else if (paralel.is_main_proc_up()) {
     double TOut = 0;
     for (int j = 0; j < M; j++) TOut += solT.value[NTOTAL - 2 + j * NTOTAL];
 
@@ -329,32 +326,22 @@ bool Variable::isTOutEqualToQ(double q, const Paralel<NTOTAL, MINPUT, NPROCS> &p
   return result;
 }
 
-void Variable::writeTInWall(Paralel<NTOTAL, MINPUT, NPROCS> &paralel,
-                            const Grid &mainGrid, const Grid &myGrid,
-                            int iter) {
+void Variable::exchangeTemperature(const Paralel &paralel,
+                                   const Grid &mainGrid) {
   PROFILE_FUNCTION();
 
-  string file = "TW";
-  std::ostringstream filename;
-  filename << file << "--" << paralel.worldMyProc << "--" << iter << ".txt";
+  paralel.GatherWallTemperature(TWall, T);
 
-  std::string trystr = filename.str();
-  std::ofstream outfile;
-  outfile.open(trystr, std::ios::out);
-  outfile << myGrid.exI1 << " " << myGrid.exI2 << std::endl;
-  for (int i = paralel.iStr; i < paralel.iEnd; i++) {
-    if (paralel.isLeftToRight())
-      outfile << i << " " << i - paralel.iStr + 1 << " " << mainGrid.XC[i + 1]
-              << " " << myGrid.XC[i - paralel.iStr + 1] << " "
-              << TWall.value[i + 1] << " " << DTinWall[i + 1] << " "
-              << std::endl;
-    else
-      outfile << i << " " << i - paralel.iStr + 1 << " " << mainGrid.XC[i + 1]
-              << " " << myGrid.XC[i - paralel.iStr + 1] << " "
-              << TWall.value[i + 1] << " "
-              << T.value[i - paralel.iStr + 1 + (NJ - 1) * NI] << " "
-              << std::endl;
-  }
+  for (int i = 0; i < mainGrid.exI1; i++) TWall.value[i] = 0;
+  for (int i = mainGrid.exI2; i < NTOTAL + 2; i++) TWall.value[i] = 0;
 
-  outfile.close();
+  if (paralel.channel.is_main_proc())
+    TWall.value = paralel.ExchangeWallTemperature(TWall);
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  paralel.ShareWallTemperatureInfo(TWall, T);
+
+  // paralel.scatter(TWall.value[1], NI - 2, DTinWall[1], 0);
+  MPI_Scatter(&TWall.value[1], NI - 2, MPI_DOUBLE, &DTinWall[1], NI - 2,
+              MPI_DOUBLE, 0, paralel.channel.comm());
 }

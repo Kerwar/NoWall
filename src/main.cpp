@@ -47,7 +47,7 @@ void PrintCurrentStep(const std::chrono::duration<double> &tStart,
 int main(int argc, char **argv) {
   Environment env(argc, argv);
   Communicator world(MPI_COMM_WORLD);
-
+  
   Instrumentor::Get().BeginSession("../Profiling/Profile-" +
                                    std::to_string(world.rank()) + ".json");
 
@@ -55,6 +55,7 @@ int main(int argc, char **argv) {
   if (world.size() == NPROCS) {
     double mprevious = 2;
     Problem problem(mprevious);
+    
     if (argc > 1) problem.xfix = std::atof(argv[1]);
 
     problem.setUpProblem();

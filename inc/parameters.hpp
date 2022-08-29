@@ -5,8 +5,8 @@ namespace parameters {
 // NUMERICAL
 constexpr int NPROCS = 2;
 
-constexpr int NINPUT = 240;
-constexpr int MINPUT = 80;
+constexpr int NINPUT = 120;
+constexpr int MINPUT = 20;
 
 constexpr double TOL = 10E-10;
 
@@ -26,12 +26,12 @@ constexpr double y_wall_max = 1.;
 constexpr double y_top_min = 0.5;
 constexpr double y_top_max = 1.;
 
-constexpr double a = 5;
+constexpr double a = 1;
 constexpr double a2 = 1 / (a * a);
 
 // REACTION
 // static double q = 1.2;
-constexpr double beta = 10;
+constexpr double beta_reaction = 10;
 constexpr double gamma_reaction = 0.7;
 
 constexpr double LeF = 1.0;
@@ -40,6 +40,9 @@ constexpr double xHotSpot = 46;
 constexpr double r0hs = 1;
 // FROM HERE NO NEED TO CHANGE THEM,
 // THEY ARE PARAMETERS THAT COME FROM THE OTHERS
+
+constexpr int NPROCSINROW = NPROCS / 2;
+constexpr int NPROCSINCOL = 1;
 
 constexpr int NTOTAL = NINPUT + (NPROCS + (-NINPUT) % NPROCS) % NPROCS;
 constexpr int N = NTOTAL / (NPROCS / 2);

@@ -18,8 +18,14 @@ class FileReader {
  public:
   FileReader();
   ~FileReader();
-  void readField(string &name, int blockWanted, int variableWanted, Field &vec,
+  void read_field(const string &name, int blockWanted, int variableWanted, Field &vec,
                  int locIStr, int locIEnd);
+  void read_grid(const string &name, vector<double> &XC, vector<double> YC);                 
+
+  private:
+
+  void read_grid_header(std::ifstream &file, vector<int> &NX, vector<int> &NY);
+  vector<double> read_variable(std::ifstream &file, int NX, int NY);
 };
 
 #endif

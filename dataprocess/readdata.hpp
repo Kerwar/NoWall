@@ -21,7 +21,7 @@ int indexofT1(const Field &vec, const int &NI, const int &NJ) {
       if (vec[result + (NJ - 1) * NI] < vec[i + (NJ - 1) * NI]) {
         result = i;
       }
-    // std::cout << i << " " << vec[result + (NJ-1)*NI] << std::endl;}
+    std::cout << "One problem" << std::endl;
   }
   return result;
 }
@@ -35,8 +35,8 @@ void readdata(const std::string &path, std::vector<double> &a,
   for (const auto &entry : fs::directory_iterator(path)) {
     std::string filename = entry.path();
 
-    if (filename.find("Sol_NxM-2432x20") != -1 &&
-        filename.find("_-1.f") != -1) {
+    if (filename.find("Sol_NxM-2432x20") != string::npos &&
+        filename.find("_-1.f") != string::npos) {
       filename = filename.substr(filename.find("Sol"), filename.length());
 
       std::string dimensions =
@@ -68,7 +68,7 @@ void readdata(const std::string &path, std::vector<double> &a,
       FileReader filerader;
 
       Field vec(N + 2, M + 2);
-      filerader.readField(entry.path(), 2, 1, vec, 0, N + 2);
+      filerader.read_field(entry.path(), 2, 1, vec, 0, N + 2);
 
       indexes.push_back(indexofT1(vec, N + 2, M + 2));
       T_before1.push_back(vec[indexes.back() - 1 + (M + 2 - 1) * (N + 2)]);
@@ -82,7 +82,7 @@ void readdata(const std::string &path, std::vector<double> &a,
         (int)filename.find("_Lxa-120x10") != -1) {
       FileReader readfile;
       filename = filename.substr(filename.find("Grid"), filename.length());
-      readfile.readGrid(entry.path(), 2, XC, YC, 2432, 20);
+      readfile.read_grid(entry.path(), XC, YC);
     }
   }
 }

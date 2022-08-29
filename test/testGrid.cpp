@@ -2,9 +2,9 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/catch_approx.hpp>
 
-#include "../inc/Grid.hpp"
-#include "../inc/Field.hpp"
-#include "../inc/Paralel.hpp"
+#include "../inc/grid.hpp"
+#include "../inc/field.hpp"
+#include "../inc/paralel.hpp"
 #include <iostream>
 
 TEST_CASE("Initializing Grid", "Grid")

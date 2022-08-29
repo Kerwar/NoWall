@@ -1,12 +1,12 @@
 #ifndef VARIABLE_H
 #define VARIABLE_H
 
-#include "equation.hpp"
 #include "field.hpp"
 #include "filereader.hpp"
 #include "finitevolumeoperations.hpp"
 #include "grid.hpp"
 #include "paralel.hpp"
+#include "systemofequations.hpp"
 
 using namespace parameters;
 
@@ -19,8 +19,8 @@ class Variable {
   void passInfoMyGrid(const Grid &myGrid, double viscX, double viscY);
 
   void initializeWall();
-  void readFile(Paralel<NTOTAL, MINPUT, NPROCS> &paralel, int block, double &m,
-                double yMin, double yMax);
+  void readFile(Paralel &paralel, int block, double &m, double yMin,
+                double yMax);
 
   inline void setMassFluxes(const Grid &myGrid) {
     PROFILE_FUNCTION();
@@ -45,7 +45,7 @@ class Variable {
     Z.inletBoundaryCondition(east, 0.0);
   }
 
-  inline void sendInfoToCommMainProc(Paralel<NTOTAL, MINPUT, NPROCS> &paralel) {
+  inline void sendInfoToCommMainProc(Paralel &paralel) {
     PROFILE_FUNCTION();
     paralel.SendInfoToCommMainProc(T, solT);
     paralel.SendInfoToCommMainProc(F, solF);
@@ -53,64 +53,42 @@ class Variable {
     paralel.SendInfoToCommMainProc(U, solU);
     paralel.SendInfoToCommMainProc(V, solV);
   }
-  inline void sendInfoToNeighbours(Paralel<NTOTAL, MINPUT, NPROCS> &paralel) {
+  inline void sendInfoToNeighbours(Paralel &paralel) {
     PROFILE_FUNCTION();
     paralel.SendInfoToNeighbours(T);
     paralel.SendInfoToNeighbours(F);
     paralel.SendInfoToNeighbours(Z);
   }
 
-  inline void exchangeTemperature(
-      const Paralel<NTOTAL, MINPUT, NPROCS> &paralel, const Grid &mainGrid) {
-    PROFILE_FUNCTION();
+  void exchangeTemperature(const Paralel &paralel, const Grid &mainGrid);
 
-    paralel.GatherWallTemperature(TWall, T);
-
-    for (int i = 0; i < mainGrid.exI1; i++) TWall.value[i] = 0;
-    for (int i = mainGrid.exI2; i < NTOTAL + 2; i++) TWall.value[i] = 0;
-
-    if (paralel.myProc == 0)
-      TWall.value = paralel.ExchangeWallTemperature(TWall);
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    paralel.ShareWallTemperatureInfo(TWall, T);
-
-    // paralel.scatter(TWall.value[1], NI - 2, DTinWall[1], 0);
-    MPI_Scatter(&TWall.value[1], NI - 2, MPI_DOUBLE, &DTinWall[1], NI - 2,
-                MPI_DOUBLE, 0, paralel.myComm.comm());
-  }
-
-  void setChannelEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
-                           const Paralel<NTOTAL, MINPUT, NPROCS> &paralel,
+  void setChannelEquations(SystemOfEquations &sys, const Paralel &paralel,
                            const double &m, const double &q, double &DT,
                            const double &exCte, const int &iter);
-  void setWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
-                    Direction side);
-  void setExchangeWallShear(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
-                            Direction side, int iStr, int iEnd, int mainexI1,
-                            int mainexI2, int exI1, int exI2);
-  inline void setDirichlet(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
-                           Direction side) {
+  void setWallShear(SystemOfEquations &sys, Direction side);
+  void setExchangeWallShear(SystemOfEquations &sys, Direction side, int iStr,
+                            int iEnd, int mainexI1, int mainexI2, int exI1,
+                            int exI2);
+  inline void setDirichlet(SystemOfEquations &sys, Direction side) {
     PROFILE_FUNCTION();
-    Teqn->SetDirichlet(T, side);
-    Feqn->SetDirichlet(F, side);
-    Zeqn->SetDirichlet(Z, side);
+    sys.T->SetDirichlet(T, side);
+    sys.F->SetDirichlet(F, side);
+    sys.Z->SetDirichlet(Z, side);
   }
 
-  inline void assembleEquations(Equation *&Teqn, Equation *&Feqn,
-                                Equation *&Zeqn) {
+  inline void assembleEquations(SystemOfEquations &sys) {
     PROFILE_FUNCTION();
 
-    Teqn->assembleEquation();
-    Feqn->assembleEquation();
-    Zeqn->assembleEquation();
+    sys.T->assembleEquation();
+    sys.F->assembleEquation();
+    sys.Z->assembleEquation();
 
-    Teqn->relax(T);
-    Feqn->relax(F);
-    Zeqn->relax(Z);
+    sys.T->relax(T);
+    sys.F->relax(F);
+    sys.Z->relax(Z);
   }
-  double solveEquations(Equation *&Teqn, Equation *&Feqn, Equation *&Zeqn,
-                        double alpha, int &niter, int &itersol, int changeIter);
+  double solveEquations(SystemOfEquations &sys, double alpha, int &niter,
+                        int &itersol, int changeIter);
   double calculateNewM(const double &alpha, const double &m, const double &q);
   double calculateNewQ(const double &alpha, const double &m, const double &q);
   void setFixIndex(double xfix, double yfix);
@@ -120,9 +98,7 @@ class Variable {
     lowerBoundFactorm *= 0.9;
     upperBoundFactorm *= 1.1;
   }
-  bool isTOutEqualToQ(double q, const Paralel<NTOTAL, MINPUT, NPROCS> &paralel);
-  void writeTInWall(Paralel<NTOTAL, MINPUT, NPROCS> &paralel,
-                    const Grid &mainGrid, const Grid &myGrid, int iter);
+  bool isTOutEqualToQ(double q, const Paralel &paralel);
 
   Field solT;
   Field solF, solZ;

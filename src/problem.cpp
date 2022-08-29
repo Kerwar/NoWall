@@ -1,6 +1,6 @@
 #include "problem.hpp"
 
-Problem::Problem(const double &prevm) : maxit(10E1), iShow(10E0), m(prevm) {
+Problem::Problem(const double &prevm) : maxit(10E4), iShow(10E3), m(prevm) {
   PROFILE_FUNCTION();
   readFromFile = false;
   alpha = 0.95;
@@ -30,15 +30,15 @@ void Problem::setUpProblem() {
   mainGrid = Grid(NTOTAL, MINPUT, channel_xmin, channel_xmax, yMin, yMax);
   mainGrid.SetIEx(wall_xmin, wall_xmax);
 
-  myProc = paralel.myProc;
-  nProcs = paralel.nProcs;
+  myProc = paralel.channel.rank();
+  nProcs = paralel.channel.size();
 
   myXMin = mainGrid.X[paralel.iStr];
   myXMax = mainGrid.X[paralel.iEnd];
   myYMin = 0.0;
   myYMax = yChannel;
 
-  if (paralel.isLeftToRight()) {
+  if (paralel.is_left2right()) {
     myYMin += yChannel + yWall;
     myYMax += yChannel + yWall;
   }
@@ -56,23 +56,23 @@ void Problem::initializeVariables() {
   setExchangeConstant();
 
   paralel.setProcWithFixPoint(fixPointInThisProc());
-  if (paralel.myProc == paralel.fixPointProc) variables.setFixIndex(xfix, yfix);
+  if (myProc == paralel.fixPointProc) variables.setFixIndex(xfix, yfix);
 
   if (!readFromFile) {
-    if (paralel.isLeftToRight())
+    if (paralel.is_left2right())
       variables.initializeLeftToRight(m, myYMin, myYMax + yChannel, q, xHS_U,
                                       r0hs, z0hs, channel_xmin, channel_xmax);
-    else if (paralel.isRightToLeft())
+    else if (paralel.is_right2left())
       variables.initializeRightToLeft(m, myYMin - yChannel, myYMax, q, xHS_D,
                                       r0hs, z0hs, channel_xmin, channel_xmax);
 
     readFromFile = true;
   } else {
-    if (paralel.isLeftToRight())
+    if (paralel.is_left2right())
       variables.readFile(paralel, 2, m, myYMin, myYMax + yChannel);
 
     MPI_Barrier(MPI_COMM_WORLD);
-    if (paralel.isRightToLeft())
+    if (paralel.is_right2left())
       variables.readFile(paralel, 1, m, myYMin - yChannel, myYMax);
 
     variables.sendInfoToNeighbours(paralel);
@@ -86,9 +86,9 @@ void Problem::initializeVariables() {
   // fieldOper.getGridInfoPassed(UN, myGrid, viscX, viscY);
 
   variables.setMassFluxes(myGrid);
-  if (paralel.isLeftToRight() && paralel.isProcNull(paralel.myLeft)) {
+  if (paralel.is_left2right() && paralel.isProcNull(paralel.myLeft)) {
     variables.setInletBoundaryConditionLeftToRight();
-  } else if (paralel.isRightToLeft() && paralel.isProcNull(paralel.myRight)) {
+  } else if (paralel.is_right2left() && paralel.isProcNull(paralel.myRight)) {
     variables.setInletBoundaryConditionRightToLeft();
   }
 
@@ -110,7 +110,7 @@ void Problem::writeSolution(string &prefix, int i) {
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    if (myProc == 0 && paralel.isRightToLeft())
+    if (myProc == 0 && paralel.is_right2left())
       fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables.solU,
                             variables.solV, variables.solT, variables.solF,
                             variables.solZ, paralel.locIStr, paralel.locIEnd,
@@ -118,25 +118,12 @@ void Problem::writeSolution(string &prefix, int i) {
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    if (myProc == 0 && paralel.isLeftToRight())
+    if (myProc == 0 && paralel.is_left2right())
       fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables.solU,
                             variables.solV, variables.solT, variables.solF,
                             variables.solZ, paralel.locIStr, paralel.locIEnd,
                             paralel.locJStr, paralel.loc);
 
-    // if (myProc == 0 && paralel.isRightToLeft())
-    //   fileWriter.WriteTec(prefix, sufix, i, mainGrid, myGrid, variables.solU,
-    //                       variables.solV, variables.solT, variables.solF,
-    //                       variables.solZ, paralel.locIStr, paralel.locIEnd,
-    //                       paralel.locJStr, paralel.loc);
-
-    // MPI_Barrier(MPI_COMM_WORLD);
-
-    // if (myProc == 0 && paralel.isLeftToRight())
-    //   fileWriter.WriteTec(prefix, sufix, i, mainGrid, myGrid, variables.solU,
-    //                       variables.solV, variables.solT, variables.solF,
-    //                       variables.solZ, paralel.locIStr, paralel.locIEnd,
-    //                       paralel.locJStr, paralel.loc);
   } else {
     sufix = "";
     writefilename(sufix);
@@ -144,7 +131,7 @@ void Problem::writeSolution(string &prefix, int i) {
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    if (myProc == 0 && paralel.isRightToLeft())
+    if (myProc == 0 && paralel.is_right2left())
       fileWriter.WriteInter(prefix, sufix, -1, mainGrid, myGrid, variables.solU,
                             variables.solV, variables.solT, variables.solF,
                             variables.solZ, paralel.locIStr, paralel.locIEnd,
@@ -152,7 +139,7 @@ void Problem::writeSolution(string &prefix, int i) {
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    if (myProc == 0 && paralel.isLeftToRight())
+    if (myProc == 0 && paralel.is_left2right())
       fileWriter.WriteInter(prefix, sufix, -1, mainGrid, myGrid, variables.solU,
                             variables.solV, variables.solT, variables.solF,
                             variables.solZ, paralel.locIStr, paralel.locIEnd,
@@ -162,7 +149,7 @@ void Problem::writeSolution(string &prefix, int i) {
     std::string lastfileprefix = "";
     std::string lastfilesufix = "";
 
-    if (myProc == 0 && paralel.isRightToLeft())
+    if (myProc == 0 && paralel.is_right2left())
       fileWriter.WriteInter(lastfileprefix, lastfilesufix, -1, mainGrid, myGrid,
                             variables.solU, variables.solV, variables.solT,
                             variables.solF, variables.solZ, paralel.locIStr,
@@ -170,7 +157,7 @@ void Problem::writeSolution(string &prefix, int i) {
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    if (myProc == 0 && paralel.isLeftToRight())
+    if (myProc == 0 && paralel.is_left2right())
       fileWriter.WriteInter(lastfileprefix, lastfilesufix, -1, mainGrid, myGrid,
                             variables.solU, variables.solV, variables.solT,
                             variables.solF, variables.solZ, paralel.locIStr,
@@ -185,47 +172,46 @@ double Problem::mainIter(int i) {
 
   double error = 1;
 
-  variables.setChannelEquations(Teqn, Feqn, Zeqn, paralel, m, q, DT, exCte, i);
+  variables.setChannelEquations(sys, paralel, m, q, DT, exCte, i);
   Direction side = west;
 
-  if (paralel.isFirstProcOfRow() && paralel.isRightToLeft())
-    variables.setWallShear(Teqn, Feqn, Zeqn, side);
+  if (paralel.isFirstProcOfRow() && paralel.is_right2left())
+    variables.setWallShear(sys, side);
   else
-    variables.setDirichlet(Teqn, Feqn, Zeqn, side);
+    variables.setDirichlet(sys, side);
 
   side = east;
 
-  if (paralel.isLastProcOfRow() && paralel.isLeftToRight())
-    variables.setWallShear(Teqn, Feqn, Zeqn, side);
+  if (paralel.isLastProcOfRow() && paralel.is_left2right())
+    variables.setWallShear(sys, side);
   else
-    variables.setDirichlet(Teqn, Feqn, Zeqn, side);
+    variables.setDirichlet(sys, side);
 
   side = south;
 
-  if (paralel.isRightToLeft())
-    variables.setWallShear(Teqn, Feqn, Zeqn, side);
-  else if (paralel.isLeftToRight())
-    variables.setExchangeWallShear(Teqn, Feqn, Zeqn, side, paralel.iStr,
-                                   paralel.iEnd, mainGrid.exI1, mainGrid.exI2,
-                                   myGrid.exI1, myGrid.exI2);
+  if (paralel.is_right2left())
+    variables.setWallShear(sys, side);
+  else if (paralel.is_left2right())
+    variables.setExchangeWallShear(sys, side, paralel.iStr, paralel.iEnd,
+                                   mainGrid.exI1, mainGrid.exI2, myGrid.exI1,
+                                   myGrid.exI2);
 
   side = north;
 
-  if (paralel.isRightToLeft())
-    variables.setExchangeWallShear(Teqn, Feqn, Zeqn, side, paralel.iStr,
-                                   paralel.iEnd, mainGrid.exI1, mainGrid.exI2,
-                                   myGrid.exI1, myGrid.exI2);
-  else if (paralel.isLeftToRight())
-    variables.setWallShear(Teqn, Feqn, Zeqn, side);
+  if (paralel.is_right2left())
+    variables.setExchangeWallShear(sys, side, paralel.iStr, paralel.iEnd,
+                                   mainGrid.exI1, mainGrid.exI2, myGrid.exI1,
+                                   myGrid.exI2);
+  else if (paralel.is_left2right())
+    variables.setWallShear(sys, side);
 
-  variables.assembleEquations(Teqn, Feqn, Zeqn);
+  variables.assembleEquations(sys);
 
-  Teqn->EqnName = "T-Eqn";
-  Feqn->EqnName = "F-Eqn";
-  Zeqn->EqnName = "Z-Eqn";
+  sys.T->EqnName = "T-Eqn";
+  sys.F->EqnName = "F-Eqn";
+  sys.Z->EqnName = "Z-Eqn";
 
-  error =
-      variables.solveEquations(Teqn, Feqn, Zeqn, alpha, i, itersol, 0 * iShow);
+  error = variables.solveEquations(sys, alpha, i, itersol, 0 * iShow);
 
   double error_result = 0;
 
@@ -306,7 +292,7 @@ void Problem::writefilename(string &filename) {
   filename.append("_beta-");
   temp.str("");
   temp.clear();
-  temp << beta;
+  temp << beta_reaction;
   filename.append(temp.str());
 
   filename.append("_LeFxZ-");
