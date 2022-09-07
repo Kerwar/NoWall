@@ -3,9 +3,9 @@
 
 namespace parameters {
 // NUMERICAL
-constexpr int NPROCS = 2;
+constexpr int NPROCS = 64;
 
-constexpr int NINPUT = 120;
+constexpr int NINPUT = 1200;
 constexpr int MINPUT = 20;
 
 constexpr double TOL = 10E-10;
@@ -20,11 +20,11 @@ constexpr double wall_xmax = 80;
 constexpr double y_bot_min = 0.5;
 constexpr double y_bot_max = 1.;
 
-constexpr double y_wall_min = 0.5;
+constexpr double y_wall_min = 1.;
 constexpr double y_wall_max = 1.;
 
-constexpr double y_top_min = 0.5;
-constexpr double y_top_max = 1.;
+constexpr double y_top_min = 1.0;
+constexpr double y_top_max = 1.5;
 
 constexpr double a = 1;
 constexpr double a2 = 1 / (a * a);

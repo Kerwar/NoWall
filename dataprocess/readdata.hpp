@@ -35,7 +35,7 @@ void readdata(const std::string &path, std::vector<double> &a,
   for (const auto &entry : fs::directory_iterator(path)) {
     std::string filename = entry.path();
 
-    if (filename.find("Sol_NxM-2432x20") != string::npos &&
+    if (filename.find("Sol_NxM-") != string::npos &&
         filename.find("_-1.f") != string::npos) {
       filename = filename.substr(filename.find("Sol"), filename.length());
 

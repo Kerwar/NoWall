@@ -14,6 +14,7 @@
 #include "field.hpp"
 #include "grid.hpp"
 #include "paralel.hpp"
+#include "systemofequations.hpp"
 
 using std::string;
 
@@ -23,14 +24,12 @@ class FileWriter {
   virtual ~FileWriter();
 
   void WriteInter(const string &prefix, string sufix, int time,
-                  const Grid &mainGrid, const Grid &myGrid, const Field &Utemp,
-                  const Field &Vtemp, const Field &Ttemp, const Field &Ftemp,
-                  const Field &Ztemp, int iStr, int iEnd, int jStr, Loc loc);
+                  const Grid &mainGrid, const Grid &myGrid,
+                  const Variables &sol, int iStr, int iEnd, int jStr, Loc loc);
 
   void WriteTec(const string &prefix, string sufix, int time,
-                const Grid &mainGrid, const Grid &myGrid, const Field &Utemp,
-                const Field &Vtemp, const Field &Ttemp, const Field &Ftemp,
-                const Field &Ztemp, int iStr, int iEnd, int jStr, Loc loc);
+                const Grid &mainGrid, const Grid &myGrid, const Variables &sol,
+                int iStr, int iEnd, int jStr, Loc loc);
 
   inline int id(const int &I, const int &J, const int &NI, const int &NJ) {
     return std::min(std::max(I, 0), NI - 3) +
@@ -39,6 +38,9 @@ class FileWriter {
 
  private:
   string prd(const double x, const int decDigits, const int width);
+  void write_grid_header(std::ofstream &file);
+  void write_variable(std::ofstream &file, const vector<double> &vec, int iStr,
+                      int iEnd, int jStr, int jEnd);
 };
 
 #endif  // FILEWRITER_H

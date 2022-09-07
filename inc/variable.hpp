@@ -1,5 +1,5 @@
-#ifndef VARIABLE_H
-#define VARIABLE_H
+#ifndef _VARIABLE_MANAGER_HPP
+#define _VARIABLE_MANAGER_HPP
 
 #include "field.hpp"
 #include "filereader.hpp"
@@ -10,10 +10,10 @@
 
 using namespace parameters;
 
-class Variable {
+class VariableManager {
  public:
-  Variable();
-  virtual ~Variable();
+  VariableManager();
+  virtual ~VariableManager();
 
   void passInfoSolutionGrid(const Grid &solGrid, double viscX, double viscY);
   void passInfoMyGrid(const Grid &myGrid, double viscX, double viscY);
@@ -25,39 +25,39 @@ class Variable {
   inline void setMassFluxes(const Grid &myGrid) {
     PROFILE_FUNCTION();
 
-    massFluxE.getGridInfoPassed(myGrid, U.viscX[0], U.viscY[0]);
-    massFluxN.getGridInfoPassed(myGrid, V.viscX[0], V.viscY[0]);
+    massFluxE.getGridInfoPassed(myGrid, var.U.viscX[0], var.U.viscY[0]);
+    massFluxN.getGridInfoPassed(myGrid, var.V.viscX[0], var.V.viscY[0]);
 
-    massFluxE.computeEastMassFluxes(U);
-    massFluxN.computeNorthMassFluxes(V);
+    massFluxE.computeEastMassFluxes(var.U);
+    massFluxN.computeNorthMassFluxes(var.V);
   }
 
   inline void setInletBoundaryConditionLeftToRight() {
     PROFILE_FUNCTION();
-    T.inletBoundaryCondition(west, 0.0);
-    F.inletBoundaryCondition(west, 1.0);
-    Z.inletBoundaryCondition(west, 0.0);
+    var.T.inletBoundaryCondition(west, 0.0);
+    var.F.inletBoundaryCondition(west, 1.0);
+    var.Z.inletBoundaryCondition(west, 0.0);
   }
   inline void setInletBoundaryConditionRightToLeft() {
     PROFILE_FUNCTION();
-    T.inletBoundaryCondition(east, 0.0);
-    F.inletBoundaryCondition(east, 1.0);
-    Z.inletBoundaryCondition(east, 0.0);
+    var.T.inletBoundaryCondition(east, 0.0);
+    var.F.inletBoundaryCondition(east, 1.0);
+    var.Z.inletBoundaryCondition(east, 0.0);
   }
 
   inline void sendInfoToCommMainProc(Paralel &paralel) {
     PROFILE_FUNCTION();
-    paralel.SendInfoToCommMainProc(T, solT);
-    paralel.SendInfoToCommMainProc(F, solF);
-    paralel.SendInfoToCommMainProc(Z, solZ);
-    paralel.SendInfoToCommMainProc(U, solU);
-    paralel.SendInfoToCommMainProc(V, solV);
+    paralel.SendInfoToCommMainProc(var.T, sol.T);
+    paralel.SendInfoToCommMainProc(var.F, sol.F);
+    paralel.SendInfoToCommMainProc(var.Z, sol.Z);
+    paralel.SendInfoToCommMainProc(var.U, sol.U);
+    paralel.SendInfoToCommMainProc(var.V, sol.V);
   }
   inline void sendInfoToNeighbours(Paralel &paralel) {
     PROFILE_FUNCTION();
-    paralel.SendInfoToNeighbours(T);
-    paralel.SendInfoToNeighbours(F);
-    paralel.SendInfoToNeighbours(Z);
+    paralel.SendInfoToNeighbours(var.T);
+    paralel.SendInfoToNeighbours(var.F);
+    paralel.SendInfoToNeighbours(var.Z);
   }
 
   void exchangeTemperature(const Paralel &paralel, const Grid &mainGrid);
@@ -71,9 +71,9 @@ class Variable {
                             int exI2);
   inline void setDirichlet(SystemOfEquations &sys, Direction side) {
     PROFILE_FUNCTION();
-    sys.T->SetDirichlet(T, side);
-    sys.F->SetDirichlet(F, side);
-    sys.Z->SetDirichlet(Z, side);
+    sys.T->SetDirichlet(var.T, side);
+    sys.F->SetDirichlet(var.F, side);
+    sys.Z->SetDirichlet(var.Z, side);
   }
 
   inline void assembleEquations(SystemOfEquations &sys) {
@@ -83,9 +83,9 @@ class Variable {
     sys.F->assembleEquation();
     sys.Z->assembleEquation();
 
-    sys.T->relax(T);
-    sys.F->relax(F);
-    sys.Z->relax(Z);
+    // sys.T->relax(T);
+    // sys.F->relax(F);
+    // sys.Z->relax(Z);
   }
   double solveEquations(SystemOfEquations &sys, double alpha, int &niter,
                         int &itersol, int changeIter);
@@ -100,17 +100,14 @@ class Variable {
   }
   bool isTOutEqualToQ(double q, const Paralel &paralel);
 
-  Field solT;
-  Field solF, solZ;
-  Field solU, solV;
+  Variables sol;
+
   bool manyIter = false;
 
  private:
   int ifix, jfix;
-  Field U, V;
 
-  Field T;
-  Field F, Z;
+  Variables var;
 
   Field TWall, TNextToWall;
 
@@ -122,29 +119,23 @@ class Variable {
   string initialsol = "Sol-1.f";
 
  public:
-  inline void initializeLeftToRight(const double &m, const double &yMin,
-                                    const double &yMax, const double &q,
-                                    const double &xHS, const double &r0hs,
-                                    const double &z0hs, const double &xMin,
-                                    const double &xMax) {
+  inline void initialize_top_channel(const double &m, const double &q,
+                                     const double &xHS, const double &z0hs) {
     PROFILE_FUNCTION();
-    U.laminarFlow(m, yMin, yMax);
-    V.initializeInternalField(0);
-    T.InitializeT(q, xHS, xMin, xMax);
-    F.InitializeF(xHS, xMin, xMax);
-    Z.InitializeZ(z0hs, r0hs, xHS, (yMin + yMax) / 2.0);
+    var.U.laminarFlow(m, y_top_min, y_top_max);
+    var.V.initializeInternalField(0);
+    var.T.InitializeT(q, xHS, channel_xmin, channel_xmax);
+    var.F.InitializeF(xHS, channel_xmin, channel_xmax);
+    var.Z.InitializeZ(z0hs, r0hs, xHS, (y_top_min + y_top_max) / 2.0);
   }
-  inline void initializeRightToLeft(const double &m, const double &yMin,
-                                    const double &yMax, const double &q,
-                                    const double &xHS, const double &r0hs,
-                                    const double &z0hs, const double &xMin,
-                                    const double &xMax) {
+  inline void initialize_bot_channel(const double &m, const double &q,
+                                     const double &xHS, const double &z0hs) {
     PROFILE_FUNCTION();
-    U.laminarFlow(-m, yMin, yMax);
-    V.initializeInternalField(0);
-    T.InitializeT(q, xHS, xMax, xMin);
-    F.InitializeF(xHS, xMax, xMin);
-    Z.InitializeZ(z0hs, r0hs, xHS, (yMin + yMax) / 2.0);
+    var.U.laminarFlow(-m, y_bot_min, y_bot_max);
+    var.V.initializeInternalField(0);
+    var.T.InitializeT(q, xHS, channel_xmax, channel_xmin);
+    var.F.InitializeF(xHS, channel_xmax, channel_xmin);
+    var.Z.InitializeZ(z0hs, r0hs, xHS, (y_bot_min + y_bot_max) / 2.0);
   }
 };
 

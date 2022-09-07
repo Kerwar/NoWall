@@ -6,12 +6,8 @@ Problem::Problem(const double &prevm) : maxit(10E4), iShow(10E3), m(prevm) {
   alpha = 0.95;
 
   q = 0.8;
-  yWall = 0.0;
-  yChannel = 0.5;
-  yMin = 0;
-  yMax = 1;
   xfix = 43.95;
-  yfix = 0.75;
+  yfix = 1.25;
   xHS_U = 44;
   xHS_D = 76;
   z0hs = 0.5;
@@ -27,7 +23,8 @@ Problem::~Problem() {}
 
 void Problem::setUpProblem() {
   PROFILE_FUNCTION();
-  mainGrid = Grid(NTOTAL, MINPUT, channel_xmin, channel_xmax, yMin, yMax);
+  mainGrid =
+      Grid(NTOTAL, MINPUT, channel_xmin, channel_xmax, y_bot_min, y_top_max);
   mainGrid.SetIEx(wall_xmin, wall_xmax);
 
   myProc = paralel.channel.rank();
@@ -35,12 +32,13 @@ void Problem::setUpProblem() {
 
   myXMin = mainGrid.X[paralel.iStr];
   myXMax = mainGrid.X[paralel.iEnd];
-  myYMin = 0.0;
-  myYMax = yChannel;
 
   if (paralel.is_left2right()) {
-    myYMin += yChannel + yWall;
-    myYMax += yChannel + yWall;
+    myYMin = y_top_min;
+    myYMax = y_top_max;
+  } else {
+    myYMin = y_bot_min;
+    myYMax = y_bot_max;
   }
 
   myGrid = Grid(N, M, myXMin, myXMax, myYMin, myYMax);
@@ -56,24 +54,22 @@ void Problem::initializeVariables() {
   setExchangeConstant();
 
   paralel.setProcWithFixPoint(fixPointInThisProc());
-  if (myProc == paralel.fixPointProc) variables.setFixIndex(xfix, yfix);
+  if (fixPointInThisProc()) variables.setFixIndex(xfix, yfix);
 
   if (!readFromFile) {
     if (paralel.is_left2right())
-      variables.initializeLeftToRight(m, myYMin, myYMax + yChannel, q, xHS_U,
-                                      r0hs, z0hs, channel_xmin, channel_xmax);
+      variables.initialize_top_channel(m, q, xHS_U, z0hs);
     else if (paralel.is_right2left())
-      variables.initializeRightToLeft(m, myYMin - yChannel, myYMax, q, xHS_D,
-                                      r0hs, z0hs, channel_xmin, channel_xmax);
+      variables.initialize_bot_channel(m, q, xHS_D, z0hs);
 
     readFromFile = true;
   } else {
     if (paralel.is_left2right())
-      variables.readFile(paralel, 2, m, myYMin, myYMax + yChannel);
+      variables.readFile(paralel, 2, m, y_top_min, y_top_max);
 
     MPI_Barrier(MPI_COMM_WORLD);
     if (paralel.is_right2left())
-      variables.readFile(paralel, 1, m, myYMin - yChannel, myYMax);
+      variables.readFile(paralel, 1, m, y_bot_min, y_bot_max);
 
     variables.sendInfoToNeighbours(paralel);
   }
@@ -111,18 +107,16 @@ void Problem::writeSolution(string &prefix, int i) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     if (myProc == 0 && paralel.is_right2left())
-      fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables.solU,
-                            variables.solV, variables.solT, variables.solF,
-                            variables.solZ, paralel.locIStr, paralel.locIEnd,
-                            paralel.locJStr, paralel.loc);
+      fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables.sol,
+                            paralel.locIStr, paralel.locIEnd, paralel.locJStr,
+                            paralel.loc);
 
     MPI_Barrier(MPI_COMM_WORLD);
 
     if (myProc == 0 && paralel.is_left2right())
-      fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables.solU,
-                            variables.solV, variables.solT, variables.solF,
-                            variables.solZ, paralel.locIStr, paralel.locIEnd,
-                            paralel.locJStr, paralel.loc);
+      fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables.sol,
+                            paralel.locIStr, paralel.locIEnd, paralel.locJStr,
+                            paralel.loc);
 
   } else {
     sufix = "";
@@ -132,18 +126,16 @@ void Problem::writeSolution(string &prefix, int i) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     if (myProc == 0 && paralel.is_right2left())
-      fileWriter.WriteInter(prefix, sufix, -1, mainGrid, myGrid, variables.solU,
-                            variables.solV, variables.solT, variables.solF,
-                            variables.solZ, paralel.locIStr, paralel.locIEnd,
-                            paralel.locJStr, paralel.loc);
+      fileWriter.WriteInter(prefix, sufix, -1, mainGrid, myGrid, variables.sol,
+                            paralel.locIStr, paralel.locIEnd, paralel.locJStr,
+                            paralel.loc);
 
     MPI_Barrier(MPI_COMM_WORLD);
 
     if (myProc == 0 && paralel.is_left2right())
-      fileWriter.WriteInter(prefix, sufix, -1, mainGrid, myGrid, variables.solU,
-                            variables.solV, variables.solT, variables.solF,
-                            variables.solZ, paralel.locIStr, paralel.locIEnd,
-                            paralel.locJStr, paralel.loc);
+      fileWriter.WriteInter(prefix, sufix, -1, mainGrid, myGrid, variables.sol,
+                            paralel.locIStr, paralel.locIEnd, paralel.locJStr,
+                            paralel.loc);
 
     MPI_Barrier(MPI_COMM_WORLD);
     std::string lastfileprefix = "";
@@ -151,17 +143,15 @@ void Problem::writeSolution(string &prefix, int i) {
 
     if (myProc == 0 && paralel.is_right2left())
       fileWriter.WriteInter(lastfileprefix, lastfilesufix, -1, mainGrid, myGrid,
-                            variables.solU, variables.solV, variables.solT,
-                            variables.solF, variables.solZ, paralel.locIStr,
-                            paralel.locIEnd, paralel.locJStr, paralel.loc);
+                            variables.sol, paralel.locIStr, paralel.locIEnd,
+                            paralel.locJStr, paralel.loc);
 
     MPI_Barrier(MPI_COMM_WORLD);
 
     if (myProc == 0 && paralel.is_left2right())
       fileWriter.WriteInter(lastfileprefix, lastfilesufix, -1, mainGrid, myGrid,
-                            variables.solU, variables.solV, variables.solT,
-                            variables.solF, variables.solZ, paralel.locIStr,
-                            paralel.locIEnd, paralel.locJStr, paralel.loc);
+                            variables.sol, paralel.locIStr, paralel.locIEnd,
+                            paralel.locJStr, paralel.loc);
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -217,7 +207,6 @@ double Problem::mainIter(int i) {
 
   // if (fixPointInThisProc()) m = variables.calculateNewM(0.75 * alpha, m, q);
   if (fixPointInThisProc()) q = variables.calculateNewQ(0.75 * alpha, m, q);
-
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Bcast(&q, 1, MPI_DOUBLE, paralel.fixPointProc, MPI_COMM_WORLD);
 
@@ -236,11 +225,11 @@ bool Problem::fixPointInThisProc() {
 }
 
 bool Problem::isFixPointXCoordinateInThisProc() {
-  return myXMin <= xfix && xfix <= myXMax;
+  return myXMin <= xfix && xfix < myXMax;
 }
 
 bool Problem::isFixPointYCoordinateInThisProc() {
-  return myYMin <= yfix && yfix <= myYMax;
+  return myYMin <= yfix && yfix < myYMax;
 }
 
 void Problem::writefilename(string &filename) {

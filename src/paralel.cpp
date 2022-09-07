@@ -213,7 +213,7 @@ void Paralel::setProcMesh() {
 
 void Paralel::SendInfoToCommMainProc(Field &vec, Field &sol) {
   PROFILE_FUNCTION();
-  
+
   const int iIS = NI - 2;
   const int jIS = NJ - 2;
   const int sendCount = iIS * jIS;

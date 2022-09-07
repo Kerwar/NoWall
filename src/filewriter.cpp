@@ -10,9 +10,7 @@ FileWriter::~FileWriter() {
 
 void FileWriter::WriteTec(const string &prefix, string sufix, int time,
                           const Grid &mainGrid, const Grid &myGrid,
-                          const Field &Utemp, const Field &Vtemp,
-                          const Field &Ttemp, const Field &Ftemp,
-                          const Field &Ztemp, int iStr, int iEnd, int jStr,
+                          const Variables &sol, int iStr, int iEnd, int jStr,
                           Loc loc) {
   int mainNI = mainGrid.NI;
   int NJ = myGrid.NJ;
@@ -56,15 +54,15 @@ void FileWriter::WriteTec(const string &prefix, string sufix, int time,
     for (int j = jStr; j < jMax; j++) {
       outfile << mainGrid.XC[i] << " ";
       outfile << mainGrid.YC[j] << " ";
-      double value = Utemp.value[id(i, j, mainNI, NJ + jStr)];
+      double value = sol.U.value[id(i, j, mainNI, NJ + jStr)];
       outfile << value << " ";
-      value = Vtemp.value[id(i, j, mainNI, NJ + jStr)];
+      value = sol.V.value[id(i, j, mainNI, NJ + jStr)];
       outfile << value << " ";
-      value = Ttemp.value[id(i, j, mainNI, NJ + jStr)];
+      value = sol.T.value[id(i, j, mainNI, NJ + jStr)];
       outfile << value << " ";
-      value = Ftemp.value[id(i, j, mainNI, NJ + jStr)];
+      value = sol.F.value[id(i, j, mainNI, NJ + jStr)];
       outfile << value << " ";
-      value = Ztemp.value[id(i, j, mainNI, NJ + jStr)];
+      value = sol.Z.value[id(i, j, mainNI, NJ + jStr)];
       outfile << value << "\n";
     }
 
@@ -73,51 +71,27 @@ void FileWriter::WriteTec(const string &prefix, string sufix, int time,
 
 void FileWriter::WriteInter(const string &prefix, string sufix, int time,
                             const Grid &mainGrid, const Grid &myGrid,
-                            const Field &Utemp, const Field &Vtemp,
-                            const Field &Ttemp, const Field &Ftemp,
-                            const Field &Ztemp, int iStr, int iEnd, int jStr,
+                            const Variables &sol, int iStr, int iEnd, int jStr,
                             Loc loc) {
   // Needed for q file
   double mach = 1;
   double alpha = 1;
   double reyn = 1;
   double qtime = 0;
-  int ttime = time;
 
-  int mainNI = mainGrid.NI;
-  int NJ = myGrid.NJ;
+  int mainNI = NTOTAL + 2;
 
   string timename;
 
   if (time == 0) {
     if (loc == Loc::down) {
-      string myGridType = ".xyz";
-
-      string newname = "Grid";
-
-      string name2 = prefix + newname;
-
-      name2.append(sufix);
-      name2.append(myGridType);
+      string name2 = prefix + "Grid" + sufix + ".xyz";
 
       std::ofstream outfile;
 
       outfile.open(name2, std::ios::binary);
 
-      int Blocks = 2;
-      outfile.write((char *)&Blocks, sizeof(Blocks));
-
-      int NXtemp = mainNI;
-      int NYtemp = NJ;
-
-      outfile.write((char *)&NXtemp, sizeof(NXtemp));
-      outfile.write((char *)&NYtemp, sizeof(NYtemp));
-
-      NXtemp = mainNI;
-      NYtemp = NJ;
-
-      outfile.write((char *)&NXtemp, sizeof(NXtemp));
-      outfile.write((char *)&NYtemp, sizeof(NYtemp));
+      write_grid_header(outfile);
 
       for (int j = jStr; j < NJ + jStr; j++)
         for (int i = 0; i < mainNI; i++)
@@ -159,22 +133,17 @@ void FileWriter::WriteInter(const string &prefix, string sufix, int time,
   }
 
   std::ostringstream temp;
-  temp << ttime;
+  temp << time;
 
   timename = temp.str();
 
-  string newname = "Sol";
-
-  string name = prefix + newname;
-  name.append(sufix);
-
-  string newfilename = name.append(timename);
+  string name = prefix + "Sol" + sufix + timename;
 
   std::ofstream outfile;
 
   string myType = ".q";
 
-  string name2 = newfilename.append(myType);
+  string name2 = name + myType;
 
   int Blocks = 2;
   int NXtemp = mainGrid.NI;
@@ -204,38 +173,18 @@ void FileWriter::WriteInter(const string &prefix, string sufix, int time,
   // 4) Energy
   double rho = 1;
   int jMax = myGrid.NJ + jStr;
-  for (int j = jStr; j < jMax; j++)
-    for (int i = iStr - 1; i < iEnd + 1; i++) {
-      outfile.write(reinterpret_cast<char *>(&rho), sizeof(rho));
-    }
-  for (int j = jStr; j < jMax; j++)
-    for (int i = iStr - 1; i < iEnd + 1; i++) {
-      double value = Utemp.value[id(i, j, mainNI, NJ + jStr)];
-      outfile.write(reinterpret_cast<char *>(&value), sizeof(value));
-    }
-  for (int j = jStr; j < jMax; j++)
-    for (int i = iStr - 1; i < iEnd + 1; i++) {
-      double value = Vtemp.value[id(i, j, mainNI, NJ + jStr)];
-      outfile.write(reinterpret_cast<char *>(&value), sizeof(value));
-    }
 
-  for (int j = jStr; j < jMax; j++)
-    for (int i = iStr - 1; i < iEnd + 1; i++) {
-      double value = Ttemp.value[id(i, j, mainNI, NJ + jStr)];
-      outfile.write(reinterpret_cast<char *>(&value), sizeof(value));
-    }
+  write_variable(outfile, vector<double>(NTOTAL * MINPUT, rho), iStr, iEnd,
+                 jStr, jMax);
+  write_variable(outfile, sol.U.value, iStr, iEnd, jStr, jMax);
+  write_variable(outfile, sol.V.value, iStr, iEnd, jStr, jMax);
+  write_variable(outfile, sol.T.value, iStr, iEnd, jStr, jMax);
+
   outfile.close();
-
-  newname = "Sol";
-
-  name = prefix + newname;
-  name.append(sufix);
-
-  newfilename = name.append(timename);
 
   string myFileType = ".f";
 
-  string name3 = newfilename.append(myFileType);
+  string name3 = name + myFileType;
 
   if (loc == Loc::down) {
     outfile.open(name3, std::ios::out | std::ios::binary);
@@ -260,20 +209,32 @@ void FileWriter::WriteInter(const string &prefix, string sufix, int time,
   } else
     outfile.open(name3, std::ios::app | std::ios::binary);
 
-  for (int j = jStr; j < jMax; j++)
-    for (int i = iStr - 1; i < iEnd + 1; i++) {
-      double value = Ttemp.value[id(i, j, mainNI, NJ + jStr)];
-      outfile.write(reinterpret_cast<char *>(&value), sizeof(value));
-    }
-  for (int j = jStr; j < jMax; j++)
-    for (int i = iStr - 1; i < iEnd + 1; i++) {
-      double value = Ftemp.value[id(i, j, mainNI, NJ + jStr)];
-      outfile.write(reinterpret_cast<char *>(&value), sizeof(value));
-    }
-  for (int j = jStr; j < jMax; j++)
-    for (int i = iStr - 1; i < iEnd + 1; i++) {
-      double value = Ztemp.value[id(i, j, mainNI, NJ + jStr)];
-      outfile.write(reinterpret_cast<char *>(&value), sizeof(value));
-    }
+  write_variable(outfile, sol.T.value, iStr, iEnd, jStr, jMax);
+  write_variable(outfile, sol.F.value, iStr, iEnd, jStr, jMax);
+  write_variable(outfile, sol.Z.value, iStr, iEnd, jStr, jMax);
+
   outfile.close();
+}
+
+void FileWriter::write_grid_header(std::ofstream &file) {
+  int mainNI = NTOTAL + 2;
+  int Blocks = 2;
+
+  file.write((char *)&Blocks, sizeof(Blocks));
+
+  file.write((char *)&mainNI, sizeof(mainNI));
+  file.write((char *)&NJ, sizeof(NJ));
+
+  file.write((char *)&mainNI, sizeof(mainNI));
+  file.write((char *)&NJ, sizeof(NJ));
+}
+
+void FileWriter::write_variable(std::ofstream &file, const vector<double> &vec,
+                                int iStr, int iEnd, int jStr, int jEnd) {
+  int mainNI = NTOTAL + 2;
+  for (int j = jStr; j < jEnd; j++)
+    for (int i = iStr - 1; i < iEnd + 1; i++) {
+      double value = vec[id(i, j, mainNI, NJ + jStr)];
+      file.write(reinterpret_cast<char *>(&value), sizeof(value));
+    }
 }

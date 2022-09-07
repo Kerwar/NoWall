@@ -36,7 +36,6 @@ class Problem {
   double alpha;
 
   double yfix;
-  double yWall, yChannel, yMin, yMax;
   double xHS_U, xHS_D, z0hs;
 
   double alphaWall, DT;
@@ -49,7 +48,7 @@ class Problem {
 
   bool readFromFile;
   Grid mainGrid, myGrid;
-  Variable variables;
+  VariableManager variables;
 
   int myProc, nProcs;
   double myXMin, myXMax;
