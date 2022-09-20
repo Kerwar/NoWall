@@ -1,5 +1,5 @@
-#ifndef READDATA
-#define READDATA
+#ifndef _DATAMANAGER_HPP_
+#define _DATAMANAGER_HPP_
 
 #include <filesystem>
 #include <iostream>
@@ -26,6 +26,13 @@ int indexofT1(const Field &vec, const int &NI, const int &NJ) {
   return result;
 }
 
+string find_parameter_value(const string fname, const string &preString,
+                            const string &postString) {
+  return fname.substr(
+      fname.find(preString) + preString.length(),
+      fname.find(postString) - fname.find(preString) - preString.length());
+}
+
 // Sol_NxM-2432x20_Lxa-120x1_Ex-40_q-1.2_m-2_beta-10_LeFxZ-1x0.3_-1.q
 void readdata(const std::string &path, std::vector<double> &a,
               std::vector<double> &T_before1, std::vector<double> &T_after1,
@@ -39,30 +46,21 @@ void readdata(const std::string &path, std::vector<double> &a,
         filename.find("_-1.f") != string::npos) {
       filename = filename.substr(filename.find("Sol"), filename.length());
 
-      std::string dimensions =
-          filename.substr(filename.find("NxM-") + 4,
-                          filename.find("_Lxa") - filename.find("NxM-") - 4);
+      string dimensions = find_parameter_value(filename, "NxM-", "_Lxa");
 
       int N, M;
       N = std::stoi(dimensions.substr(0, dimensions.find("x")));
       M = std::stoi(
           dimensions.substr(dimensions.find("x") + 1, dimensions.length() - 1));
 
-      std::string adimensions =
-          filename.substr(filename.find("_Lxa-") + 5,
-                          filename.find("_Ex") - filename.find("_Lxa-") - 3);
-      double a_value;
-      a_value = std::stod(adimensions.substr(adimensions.find("x") + 1,
-                                             adimensions.length() - 1));
+      string adimensions = find_parameter_value(filename, "_Lxa-", "_Ex");
+      double a_value = std::stod(adimensions.substr(adimensions.find("x") + 1,
+                                                    adimensions.length() - 1));
 
-      std::string qstring =
-          filename.substr(filename.find("_q-") + 3,
-                          filename.find("_m-") - filename.find("_q-") - 3);
+      string qstring = find_parameter_value(filename, "_q-", "_m-");
       double q_value = std::stod(qstring);
 
-      std::string mstring =
-          filename.substr(filename.find("_m-") + 3,
-                          filename.find("_beta-") - filename.find("_m-") - 3);
+      string mstring = find_parameter_value(filename, "_m-", "_beta-");
       double m_value = std::stod(mstring);
 
       FileReader filerader;
@@ -86,4 +84,5 @@ void readdata(const std::string &path, std::vector<double> &a,
     }
   }
 }
+
 #endif

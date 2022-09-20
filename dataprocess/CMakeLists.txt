@@ -6,5 +6,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Wall -Wunused-parameter -Wshadow -pe
 include_directories("../src")
 include_directories("../inc")
 
-SET(SOURCES datamain.cpp ../src/filereader.cpp ../src/field.cpp)
-add_executable(datas ${SOURCES} ) 
+SET(SOURCESQVSXF qvsxf.cpp datamanager.cpp ../src/filereader.cpp ../src/field.cpp)
+SET(SOURCESAVSXF avsxf.cpp datamanager.cpp ../src/filereader.cpp ../src/field.cpp)
+
+add_executable(q_vs_xf ${SOURCESQVSXF} ) 
+add_executable(a_vs_xf ${SOURCESAVSXF} ) 

@@ -1,7 +1,7 @@
 #include "variable.hpp"
 
 VariableManager::VariableManager()
-    : sol(NTOTAL, MINPUT),
+    : sol(NTOTAL, MTOTAL),
       var(NI, NJ),
       TWall(NTOTAL + 2, 1),
       TNextToWall(NTOTAL + 2, 1),
@@ -31,6 +31,7 @@ void VariableManager::passInfoSolutionGrid(const Grid &solGrid, double viscX,
   sol.Z.getGridInfoPassed(solGrid, viscZx, viscZy);
   TNextToWall.XC = sol.U.XC;
 }
+
 void VariableManager::passInfoMyGrid(const Grid &myGrid, double viscX,
                                      double viscY) {
   PROFILE_FUNCTION();
@@ -55,16 +56,15 @@ void VariableManager::passInfoMyGrid(const Grid &myGrid, double viscX,
 void VariableManager::setChannelEquations(SystemOfEquations &sys,
                                           const Paralel &paralel,
                                           const double &m, const double &q,
-                                          double &DT, const double &exCte,
-                                          const int &iter) {
+                                          double &DT, const int &iter) {
   PROFILE_FUNCTION();
   if (iter == 1) {
     if (paralel.is_left2right())
-      sys.T = new Equation(fvm::diffusiveTermS(var.T, DTinWall, exCte) +
+      sys.T = new Equation(fvm::diffusiveTermS(var.T, DTinWall, EXCTE) +
                            fvm::convectiveTerm(var.T, massFluxE, massFluxN, m) +
                            fvm::heatProduction(var.T, var.Z, q));
     else
-      sys.T = new Equation(fvm::diffusiveTermN(var.T, DTinWall, exCte) +
+      sys.T = new Equation(fvm::diffusiveTermN(var.T, DTinWall, EXCTE) +
                            fvm::convectiveTerm(var.T, massFluxE, massFluxN, m) +
                            fvm::heatProduction(var.T, var.Z, q));
 
@@ -87,12 +87,12 @@ void VariableManager::setChannelEquations(SystemOfEquations &sys,
   } else {
     if (paralel.is_left2right())
       sys.T->updateEquation(
-          fvm::diffusiveTermS(var.T, DTinWall, exCte) +
+          fvm::diffusiveTermS(var.T, DTinWall, EXCTE) +
           fvm::convectiveTerm(var.T, massFluxE, massFluxN, m) +
           fvm::heatProduction(var.T, var.Z, q));
     else
       sys.T->updateEquation(
-          fvm::diffusiveTermN(var.T, DTinWall, exCte) +
+          fvm::diffusiveTermN(var.T, DTinWall, EXCTE) +
           fvm::convectiveTerm(var.T, massFluxE, massFluxN, m) +
           fvm::heatProduction(var.T, var.Z, q));
 
@@ -213,13 +213,13 @@ double VariableManager::calculateNewQ(const double &alpha, const double &m,
   double diffusiveTermX =
       T->viscX[index] * T->Se[jfix] * (T->value[index + 1] - T->value[index]) /
           T->DXPtoE[ifix] -
-      T->viscX[index - 1] * T->Se[jfix - 1] *
+      T->viscX[index - 1] * T->Se[jfix] *
           (T->value[index] - T->value[index - 1]) / T->DXPtoE[ifix - 1];
 
   double diffusiveTermY =
       T->viscY[index] * T->Sn[ifix] * (T->value[index + NI] - T->value[index]) /
           T->DYPtoN[jfix] -
-      T->viscY[index - NI] * T->Sn[ifix - 1] *
+      T->viscY[index - NI] * T->Sn[ifix] *
           (T->value[index] - T->value[index - NI]) / T->DYPtoN[jfix - 1];
 
   double convectiveTermX =
@@ -352,4 +352,28 @@ void VariableManager::exchangeTemperature(const Paralel &paralel,
   // paralel.scatter(TWall.value[1], NI - 2, DTinWall[1], 0);
   MPI_Scatter(&TWall.value[1], NI - 2, MPI_DOUBLE, &DTinWall[1], NI - 2,
               MPI_DOUBLE, 0, paralel.channel.comm());
+}
+
+void VariableManager::set_mass_fluxes(const Grid &myGrid) {
+  PROFILE_FUNCTION();
+
+  massFluxE.getGridInfoPassed(myGrid, var.U.viscX[0], var.U.viscY[0]);
+  massFluxN.getGridInfoPassed(myGrid, var.V.viscX[0], var.V.viscY[0]);
+
+  massFluxE.computeEastMassFluxes(var.U);
+  massFluxN.computeNorthMassFluxes(var.V);
+}
+
+void VariableManager::set_inlet_up_channel() {
+  PROFILE_FUNCTION();
+  var.T.inletBoundaryCondition(west, 0.0);
+  var.F.inletBoundaryCondition(west, 1.0);
+  var.Z.inletBoundaryCondition(west, 0.0);
+}
+
+void VariableManager::set_inlet_bot_channel() {
+  PROFILE_FUNCTION();
+  var.T.inletBoundaryCondition(east, 0.0);
+  var.F.inletBoundaryCondition(east, 1.0);
+  var.Z.inletBoundaryCondition(east, 0.0);
 }

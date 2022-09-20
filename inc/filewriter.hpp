@@ -25,22 +25,16 @@ class FileWriter {
 
   void WriteInter(const string &prefix, string sufix, int time,
                   const Grid &mainGrid, const Grid &myGrid,
-                  const Variables &sol, int iStr, int iEnd, int jStr, Loc loc);
+                  const Variables &sol, Loc loc);
 
-  void WriteTec(const string &prefix, string sufix, int time,
-                const Grid &mainGrid, const Grid &myGrid, const Variables &sol,
-                int iStr, int iEnd, int jStr, Loc loc);
-
-  inline int id(const int &I, const int &J, const int &NI, const int &NJ) {
-    return std::min(std::max(I, 0), NI - 3) +
-           std::min(std::max(J, 0), NJ - 3) * (NI - 2);
-  };
+  int id(const int &I, const int &J, const int &NX, const int &jStr, const int &jEnd);
 
  private:
   string prd(const double x, const int decDigits, const int width);
   void write_grid_header(std::ofstream &file);
-  void write_variable(std::ofstream &file, const vector<double> &vec, int iStr,
-                      int iEnd, int jStr, int jEnd);
+  void write_variable(std::ofstream &file, const vector<double> &vec, int jStr, int jEnd);
+  void write_grid_x(std::ofstream &file, const vector<double> &grid);
+  void write_grid_y(std::ofstream &file, const vector<double> &grid);
 };
 
 #endif  // FILEWRITER_H

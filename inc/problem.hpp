@@ -42,8 +42,6 @@ class Problem {
 
   int itersol;
 
-  double bK, exCte;
-
   double viscX, viscY;
 
   bool readFromFile;
@@ -59,7 +57,6 @@ class Problem {
   string sufix;
 
   bool fixPointInThisProc();
-  void setExchangeConstant();
   bool isFixPointXCoordinateInThisProc();
   bool isFixPointYCoordinateInThisProc();
 };

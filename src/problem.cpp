@@ -1,11 +1,12 @@
 #include "problem.hpp"
 
-Problem::Problem(const double &prevm) : maxit(10E4), iShow(10E3), m(prevm) {
+Problem::Problem(const double &prevm) : maxit(10E4), iShow(10E3) {
   PROFILE_FUNCTION();
-  readFromFile = false;
+  readFromFile = true;
   alpha = 0.95;
 
-  q = 0.8;
+  m = 2.0;
+  q = prevm;
   xfix = 43.95;
   yfix = 1.25;
   xHS_U = 44;
@@ -14,7 +15,6 @@ Problem::Problem(const double &prevm) : maxit(10E4), iShow(10E3), m(prevm) {
   alphaWall = 1;
   DT = 10e-3;
   itersol = 4;
-  bK = 0.15;
   viscX = 1;
   viscY = a2;
 }
@@ -24,7 +24,7 @@ Problem::~Problem() {}
 void Problem::setUpProblem() {
   PROFILE_FUNCTION();
   mainGrid =
-      Grid(NTOTAL, MINPUT, channel_xmin, channel_xmax, y_bot_min, y_top_max);
+      Grid(NTOTAL, MTOTAL, channel_xmin, channel_xmax, y_bot_min, y_top_max);
   mainGrid.SetIEx(wall_xmin, wall_xmax);
 
   myProc = paralel.channel.rank();
@@ -51,8 +51,6 @@ void Problem::initializeVariables() {
   variables.passInfoSolutionGrid(mainGrid, viscX, viscY);
   variables.passInfoMyGrid(myGrid, viscX, viscY);
 
-  setExchangeConstant();
-
   paralel.setProcWithFixPoint(fixPointInThisProc());
   if (fixPointInThisProc()) variables.setFixIndex(xfix, yfix);
 
@@ -65,11 +63,11 @@ void Problem::initializeVariables() {
     readFromFile = true;
   } else {
     if (paralel.is_left2right())
-      variables.readFile(paralel, 2, m, y_top_min, y_top_max);
+      variables.readFile(paralel, 2, m, y_top_min, 2.0 * y_top_max - y_top_min);
 
     MPI_Barrier(MPI_COMM_WORLD);
     if (paralel.is_right2left())
-      variables.readFile(paralel, 1, m, y_bot_min, y_bot_max);
+      variables.readFile(paralel, 1, m, 2.0 * y_bot_min - y_bot_max, y_bot_max);
 
     variables.sendInfoToNeighbours(paralel);
   }
@@ -81,11 +79,11 @@ void Problem::initializeVariables() {
   // fieldOper.getGridInfoPassed(UE, myGrid, viscX, viscY);
   // fieldOper.getGridInfoPassed(UN, myGrid, viscX, viscY);
 
-  variables.setMassFluxes(myGrid);
-  if (paralel.is_left2right() && paralel.isProcNull(paralel.myLeft)) {
-    variables.setInletBoundaryConditionLeftToRight();
-  } else if (paralel.is_right2left() && paralel.isProcNull(paralel.myRight)) {
-    variables.setInletBoundaryConditionRightToLeft();
+  variables.set_mass_fluxes(myGrid);
+  if (paralel.is_left2right() && paralel.isFirstProcOfRow()) {
+    variables.set_inlet_up_channel();
+  } else if (paralel.is_right2left() && paralel.isLastProcOfRow()) {
+    variables.set_inlet_bot_channel();
   }
 
   variables.sendInfoToCommMainProc(paralel);
@@ -108,14 +106,12 @@ void Problem::writeSolution(string &prefix, int i) {
 
     if (myProc == 0 && paralel.is_right2left())
       fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables.sol,
-                            paralel.locIStr, paralel.locIEnd, paralel.locJStr,
                             paralel.loc);
 
     MPI_Barrier(MPI_COMM_WORLD);
 
     if (myProc == 0 && paralel.is_left2right())
       fileWriter.WriteInter(prefix, sufix, i, mainGrid, myGrid, variables.sol,
-                            paralel.locIStr, paralel.locIEnd, paralel.locJStr,
                             paralel.loc);
 
   } else {
@@ -127,14 +123,12 @@ void Problem::writeSolution(string &prefix, int i) {
 
     if (myProc == 0 && paralel.is_right2left())
       fileWriter.WriteInter(prefix, sufix, -1, mainGrid, myGrid, variables.sol,
-                            paralel.locIStr, paralel.locIEnd, paralel.locJStr,
                             paralel.loc);
 
     MPI_Barrier(MPI_COMM_WORLD);
 
     if (myProc == 0 && paralel.is_left2right())
       fileWriter.WriteInter(prefix, sufix, -1, mainGrid, myGrid, variables.sol,
-                            paralel.locIStr, paralel.locIEnd, paralel.locJStr,
                             paralel.loc);
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -143,15 +137,13 @@ void Problem::writeSolution(string &prefix, int i) {
 
     if (myProc == 0 && paralel.is_right2left())
       fileWriter.WriteInter(lastfileprefix, lastfilesufix, -1, mainGrid, myGrid,
-                            variables.sol, paralel.locIStr, paralel.locIEnd,
-                            paralel.locJStr, paralel.loc);
+                            variables.sol, paralel.loc);
 
     MPI_Barrier(MPI_COMM_WORLD);
 
     if (myProc == 0 && paralel.is_left2right())
       fileWriter.WriteInter(lastfileprefix, lastfilesufix, -1, mainGrid, myGrid,
-                            variables.sol, paralel.locIStr, paralel.locIEnd,
-                            paralel.locJStr, paralel.loc);
+                            variables.sol, paralel.loc);
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -162,7 +154,7 @@ double Problem::mainIter(int i) {
 
   double error = 1;
 
-  variables.setChannelEquations(sys, paralel, m, q, DT, exCte, i);
+  variables.setChannelEquations(sys, paralel, m, q, DT, i);
   Direction side = west;
 
   if (paralel.isFirstProcOfRow() && paralel.is_right2left())
@@ -236,67 +228,15 @@ void Problem::writefilename(string &filename) {
   PROFILE_FUNCTION();
   std::ostringstream temp;
 
-  filename.append("_NxM-");
-  temp.str("");
-  temp.clear();
-  temp << NTOTAL;
-  filename.append(temp.str());
+  temp << filename;
+  
+  temp << "_NxM-" << NTOTAL << "x" << MTOTAL;
+  temp << "_Lxa-" << channel_xmax - channel_xmin << "x" << a;
+  temp << "_Ex-" << wall_xmax-wall_xmin;
+  temp << "_q-" << q << "_m-" << m << "_beta-" << beta_reaction;
+  temp << "_LeFxZ-" << LeF << "x" << LeZ << "_";
 
-  filename.append("x");
-  temp.str("");
-  temp.clear();
-  temp << MINPUT;
-  filename.append(temp.str());
-
-  filename.append("_Lxa-");
-  temp.str("");
-  temp.clear();
-  temp << channel_xmax - channel_xmin;
-  filename.append(temp.str());
-
-  filename.append("x");
-  temp.str("");
-  temp.clear();
-  temp << a;
-  filename.append(temp.str());
-
-  filename.append("_Ex-");
-  temp.str("");
-  temp.clear();
-  temp << wall_xmax - wall_xmin;
-  filename.append(temp.str());
-
-  filename.append("_q-");
-  temp.str("");
-  temp.clear();
-  temp << q;
-  filename.append(temp.str());
-
-  filename.append("_m-");
-  temp.str("");
-  temp.clear();
-  temp << m;
-  filename.append(temp.str());
-
-  filename.append("_beta-");
-  temp.str("");
-  temp.clear();
-  temp << beta_reaction;
-  filename.append(temp.str());
-
-  filename.append("_LeFxZ-");
-  temp.str("");
-  temp.clear();
-  temp << LeF;
-  filename.append(temp.str());
-
-  filename.append("x");
-  temp.str("");
-  temp.clear();
-  temp << LeZ;
-  filename.append(temp.str());
-
-  filename.append("_");
+  filename = temp.str();
 }
 
 void Problem::retrieveNandM(int &nxOut, int &nyOut, double &mOut) {
@@ -306,9 +246,4 @@ void Problem::retrieveNandM(int &nxOut, int &nyOut, double &mOut) {
   nyOut = M * 2;
 
   mOut = m;
-}
-
-void Problem::setExchangeConstant() {
-  exCte = bK * a * a / 2.0;
-  exCte /= (1.0 + mainGrid.DY * exCte);
 }

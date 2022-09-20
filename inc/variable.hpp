@@ -22,28 +22,10 @@ class VariableManager {
   void readFile(Paralel &paralel, int block, double &m, double yMin,
                 double yMax);
 
-  inline void setMassFluxes(const Grid &myGrid) {
-    PROFILE_FUNCTION();
+  void set_mass_fluxes(const Grid &myGrid);
 
-    massFluxE.getGridInfoPassed(myGrid, var.U.viscX[0], var.U.viscY[0]);
-    massFluxN.getGridInfoPassed(myGrid, var.V.viscX[0], var.V.viscY[0]);
-
-    massFluxE.computeEastMassFluxes(var.U);
-    massFluxN.computeNorthMassFluxes(var.V);
-  }
-
-  inline void setInletBoundaryConditionLeftToRight() {
-    PROFILE_FUNCTION();
-    var.T.inletBoundaryCondition(west, 0.0);
-    var.F.inletBoundaryCondition(west, 1.0);
-    var.Z.inletBoundaryCondition(west, 0.0);
-  }
-  inline void setInletBoundaryConditionRightToLeft() {
-    PROFILE_FUNCTION();
-    var.T.inletBoundaryCondition(east, 0.0);
-    var.F.inletBoundaryCondition(east, 1.0);
-    var.Z.inletBoundaryCondition(east, 0.0);
-  }
+  void set_inlet_up_channel();
+  void set_inlet_bot_channel();
 
   inline void sendInfoToCommMainProc(Paralel &paralel) {
     PROFILE_FUNCTION();
@@ -64,7 +46,7 @@ class VariableManager {
 
   void setChannelEquations(SystemOfEquations &sys, const Paralel &paralel,
                            const double &m, const double &q, double &DT,
-                           const double &exCte, const int &iter);
+                           const int &iter);
   void setWallShear(SystemOfEquations &sys, Direction side);
   void setExchangeWallShear(SystemOfEquations &sys, Direction side, int iStr,
                             int iEnd, int mainexI1, int mainexI2, int exI1,
@@ -83,9 +65,9 @@ class VariableManager {
     sys.F->assembleEquation();
     sys.Z->assembleEquation();
 
-    // sys.T->relax(T);
-    // sys.F->relax(F);
-    // sys.Z->relax(Z);
+    sys.T->relax(var.T);
+    sys.F->relax(var.F);
+    sys.Z->relax(var.Z);
   }
   double solveEquations(SystemOfEquations &sys, double alpha, int &niter,
                         int &itersol, int changeIter);
@@ -122,20 +104,20 @@ class VariableManager {
   inline void initialize_top_channel(const double &m, const double &q,
                                      const double &xHS, const double &z0hs) {
     PROFILE_FUNCTION();
-    var.U.laminarFlow(m, y_top_min, y_top_max);
+    var.U.laminarFlow(m, y_top_min, 2.0 * y_top_max - y_top_min);
     var.V.initializeInternalField(0);
     var.T.InitializeT(q, xHS, channel_xmin, channel_xmax);
     var.F.InitializeF(xHS, channel_xmin, channel_xmax);
-    var.Z.InitializeZ(z0hs, r0hs, xHS, (y_top_min + y_top_max) / 2.0);
+    var.Z.InitializeZ(z0hs, r0hs, xHS, y_top_max);
   }
   inline void initialize_bot_channel(const double &m, const double &q,
                                      const double &xHS, const double &z0hs) {
     PROFILE_FUNCTION();
-    var.U.laminarFlow(-m, y_bot_min, y_bot_max);
+    var.U.laminarFlow(-m, 2.0 * y_bot_min - y_bot_max, y_bot_max);
     var.V.initializeInternalField(0);
     var.T.InitializeT(q, xHS, channel_xmax, channel_xmin);
     var.F.InitializeF(xHS, channel_xmax, channel_xmin);
-    var.Z.InitializeZ(z0hs, r0hs, xHS, (y_bot_min + y_bot_max) / 2.0);
+    var.Z.InitializeZ(z0hs, r0hs, xHS, y_bot_min);
   }
 };
 

@@ -61,23 +61,17 @@ struct Paralel {
   bool is_main_proc_up() const;
   bool is_main_proc_down() const;
 
-  inline bool isProcNull(int &proc) const {
-    return proc == MPI_PROC_NULL ? true : false;
-  };
-  
-  inline bool isFirstProcOfRow() const { return myRowId == 0 ? true : false; };
-  inline bool isLastProcOfRow() const {
-    return myRowId == NPROCSINROW - 1 ? true : false;
-  };
-  
-  inline bool isFirstProcOfCol() const { return myColId == 0 ? true : false; };
-  inline bool isLastProcOfCol() const {
-    return myColId == NPROCSINROW - 1 ? true : false;
-  };
+  bool isFirstProcOfRow() const;
+  bool isLastProcOfRow() const;
+
+  bool isFirstProcOfCol() const;
+  bool isLastProcOfCol() const;
   string PrintMyRank();
 
  private:
+
   int worldMyProc;
+  bool isProcNull(const int &proc) const ;
   void setProcMesh();
   void GatherTemperature(Field &T, Field &TWall, int J) const;
 };

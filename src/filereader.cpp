@@ -8,39 +8,19 @@ void FileReader::read_field(const string &name, int blockWanted,
                             int variableWanted, Field &vec, int locIStr,
                             int locIEnd) {
   std::ifstream infile(name, std::ios::binary);
-  // std::ifstream readGrid("Grid.xyz", std::ios::binary);
 
-  // if (!infile.is_open())
-  // {
-  //   cout << "The file " << cstr << " could not be open." << endl;
-  // }
+  vector<int> NX, NY, nVar;
 
-  // readGrid.close();
-  int nBlocs;
-  infile.read((char *)&nBlocs, sizeof(nBlocs));
-
-  vector<int> NX(nBlocs);
-  vector<int> NY(nBlocs);
-  vector<int> nVar(nBlocs);
-
+  read_file_header(infile, NX, NY, nVar);
+  int nBlocs = NX.size();
   int NI = vec.NI;
   int NJ = vec.NJ / 2;
 
-  for (int k = 0; k < nBlocs; k++) {
-    infile.read((char *)&NX[k], sizeof(NX[k]));
-    infile.read((char *)&NY[k], sizeof(NY[k]));
-    infile.read((char *)&nVar[k], sizeof(nVar[k]));
-  }
   for (int k = 0; k < nBlocs; k++)
     for (int l = 0; l < nVar[k]; l++) {
       std::vector<double> inputField(NX[k] * NY[k]);
 
-      for (int j = 0; j < NY[k]; j++)
-        for (int i = 0; i < NX[k]; i++) {
-          double inputvalue;
-          infile.read((char *)&inputvalue, sizeof(double));
-          inputField[i + j * NX[k]] = inputvalue;
-        }
+      inputField = read_variable(infile, NX[0], NY[0]);
 
       if (blockWanted == k + 1 && variableWanted == l + 1) {
         double iRel = (double)NX[k] / (locIEnd - locIStr);
@@ -73,8 +53,34 @@ void FileReader::read_field(const string &name, int blockWanted,
   infile.close();
 }
 
+void FileReader::read_exact_field(const string &name, int blockWanted,
+                                  int variableWanted, Field &vec) {
+  std::ifstream infile(name, std::ios::binary);
+
+  vector<int> NX, NY, nVar;
+
+  read_file_header(infile, NX, NY, nVar);
+  int nBlocs = NX.size();
+  for (int k = 0; k < nBlocs; k++)
+    for (int l = 0; l < nVar[k]; l++) {
+      std::vector<double> inputField(NX[k] * NY[k]);
+
+      inputField = read_variable(infile, NX[k], NY[k]);
+
+      if (blockWanted == k && variableWanted == l) {
+        if (vec.NI != NX[k] || vec.NJ != NY[k])
+        std::cout << "Not Equal " << vec.NI << " " << NX[k] << " " << vec.NJ
+                  << " " << NY[k] << "\n";
+        
+        vec.value = inputField;
+        
+      }
+    }
+  infile.close();
+}
+
 void FileReader::read_grid(const string &name, vector<double> &XC,
-                           vector<double> YC) {
+                           vector<double> &YC) {
   std::ifstream gridFile(name, std::ios::binary);
 
   vector<int> NX, NY;
@@ -86,11 +92,25 @@ void FileReader::read_grid(const string &name, vector<double> &XC,
 
   vector<double> all_YC = read_variable(gridFile, NX[0], NY[0]);
   YC.resize(NY[0]);
-  
-  for(int j = 0; j < NY[0]; j++)
-    YC[j] = all_YC[NX[0]*j];
+  for (int j = 0; j < NY[0]; j++) YC[j] = all_YC[NX[0] * j];
 
   gridFile.close();
+}
+
+void FileReader::read_file_header(std::ifstream &file, vector<int> &NX,
+                                  vector<int> &NY, vector<int> &nVar) {
+  int nBlocs;
+  file.read((char *)&nBlocs, sizeof(nBlocs));
+
+  NX.resize(nBlocs);
+  NY.resize(nBlocs);
+  nVar.resize(nBlocs);
+
+  for (int k = 0; k < nBlocs; k++) {
+    file.read((char *)&NX[k], sizeof(NX[k]));
+    file.read((char *)&NY[k], sizeof(NY[k]));
+    file.read((char *)&nVar[k], sizeof(nVar[k]));
+  }
 }
 
 void FileReader::read_grid_header(std::ifstream &file, vector<int> &NX,

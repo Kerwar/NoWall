@@ -37,11 +37,11 @@ string showTime(std::chrono::duration<double> time) {
 void PrintCurrentStep(const std::chrono::duration<double> &tStart,
                       const std::chrono::duration<double> &tIter,
                       const int &iter, const double &error, const double &m) {
-  cout << " |Time from start: " << std::setw(7) << showTime(tStart)
+  cout << " |Time from start: " << std::scientific <<  std::setw(7) << showTime(tStart)
        << " |Time of last step: " << std::setw(7) << showTime(tIter)
        << " |Iteration number: " << std::setw(10) << iter
-       << " |Error: " << std::setw(12) << std::setprecision(7) << error
-       << " |M : " << std::setw(8) << std::setprecision(6) << m << "|\n";
+       << " |Error: " << std::setw(12) << std::setprecision(9) << error
+       << " |M : " << std::setw(10) << std::setprecision(8) << m << "|\n";
 }
 
 int main(int argc, char **argv) {
@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
 
   auto startTime = std::chrono::high_resolution_clock::now();
   if (world.size() == NPROCS) {
-    double mprevious = 2;
+    double mprevious = 0.8;
     Problem problem(mprevious);
     
     if (argc > 1) problem.xfix = std::atof(argv[1]);
@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
 
     if (world.rank() == 0) {
       cout << "The size of the Mesh is " << NTOTAL << "x" << MINPUT << endl;
-      cout << " " << std::setfill('_') << std::setw(120) << "\n"
+      cout << " " << std::setfill('_') << std::setw(130) << "\n"
            << std::setfill(' ');
       PrintCurrentStep(durationFromStart, durationFromPrev, 0, 0, problem.q);
       ;

@@ -40,7 +40,7 @@ Paralel::Paralel() {
       locIStr = 0;
       locIEnd = NTOTAL;
       locJStr = NJ - 2;
-      locJEnd = MINPUT - 1;
+      locJEnd = MTOTAL - 1;
 
       for (int i = 0; i < NPROCS / 2; i++) {
         jStrAllProc[i] += locJStr;
@@ -347,4 +347,16 @@ bool Paralel::is_main_proc_up() const {
 
 bool Paralel::is_main_proc_down() const {
   return is_right2left() && channel.is_main_proc();
+}
+
+bool Paralel::isFirstProcOfCol() const { return isProcNull(myBot); }
+
+bool Paralel::isLastProcOfCol() const { return isProcNull(myTop); }
+
+bool Paralel::isFirstProcOfRow() const { return isProcNull(myLeft); }
+
+bool Paralel::isLastProcOfRow() const { return isProcNull(myRight); }
+
+bool Paralel::isProcNull(const int &proc) const {
+  return proc == MPI_PROC_NULL ? true : false;
 }
