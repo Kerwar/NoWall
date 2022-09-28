@@ -377,3 +377,58 @@ void VariableManager::set_inlet_bot_channel() {
   var.F.inletBoundaryCondition(east, 1.0);
   var.Z.inletBoundaryCondition(east, 0.0);
 }
+
+void VariableManager::assembleEquations(SystemOfEquations &sys) {
+  PROFILE_FUNCTION();
+
+  sys.T->assembleEquation();
+  sys.F->assembleEquation();
+  sys.Z->assembleEquation();
+
+  sys.T->relax(var.T);
+  sys.F->relax(var.F);
+  sys.Z->relax(var.Z);
+}
+
+void VariableManager::sendInfoToCommMainProc(Paralel &paralel) {
+  PROFILE_FUNCTION();
+  paralel.SendInfoToCommMainProc(var.T, sol.T);
+  paralel.SendInfoToCommMainProc(var.F, sol.F);
+  paralel.SendInfoToCommMainProc(var.Z, sol.Z);
+  paralel.SendInfoToCommMainProc(var.U, sol.U);
+  paralel.SendInfoToCommMainProc(var.V, sol.V);
+}
+
+void VariableManager::sendInfoToNeighbours(Paralel &paralel) {
+  PROFILE_FUNCTION();
+  paralel.SendInfoToNeighbours(var.T);
+  paralel.SendInfoToNeighbours(var.F);
+  paralel.SendInfoToNeighbours(var.Z);
+}
+
+void VariableManager::setDirichlet(SystemOfEquations &sys, Direction side) {
+  PROFILE_FUNCTION();
+  sys.T->SetDirichlet(var.T, side);
+  sys.F->SetDirichlet(var.F, side);
+  sys.Z->SetDirichlet(var.Z, side);
+}
+
+void VariableManager::initialize_top_channel(const double &m, const double &q,
+                                             const double &xHS) {
+  PROFILE_FUNCTION();
+  var.U.laminarFlow(m, y_top_min, 2.0 * y_top_max - y_top_min);
+  var.V.initializeInternalField(0);
+  var.T.InitializeT(q, xHS, channel_xmin, channel_xmax);
+  var.F.InitializeF(xHS, channel_xmin, channel_xmax);
+  var.Z.InitializeZ(z0hs, r0hs, xHS, y_top_max);
+}
+
+void VariableManager::initialize_bot_channel(const double &m, const double &q,
+                                             const double &xHS) {
+  PROFILE_FUNCTION();
+  var.U.laminarFlow(-m, 2.0 * y_bot_min - y_bot_max, y_bot_max);
+  var.V.initializeInternalField(0);
+  var.T.InitializeT(q, xHS, channel_xmax, channel_xmin);
+  var.F.InitializeF(xHS, channel_xmax, channel_xmin);
+  var.Z.InitializeZ(z0hs, r0hs, xHS, y_bot_min);
+}

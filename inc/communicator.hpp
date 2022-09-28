@@ -10,7 +10,7 @@ using std::vector;
 class Communicator {
  public:
   Communicator() : Communicator(MPI_COMM_WORLD){};
-  Communicator(MPI_Comm comm)
+  explicit Communicator(MPI_Comm comm)
       : comm_(comm),
         mpi_error_(MPI_Comm_size(comm_, &size_)),
         mpi_error2_(MPI_Comm_rank(comm_, &rank_)){};

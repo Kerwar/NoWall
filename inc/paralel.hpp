@@ -53,7 +53,6 @@ struct Paralel {
   void distributeToProcs(Field &sol, Field &vec);
 
   void setProcWithFixPoint(const bool &fixPointIntThisProc);
-  void scatter(double &from, int size, double &to, int originProc);
 
   bool is_left2right() const;
   bool is_right2left() const;

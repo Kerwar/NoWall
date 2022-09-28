@@ -41,6 +41,7 @@ constexpr double gamma_reaction = 0.7;
 constexpr double LeF = 1.0;
 constexpr double LeZ = 0.3;
 constexpr double xHotSpot = 46;
+constexpr double z0hs = 0.5;
 constexpr double r0hs = 1;
 // FROM HERE NO NEED TO CHANGE THEM,
 // THEY ARE PARAMETERS THAT COME FROM THE OTHERS

@@ -45,6 +45,7 @@ int main() {
       data_processor.add_member();
       data_processor.get_dimensions(filename);
       data_processor.get_parameters(filename);
+      std::cout << filename << std::endl;
       data_processor.get_flame_position(filename);
     }
   }

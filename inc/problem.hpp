@@ -10,7 +10,7 @@ using namespace parameters;
 
 class Problem {
  public:
-  Problem(const double &prevm);
+  explicit Problem(const double &prevm);
   virtual ~Problem();
 
   void setUpProblem();
@@ -28,7 +28,7 @@ class Problem {
   double xfix;
   Paralel paralel;
 
-  inline bool isErrorSmallEnough(double &error) {
+  bool isErrorSmallEnough(const double &error) {
     return error < TOL ? true : false;
   };
 
@@ -36,7 +36,7 @@ class Problem {
   double alpha;
 
   double yfix;
-  double xHS_U, xHS_D, z0hs;
+  double xHS_U, xHS_D;
 
   double alphaWall, DT;
 

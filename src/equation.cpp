@@ -285,21 +285,3 @@ double Equation::solveGaussSeidel(Field &phi, const double &alpha,
   }
   return Residual / rerror;
 }
-
-double Equation::solveExplicit(Field &phi) {
-  PROFILE_FUNCTION();
-  double error = 0;
-
-  forAllInterior(NI, NJ) {
-    double newvalue =
-        DT * (A[i][j].svalue - A[i][j].aw * phi.value[i - 1 + j * NI] -
-              A[i][j].ae * phi.value[i + 1 + j * NI] -
-              A[i][j].as * phi.value[i + (j - 1) * NI] -
-              A[i][j].an * phi.value[i + (j + 1) * NI] -
-              A[i][j].ap * phi.value[i + j * NI]) +
-        phi.value[i + j * NI];
-    error += std::abs(newvalue - phi.value[i + j * NI]);
-    phi.value[i + j * NI] = newvalue;
-  }
-  return error;
-}

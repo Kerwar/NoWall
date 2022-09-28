@@ -40,7 +40,6 @@ class Equation {
                int &iterations, const int &iterChange);
   double solveGaussSeidel(Field &phi, const double &alpha,
                           const int &iterations);
-  double solveExplicit(Field &phi);
 
   void inline updateEquation(const FiniteMatrix::finiteMat &fvm) { A = fvm; };
 

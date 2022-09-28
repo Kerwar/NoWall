@@ -98,7 +98,6 @@ int main(int argc, char **argv) {
       }
     }
 
-    string previous = "";
     problem.writeSolution(filename, -1);
 
     if (world.rank() == 0) cout << "We have Computed Everything!" << endl;

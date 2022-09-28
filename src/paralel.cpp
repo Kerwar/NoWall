@@ -325,11 +325,6 @@ void Paralel::GatherTemperature(Field &T, Field &TWall, int J) const {
   // for (int i = exI2; i < N + 2; i++) TWall.value[i] = 0;
 }
 
-void Paralel::scatter(double &from, int size, double &to, int originProc) {
-  MPI_Scatter(&from, size, MPI_DOUBLE, &to, size, MPI_DOUBLE, originProc,
-              channel.comm());
-}
-
 void Paralel::setProcWithFixPoint(const bool &fixPointInThisProc) {
   if (fixPointInThisProc) fixPointProc += worldMyProc;
 

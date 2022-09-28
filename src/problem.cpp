@@ -11,7 +11,6 @@ Problem::Problem(const double &prevm) : maxit(10E4), iShow(10E3) {
   yfix = 1.25;
   xHS_U = 44;
   xHS_D = 76;
-  z0hs = 0.5;
   alphaWall = 1;
   DT = 10e-3;
   itersol = 4;
@@ -56,9 +55,9 @@ void Problem::initializeVariables() {
 
   if (!readFromFile) {
     if (paralel.is_left2right())
-      variables.initialize_top_channel(m, q, xHS_U, z0hs);
+      variables.initialize_top_channel(m, q, xHS_U);
     else if (paralel.is_right2left())
-      variables.initialize_bot_channel(m, q, xHS_D, z0hs);
+      variables.initialize_bot_channel(m, q, xHS_D);
 
     readFromFile = true;
   } else {
