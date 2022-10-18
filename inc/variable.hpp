@@ -36,9 +36,7 @@ class VariableManager {
                            const double &m, const double &q, double &DT,
                            const int &iter);
   void setWallShear(SystemOfEquations &sys, Direction side);
-  void setExchangeWallShear(SystemOfEquations &sys, Direction side, int iStr,
-                            int iEnd, int mainexI1, int mainexI2, int exI1,
-                            int exI2);
+  void setExchangeWallShear(SystemOfEquations &sys, Direction side);
   void setDirichlet(SystemOfEquations &sys, Direction side);
 
   void assembleEquations(SystemOfEquations &sys);
@@ -61,8 +59,11 @@ class VariableManager {
   void initialize_bot_channel(const double &m, const double &q,
                               const double &xHS);
 
+  void setExchangeIndexes(const Grid &mainGrid, const Grid &myGrid, const Paralel &paralel);
+
  private:
   int ifix, jfix;
+  int end_ex_zone_1, begin_ex_zone_2;
 
   Variables var;
 
@@ -74,6 +75,7 @@ class VariableManager {
   double DY;
 
   string initialsol = "Sol-1.f";
+
 };
 
 #endif

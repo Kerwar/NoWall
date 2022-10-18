@@ -125,13 +125,10 @@ void VariableManager::setWallShear(SystemOfEquations &sys, Direction side) {
 }
 
 void VariableManager::setExchangeWallShear(SystemOfEquations &sys,
-                                           Direction side, int iStr, int iEnd,
-                                           int mainexI1, int mainexI2, int exI1,
-                                           int exI2) {
+                                           Direction side)  {
   PROFILE_FUNCTION();
 
-  sys.T->SetWallShearTX(var.T, iStr, iEnd, mainexI1, mainexI2, exI1, exI2,
-                        side);
+  sys.T->SetWallShearTX(var.T, end_ex_zone_1, begin_ex_zone_2, side);
   sys.F->SetWallShearX(var.F, side);
   sys.Z->SetWallShearX(var.Z, side);
 }
@@ -431,4 +428,23 @@ void VariableManager::initialize_bot_channel(const double &m, const double &q,
   var.T.InitializeT(q, xHS, channel_xmax, channel_xmin);
   var.F.InitializeF(xHS, channel_xmax, channel_xmin);
   var.Z.InitializeZ(z0hs, r0hs, xHS, y_bot_min);
+}
+
+void VariableManager::setExchangeIndexes(const Grid &mainGrid, const Grid &myGrid, const Paralel &paralel){
+  if(paralel.iEnd <= mainGrid.exI1 || paralel.iStr >= mainGrid.exI2){
+    end_ex_zone_1 = 1;
+    begin_ex_zone_2 = NI;
+  } 
+  else if (paralel.iStr < mainGrid.exI1 && paralel.iEnd <= mainGrid.exI2){
+    end_ex_zone_1 = 1;
+    begin_ex_zone_2 = myGrid.exI1;
+  } 
+  else if (paralel.iStr >= mainGrid.exI1 && paralel.iEnd > mainGrid.exI2){
+    end_ex_zone_1 = myGrid.exI2;
+    begin_ex_zone_2 = NI;
+  } 
+  else if (paralel.iStr < mainGrid.exI1 && paralel.iEnd >= mainGrid.exI2) {
+    end_ex_zone_1 = 1;
+    begin_ex_zone_2 = NI;
+  } 
 }

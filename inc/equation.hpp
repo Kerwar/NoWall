@@ -29,9 +29,8 @@ class Equation {
   void noWallShearYBoundaryConditions(const Field &vec, const int &start,
                                       const int &end, const Direction &side);
 
-  void SetWallShearTX(const Field &vec, const int &iStr, const int &iEnd,
-                      const int &Ex1, const int &Ex2, const int &myEx1,
-                      const int &myEx2, const Direction &side);
+  void SetWallShearTX(const Field &vec, const int &exI1,
+                      const int &exI2, const Direction &side);
   void SetWallShearX(const Field &vec, const Direction &side);
   void SetWallShearY(const Field &vec, const Direction &side);
 

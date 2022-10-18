@@ -1,20 +1,19 @@
 #include <filesystem>
-#include <iostream>
+#include <iostream> 
 #include <string>
 
 #include "datamanager.hpp"
-#include "field.hpp"
 
-int main() {
-  std::string path = "/home/javier/Documentos/Resultados/CF2D/Q-vs-xf";
+int main(){
+
+  std::string path = "/home/javier/Documentos/Resultados/CF2D/Le-vs-xf";
 
   DataManager data_processor(path);
 
-  for (const auto &entry : std::filesystem::directory_iterator(path)) {
+  for (const auto &entry : std::filesystem::directory_iterator(path)){
     string filename = entry.path();
 
-    if (filename.find("Sol_NxM") != string::npos &&
-        filename.find("_-1.f") != string::npos) {
+    if (filename.find("Sol_NxM") != string::npos && filename.find("_-1.f") != string::npos){
       data_processor.add_member();
       data_processor.get_dimensions(filename);
       data_processor.get_parameters(filename);
@@ -22,19 +21,18 @@ int main() {
       data_processor.get_flame_position(filename);
     }
   }
-
   std::cout << "ALL DATA READ\n";
 
   while (data_processor.size() > 0) {
     // Choose a value of a to process
-    double a_active = data_processor.database[0].a;
+    double LeF_active = data_processor.database[0].LeF;
     std::cout << data_processor.size() << "\n";
 
     // Set the file where the info will go
     std::ostringstream filename;
     std::streamsize ss = filename.precision();
-    filename << "/home/javier/Documentos/Resultados/CF2D/Q-vs-xf/q~xf_a-"
-             << std::fixed << std::setprecision(0) << a_active
+    filename << "/home/javier/Documentos/Resultados/CF2D/Le-vs-xf/q~xf_LeF-"
+             << std::fixed << std::setprecision(1) << LeF_active
              << "_m-2_beta-10.txt";
     filename << std::setprecision(ss);
 
@@ -46,7 +44,7 @@ int main() {
     std::vector<int> index_files_active;
     std::vector<int> index_files_a_remove;
 
-    index_files_active = data_processor.filter_by_a(a_active);
+    index_files_active = data_processor.filter_by_LeF(LeF_active);
 
     std::cout << "Files filter!\n";
     // Loop over the right files to get the one with maximum q
@@ -57,4 +55,5 @@ int main() {
     std::cout << "Data deleted!\n";
     outfile.close();
   }
+  return 0;
 }

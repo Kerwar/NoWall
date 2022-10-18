@@ -5,6 +5,11 @@
 
 struct SystemOfEquations {
   Equation *T, *F, *Z;
+  ~SystemOfEquations(){
+    delete T;
+    delete F;
+    delete Z;
+  }
 };
 
 struct Variables {

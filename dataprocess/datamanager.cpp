@@ -87,6 +87,9 @@ void DataManager::get_parameters(string filename) {
 
   string mstring = find_parameter_value(filename, "_m-", "_beta-");
   database.back().m = stod(mstring);
+  
+  string LeFstring = find_parameter_value(filename, "_LeFxZ-", "x0.3_-1.");
+  database.back().LeF = stod(LeFstring);
 }
 
 void DataManager::get_flame_position(string filename) {
@@ -144,8 +147,18 @@ vector<int> DataManager::filter_by_m(double m) {
   return result;
 }
 
+vector<int> DataManager::filter_by_LeF(double LeF) {
+  vector<int> result;
+  for (int i = 0; i < size(); i++)
+    if (std::abs(database[i].LeF - LeF) < 10e-5) result.push_back(i);
+  
+  return result;
+}
+
 void DataManager::write_data(std::ofstream &file, vector<int> data_index) {
   
+    file << "q T Z a m LeF" << std::endl;
+
   while (data_index.size() > 0) {
     int add_i = data_index[0];
     vector<int> copyhelp = data_index;
@@ -155,7 +168,7 @@ void DataManager::write_data(std::ofstream &file, vector<int> data_index) {
         add_i = k;
     
     file << database[add_i].q << " " << database[add_i].T << " " << database[add_i].Z << " " 
-         << database[add_i].a << " " << database[add_i].m << std::endl;
+         << database[add_i].a << " " << database[add_i].m << " " << database[add_i].LeF << std::endl;
 
     data_index.clear();
     remove_copy(copyhelp.begin(), copyhelp.end(), std::back_inserter(data_index), add_i);

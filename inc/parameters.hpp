@@ -5,7 +5,7 @@
 
 namespace parameters {
 // NUMERICAL
-constexpr int NPROCS = 64;
+constexpr int NPROCS = 8;
 
 constexpr int NINPUT = 1200;
 constexpr int MINPUT = 80;

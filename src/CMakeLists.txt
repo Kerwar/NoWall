@@ -6,6 +6,7 @@ include_directories("../src")
 include_directories("../inc")
 
 SET(SOURCES main.cpp
+  messages.cpp 
   grid.cpp
   field.cpp
   filewriter.cpp

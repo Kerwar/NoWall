@@ -9,6 +9,8 @@ include_directories(/opt/OpenMpi/include)
 set(CMAKE_CXX_STANDARD 17)
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+
 include(FetchContent)
 FetchContent_Declare(
   googletest
@@ -21,5 +23,5 @@ FetchContent_MakeAvailable(googletest)
 
 add_subdirectory(src)
 add_subdirectory(inc)
-add_subdirectory(test)
+# add_subdirectory(test)
 add_subdirectory(dataprocess)

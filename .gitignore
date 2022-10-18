@@ -4,3 +4,4 @@ Results/
 Profiling/
 Profiling/*
 NoWall-cppcheck-build-dir/
+.cache/

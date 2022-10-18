@@ -32,6 +32,7 @@ class DataManager {
 
   vector<int> filter_by_a(double a);
   vector<int> filter_by_m(double m);
+	vector<int> filter_by_LeF(double LeF);
   
   void write_data(std::ofstream &file, vector<int> data_index);
   void remove_data(vector<int> data_index);

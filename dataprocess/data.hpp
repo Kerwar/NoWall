@@ -7,7 +7,7 @@ using std::string;
 
 struct Data {
   Data(){};
-  double a, q, m;
+  double a, q, m, LeF;
   double T_before1, T_after1, T;
   double Z_Max_prev, Z_Max, Z_Max_post, Z;
   int indexes;

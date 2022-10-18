@@ -6,7 +6,7 @@
 #include "field.hpp"
 
 int main() {
-  std::string path = "/home/javier/Documentos/Resultados/CF2D/Q-vs-xf";
+  std::string path = "/home/javier/Documentos/Resultados/CF2D/Lewis";
 
   DataManager data_processor(path);
 
@@ -33,9 +33,7 @@ int main() {
     // Set the file where the info will go
     std::ostringstream filename;
     std::streamsize ss = filename.precision();
-    filename << "/home/javier/Documentos/Resultados/CF2D/Q-vs-xf/q~xf_a-"
-             << std::fixed << std::setprecision(0) << a_active
-             << "_m-2_beta-10.txt";
+    filename << "/home/javier/Documentos/Resultados/CF2D/Lewis/lewis_m-2_beta-10.txt";
     filename << std::setprecision(ss);
 
     std::ofstream outfile;
@@ -48,13 +46,10 @@ int main() {
 
     index_files_active = data_processor.filter_by_a(a_active);
 
-    std::cout << "Files filter!\n";
     // Loop over the right files to get the one with maximum q
 
     data_processor.write_data(outfile, index_files_active);
-    std::cout << "Data Written!\n";
     data_processor.remove_data(index_files_active);
-    std::cout << "Data deleted!\n";
     outfile.close();
   }
 }

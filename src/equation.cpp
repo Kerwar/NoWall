@@ -185,22 +185,12 @@ double Equation::solve(Field &phi, const double &alpha, const int &niter,
   return Residual;
 }
 
-void Equation::SetWallShearTX(const Field &vec, const int &iStr,
-                              const int &iEnd, const int &Ex1, const int &Ex2,
-                              const int &myEx1, const int &myEx2,
-                              const Direction &side) {
+void Equation::SetWallShearTX(const Field &vec, const int &exI1,
+                              const int &exI2, const Direction &side) {
   PROFILE_FUNCTION();
 
-  if (iEnd <= Ex1 || iStr >= Ex2)
-    noWallShearXBoundaryConditions(vec, 1, vec.NI, side);
-  else if (iStr < Ex1 && iEnd <= Ex2)
-    noWallShearXBoundaryConditions(vec, 1, myEx1, side);
-  else if (iStr >= Ex1 && iEnd > Ex2)
-    noWallShearXBoundaryConditions(vec, myEx2, vec.NI, side);
-  else if (iStr < Ex1 && iEnd >= Ex2) {
-    noWallShearXBoundaryConditions(vec, 1, myEx1, side);
-    noWallShearXBoundaryConditions(vec, myEx2, vec.NI, side);
-  }
+  noWallShearXBoundaryConditions(vec, 1, exI1, side);
+  noWallShearXBoundaryConditions(vec, exI2, NI, side);
 
   SetDirichlet(vec, side);
 }

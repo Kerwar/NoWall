@@ -1,6 +1,6 @@
 #include "problem.hpp"
 
-Problem::Problem(const double &prevm) : maxit(10E4), iShow(10E3) {
+Problem::Problem(const double &prevm) : maxit(10E3), iShow(10E2) {
   PROFILE_FUNCTION();
   readFromFile = true;
   alpha = 0.95;
@@ -79,15 +79,15 @@ void Problem::initializeVariables() {
   // fieldOper.getGridInfoPassed(UN, myGrid, viscX, viscY);
 
   variables.set_mass_fluxes(myGrid);
-  if (paralel.is_left2right() && paralel.isFirstProcOfRow()) {
+  if (paralel.is_left2right() && paralel.isFirstProcOfRow()) 
     variables.set_inlet_up_channel();
-  } else if (paralel.is_right2left() && paralel.isLastProcOfRow()) {
+  else if (paralel.is_right2left() && paralel.isLastProcOfRow())
     variables.set_inlet_bot_channel();
-  }
 
   variables.sendInfoToCommMainProc(paralel);
 
   variables.exchangeTemperature(paralel, mainGrid);
+  variables.setExchangeIndexes(mainGrid, myGrid, paralel);
 }
 
 void Problem::writeSolution(string &prefix, int i) {
@@ -173,16 +173,12 @@ double Problem::mainIter(int i) {
   if (paralel.is_right2left())
     variables.setWallShear(sys, side);
   else if (paralel.is_left2right())
-    variables.setExchangeWallShear(sys, side, paralel.iStr, paralel.iEnd,
-                                   mainGrid.exI1, mainGrid.exI2, myGrid.exI1,
-                                   myGrid.exI2);
+    variables.setExchangeWallShear(sys, side);
 
   side = north;
 
   if (paralel.is_right2left())
-    variables.setExchangeWallShear(sys, side, paralel.iStr, paralel.iEnd,
-                                   mainGrid.exI1, mainGrid.exI2, myGrid.exI1,
-                                   myGrid.exI2);
+    variables.setExchangeWallShear(sys, side);
   else if (paralel.is_left2right())
     variables.setWallShear(sys, side);
 
