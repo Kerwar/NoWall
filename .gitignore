@@ -1,7 +1,6 @@
-build/
-Results/
-.vscode/
-Profiling/
-Profiling/*
-NoWall-cppcheck-build-dir/
-.cache/
+build
+Results
+.vscode
+Profiling
+NoWall-cppcheck-build-dir
+.cache
